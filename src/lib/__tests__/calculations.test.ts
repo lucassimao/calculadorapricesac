@@ -1,0 +1,140 @@
+import { describe, expect, it } from 'vitest';
+import {
+  calculatePricePayment,
+  calculateLoanSummary,
+  convertRateToMonthly,
+  generateAmortizationSchedule,
+  validateScenario,
+} from '../calculations';
+import type { Scenario } from '../../types/loan';
+
+const baseScenario: Scenario = {
+  id: 'test',
+  name: 'Teste',
+  system: 'PRICE',
+  principal: 10000,
+  rate: 1,
+  rateType: 'monthly',
+  term: 12,
+  termUnit: 'months',
+  startDate: new Date(2026, 0, 1),
+  dueDay: 5,
+  prepayments: [],
+};
+
+describe('generateAmortizationSchedule', () => {
+  it('matches spreadsheet values for Price example', () => {
+    const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
+    const firstPayment = schedule[1];
+
+    expect(firstPayment.interest).toBeCloseTo(100, 2);
+    expect(firstPayment.payment).toBeCloseTo(888.49, 2);
+    expect(firstPayment.amortization).toBeCloseTo(788.49, 2);
+    expect(schedule[schedule.length - 1].balance).toBeCloseTo(0, 2);
+  });
+
+  it('matches spreadsheet values for SAC example', () => {
+    const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'SAC' });
+    const firstPayment = schedule[1];
+
+    expect(firstPayment.interest).toBeCloseTo(100, 2);
+    expect(firstPayment.amortization).toBeCloseTo(833.33, 2);
+    expect(firstPayment.payment).toBeCloseTo(933.33, 2);
+    expect(schedule[schedule.length - 1].balance).toBeCloseTo(0, 2);
+  });
+
+  it('stops schedule when reduce_term prepayment pays off balance', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      system: 'PRICE',
+      prepayments: [
+        {
+          id: 'p1',
+          date: new Date('2026-01-05T00:00:00Z'),
+          amount: 9500,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    const last = schedule[schedule.length - 1];
+    expect(last.balance).toBeCloseTo(0, 2);
+    expect(schedule.length).toBeLessThan(baseScenario.term + 1);
+  });
+
+  it('recalculates payment when reduce_payment prepayment is used', () => {
+    const baseline = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      system: 'PRICE',
+      prepayments: [
+        {
+          id: 'p2',
+          date: new Date(2026, 1, 5),
+          amount: 5000,
+          type: 'fixed_amount',
+          strategy: 'reduce_payment',
+        },
+      ],
+    });
+
+    const paymentBefore = schedule[1].payment;
+    const paymentAfter = schedule[3]?.payment ?? paymentBefore;
+    expect(paymentAfter).toBeLessThanOrEqual(paymentBefore);
+
+    const baselineMonth2 = baseline[2];
+    const withPrepayMonth2 = schedule[2];
+    expect(withPrepayMonth2.payment).toBeGreaterThan(baselineMonth2.payment);
+    expect(withPrepayMonth2.prepaymentAmount).toBeCloseTo(5000, 2);
+    expect(withPrepayMonth2.balance).toBeLessThan(baselineMonth2.balance);
+  });
+});
+
+describe('calculateLoanSummary', () => {
+  it('computes summary totals from schedule', () => {
+    const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
+    const summary = calculateLoanSummary(schedule);
+
+    expect(summary.totalPayment).toBeGreaterThan(0);
+    expect(summary.totalInterest).toBeGreaterThan(0);
+    expect(summary.firstPayment).toBeCloseTo(schedule[1].payment, 2);
+    expect(summary.lastPayment).toBeCloseTo(schedule[schedule.length - 1].payment, 2);
+  });
+});
+
+describe('validateScenario', () => {
+  it('flags invalid inputs', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      principal: 0,
+      rate: 0,
+      term: 0,
+      dueDay: 0,
+    });
+
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('warns on suspicious rate types', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      rate: 12,
+      rateType: 'monthly',
+    });
+
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe('rate conversions and payment edge cases', () => {
+  it('converts annual rate to monthly effective rate', () => {
+    const monthly = convertRateToMonthly(12, true);
+    expect(monthly).toBeCloseTo(0.009488, 4);
+  });
+
+  it('uses principal/term when rate is zero', () => {
+    const payment = calculatePricePayment(12000, 0, 12);
+    expect(payment).toBeCloseTo(1000, 2);
+  });
+});

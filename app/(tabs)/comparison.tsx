@@ -4,6 +4,8 @@ import type { Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule } from '../../src/lib/calculations';
 
 const BASE_SCENARIO: Scenario = {
+  id: 'base',
+  name: 'Comparação',
   system: 'PRICE',
   principal: 300000,
   rate: 1.2,
@@ -12,6 +14,7 @@ const BASE_SCENARIO: Scenario = {
   termUnit: 'months',
   startDate: new Date(),
   dueDay: 5,
+  prepayments: [],
 };
 
 function parseCurrencyInput(value: string): number {

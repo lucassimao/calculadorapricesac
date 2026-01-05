@@ -1,4 +1,4 @@
-import type { LoanSummary, Scenario, ScheduleRow } from '../types/loan';
+import type { LoanSummary, PrepaymentEvent, Scenario, ScheduleRow } from '../types/loan';
 
 const roundCents = (value: number) => Math.round(value * 100) / 100;
 
@@ -41,6 +41,8 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   const schedule: ScheduleRow[] = [];
   let balance = scenario.principal;
   let currentDate = new Date(scenario.startDate);
+  const prepayments = scenario.prepayments ?? [];
+  const sortedPrepayments = [...prepayments].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // Row 0 (spreadsheet parity)
   schedule.push({
@@ -52,43 +54,143 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     balance: roundCents(balance),
   });
 
+  const getPrepaymentsForMonth = (installmentDate: Date): PrepaymentEvent[] => {
+    const month = installmentDate.getMonth();
+    const year = installmentDate.getFullYear();
+    return sortedPrepayments.filter((p) => p.date.getMonth() === month && p.date.getFullYear() === year);
+  };
+
   if (scenario.system === 'PRICE') {
-    const fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths);
+    let fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths);
     for (let i = 1; i <= termMonths; i++) {
       const interest = balance * monthlyRate;
-      const amortization = fixedPayment - interest;
+      let amortization = fixedPayment - interest;
+      let payment = fixedPayment;
+
+      const installmentDate = new Date(currentDate);
+      installmentDate.setDate(scenario.dueDay);
+
+      const prepaymentsForMonth = getPrepaymentsForMonth(installmentDate);
+      let prepaymentAmount = 0;
+      let prepaymentDescription: string | undefined;
+
+      if (prepaymentsForMonth.length > 0) {
+        for (const prepayment of prepaymentsForMonth) {
+          let amount = 0;
+          if (prepayment.type === 'fixed_amount') {
+            amount = prepayment.amount;
+          } else if (prepayment.type === 'percentage') {
+            amount = (prepayment.amount / 100) * balance;
+          } else {
+            continue;
+          }
+
+          amount = Math.min(amount, balance - amortization);
+          if (amount > 0) {
+            prepaymentAmount += amount;
+            prepaymentDescription = prepayment.description || prepaymentDescription;
+          }
+        }
+
+        if (prepaymentAmount > 0) {
+          if (prepaymentsForMonth.some((p) => p.strategy === 'reduce_term')) {
+            amortization += prepaymentAmount;
+            payment += prepaymentAmount;
+          } else {
+            amortization += prepaymentAmount;
+            payment += prepaymentAmount;
+            const remaining = termMonths - i;
+            if (remaining > 0) {
+              fixedPayment = calculatePricePayment(balance - amortization, monthlyRate, remaining);
+            }
+          }
+        }
+      }
+
       balance -= amortization;
+      const isPaidOff = balance <= 0;
 
-      const installmentDate = new Date(currentDate);
-      installmentDate.setDate(scenario.dueDay);
-      schedule.push({
-        installmentNumber: i,
-        date: installmentDate,
-        payment: roundCents(fixedPayment),
-        interest: roundCents(interest),
-        amortization: roundCents(amortization),
-        balance: roundCents(balance < 0 ? 0 : balance),
-      });
-
-      currentDate = addMonths(currentDate, 1);
-    }
-  } else {
-    const fixedAmortization = calculateSacAmortization(balance, termMonths);
-    for (let i = 1; i <= termMonths; i++) {
-      const interest = balance * monthlyRate;
-      const payment = fixedAmortization + interest;
-      balance -= fixedAmortization;
-
-      const installmentDate = new Date(currentDate);
-      installmentDate.setDate(scenario.dueDay);
       schedule.push({
         installmentNumber: i,
         date: installmentDate,
         payment: roundCents(payment),
         interest: roundCents(interest),
-        amortization: roundCents(fixedAmortization),
+        amortization: roundCents(amortization),
         balance: roundCents(balance < 0 ? 0 : balance),
+        prepaymentAmount: prepaymentAmount > 0 ? roundCents(prepaymentAmount) : undefined,
+        prepaymentDescription,
       });
+
+      if (isPaidOff) {
+        break;
+      }
+
+      currentDate = addMonths(currentDate, 1);
+    }
+  } else {
+    let fixedAmortization = calculateSacAmortization(balance, termMonths);
+    for (let i = 1; i <= termMonths; i++) {
+      const interest = balance * monthlyRate;
+      let amortization = fixedAmortization;
+      let payment = fixedAmortization + interest;
+
+      const installmentDate = new Date(currentDate);
+      installmentDate.setDate(scenario.dueDay);
+
+      const prepaymentsForMonth = getPrepaymentsForMonth(installmentDate);
+      let prepaymentAmount = 0;
+      let prepaymentDescription: string | undefined;
+
+      if (prepaymentsForMonth.length > 0) {
+        for (const prepayment of prepaymentsForMonth) {
+          let amount = 0;
+          if (prepayment.type === 'fixed_amount') {
+            amount = prepayment.amount;
+          } else if (prepayment.type === 'percentage') {
+            amount = (prepayment.amount / 100) * balance;
+          } else {
+            continue;
+          }
+
+          amount = Math.min(amount, balance - amortization);
+          if (amount > 0) {
+            prepaymentAmount += amount;
+            prepaymentDescription = prepayment.description || prepaymentDescription;
+          }
+        }
+
+        if (prepaymentAmount > 0) {
+          if (prepaymentsForMonth.some((p) => p.strategy === 'reduce_term')) {
+            amortization += prepaymentAmount;
+            payment += prepaymentAmount;
+          } else {
+            amortization += prepaymentAmount;
+            payment += prepaymentAmount;
+            const remaining = termMonths - i;
+            if (remaining > 0) {
+              fixedAmortization = calculateSacAmortization(balance - amortization, remaining);
+            }
+          }
+        }
+      }
+
+      balance -= amortization;
+      const isPaidOff = balance <= 0;
+
+      schedule.push({
+        installmentNumber: i,
+        date: installmentDate,
+        payment: roundCents(payment),
+        interest: roundCents(interest),
+        amortization: roundCents(amortization),
+        balance: roundCents(balance < 0 ? 0 : balance),
+        prepaymentAmount: prepaymentAmount > 0 ? roundCents(prepaymentAmount) : undefined,
+        prepaymentDescription,
+      });
+
+      if (isPaidOff) {
+        break;
+      }
 
       currentDate = addMonths(currentDate, 1);
     }

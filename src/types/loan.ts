@@ -9,6 +9,8 @@ export type PrepaymentStrategy = 'reduce_term' | 'reduce_payment';
 export type PrepaymentType = 'fixed_amount' | 'percentage' | 'available_monthly' | 'one_time';
 
 export interface Scenario {
+  id: string;
+  name: string;
   system: LoanSystem;
   principal: number;
   rate: number;
@@ -17,6 +19,7 @@ export interface Scenario {
   termUnit: TimeUnit;
   startDate: Date;
   dueDay: number;
+  prepayments?: PrepaymentEvent[];
 }
 
 export interface PrepaymentEvent {
@@ -35,6 +38,8 @@ export interface ScheduleRow {
   interest: number;
   amortization: number;
   balance: number;
+  prepaymentAmount?: number;
+  prepaymentDescription?: string;
 }
 
 export interface LoanSummary {
