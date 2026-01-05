@@ -248,9 +248,9 @@ export default function CalculatorScreen() {
       if (format === 'pdf') {
         await exportPdf(scenario, summary, schedule);
       } else if (format === 'xlsx') {
-        await exportXlsx(schedule, scenario);
+        await exportXlsx(schedule, scenario, summary);
       } else {
-        await exportCsv(schedule, scenario);
+        await exportCsv(schedule, scenario, summary);
       }
     } catch {
       Alert.alert('Erro', 'Não foi possível exportar o arquivo.');

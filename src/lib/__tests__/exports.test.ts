@@ -96,7 +96,7 @@ beforeEach(() => {
 
 describe('exports', () => {
   it('exports CSV and shares with correct mime', async () => {
-    await exportCsv(schedule, scenario);
+    await exportCsv(schedule, scenario, summary);
 
     expect(createdFiles).toHaveLength(1);
     expect(createdFiles[0]?.uri).toContain('tabela_amortizacao.csv');
@@ -109,7 +109,7 @@ describe('exports', () => {
   });
 
   it('exports XLSX and shares with correct mime', async () => {
-    await exportXlsx(schedule, scenario);
+    await exportXlsx(schedule, scenario, summary);
 
     expect(createdFiles).toHaveLength(1);
     expect(createdFiles[0]?.uri).toContain('tabela_amortizacao.xlsx');

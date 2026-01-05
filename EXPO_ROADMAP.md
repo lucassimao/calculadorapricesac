@@ -230,15 +230,15 @@ Exit Criteria:
 **Goal:** Add features found in comparable apps/simuladores.
 
 Checklist:
-- [ ] CET (Custo Efetivo Total) com detalhamento de custos no resumo
-- [ ] Entradas de custos típicos (IOF, taxas, seguros, tarifa administrativa)
-- [ ] Entrada + valor do imóvel → calcular automaticamente valor financiado
-- [ ] Custos do imóvel no resumo (ITBI + taxas cartorárias)
-- [ ] Modo financiamento imobiliário (campos/labels dedicados)
+- [x] CET (Custo Efetivo Total) com detalhamento de custos no resumo
+- [x] Entradas de custos típicos (IOF, taxas, seguros, tarifa administrativa)
+- [x] Entrada + valor do imóvel → calcular automaticamente valor financiado
+- [x] Custos do imóvel no resumo (ITBI + taxas cartorárias)
+- [x] Modo financiamento imobiliário (campos/labels dedicados)
 - [x] FGTS opcional (entrada/amortização/parcelas)
 - [x] FGTS: opções de uso (liquidação, amortização, pagamento parcial de parcelas)
-- [ ] Comparador rápido de condições (juros/prazo/entrada lado a lado)
-- [ ] Exportar relatório com resumo de custos adicionais
+- [x] Comparador rápido de condições (juros/prazo/entrada lado a lado)
+- [x] Exportar relatório com resumo de custos adicionais
 
 Exit Criteria:
 - Recursos habilitados e testados com cenários imobiliários reais.

@@ -15,6 +15,9 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
         <td>${formatCurrency(row.interest)}</td>
         <td>${formatCurrency(row.amortization)}</td>
         <td>${formatCurrency(row.balance)}</td>
+        <td>${formatCurrency(row.extraCosts ?? 0)}</td>
+        <td>${formatCurrency(row.fgtsSubsidy ?? 0)}</td>
+        <td>${formatCurrency(row.netPayment ?? row.payment)}</td>
       </tr>
     `
     )
@@ -41,6 +44,12 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
         <h2>Resumo</h2>
         <p>Total Pago: ${formatCurrency(summary.totalPayment)}</p>
         <p>Total Juros: ${formatCurrency(summary.totalInterest)}</p>
+        <p>Custos Iniciais: ${formatCurrency(summary.totalUpfrontCosts)}</p>
+        <p>Custos Mensais: ${formatCurrency(summary.totalMonthlyCosts)}</p>
+        <p>Total com Custos: ${formatCurrency(summary.totalPaymentWithCosts)}</p>
+        <p>CET (a.a.): ${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%</p>
+        <p>FGTS Usado: ${formatCurrency(summary.totalFgtsUsed)}</p>
+        <p>Total Pago Líquido: ${formatCurrency(summary.totalPaymentNet)}</p>
         <p>1ª Parcela: ${formatCurrency(summary.firstPayment)}</p>
         <p>Última Parcela: ${formatCurrency(summary.lastPayment)}</p>
         <h2>Tabela de Amortização</h2>
@@ -53,6 +62,9 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
               <th>Juros</th>
               <th>Amortização</th>
               <th>Saldo</th>
+              <th>Custos</th>
+              <th>FGTS</th>
+              <th>Líquido</th>
             </tr>
           </thead>
           <tbody>

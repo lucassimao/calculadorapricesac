@@ -9,6 +9,7 @@ const BASE_SCENARIO: Scenario = {
   id: 'base',
   name: 'Comparação',
   system: 'PRICE',
+  loanMode: 'standard',
   principal: 300000,
   rate: 1.2,
   rateType: 'monthly',
@@ -37,6 +38,11 @@ function parseNumberInput(value: string): number {
 
 export default function ComparisonScreen() {
   const [base, setBase] = useState<Scenario>(BASE_SCENARIO);
+  const [quickCases, setQuickCases] = useState<Scenario[]>([
+    { ...BASE_SCENARIO, id: 'c1', name: 'Condição A' },
+    { ...BASE_SCENARIO, id: 'c2', name: 'Condição B', rate: 1.1 },
+    { ...BASE_SCENARIO, id: 'c3', name: 'Condição C', term: 300 },
+  ]);
   const [principalText, setPrincipalText] = useState('300000');
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
@@ -173,6 +179,68 @@ export default function ComparisonScreen() {
         )}
       </View>
 
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Comparador Rápido</Text>
+        <Text style={styles.helperText}>
+          Compare até 3 condições diferentes (juros, prazo e entrada). O ranking
+          usa o total pago com custos.
+        </Text>
+        {quickCases.map((item, index) => (
+          <View key={item.id} style={styles.quickCard}>
+            <Text style={styles.quickTitle}>{item.name}</Text>
+            <View style={styles.quickRow}>
+              <TextInput
+                value={String(item.rate).replace('.', ',')}
+                onChangeText={(text) => {
+                  const value = Number.parseFloat(text.replace(',', '.'));
+                  setQuickCases((prev) =>
+                    prev.map((c, i) => (i === index ? { ...c, rate: Number.isNaN(value) ? 0 : value } : c))
+                  );
+                }}
+                keyboardType="numeric"
+                style={[styles.input, styles.inputSmall]}
+                placeholder="Juros (%) a.m."
+                accessibilityLabel={`Juros condição ${item.name}`}
+              />
+              <TextInput
+                value={String(item.term)}
+                onChangeText={(text) => {
+                  const value = Number.parseInt(text || '0', 10);
+                  setQuickCases((prev) =>
+                    prev.map((c, i) => (i === index ? { ...c, term: Number.isNaN(value) ? 0 : value } : c))
+                  );
+                }}
+                keyboardType="numeric"
+                style={[styles.input, styles.inputSmall]}
+                placeholder="Prazo (meses)"
+                accessibilityLabel={`Prazo condição ${item.name}`}
+              />
+              <TextInput
+                value={String(item.downPayment ?? 0)}
+                onChangeText={(text) => {
+                  const value = Number.parseFloat(text.replace(',', '.'));
+                  setQuickCases((prev) =>
+                    prev.map((c, i) => (i === index ? { ...c, downPayment: Number.isNaN(value) ? 0 : value, loanMode: 'property' } : c))
+                  );
+                }}
+                keyboardType="numeric"
+                style={[styles.input, styles.inputSmall]}
+                placeholder="Entrada (R$)"
+                accessibilityLabel={`Entrada condição ${item.name}`}
+              />
+            </View>
+            <View style={styles.quickRow}>
+              <Text style={styles.quickLabel}>Total c/ custos</Text>
+              <Text style={styles.quickValue}>
+                {formatCurrency(
+                  calculateLoanSummary(generateAmortizationSchedule(item), item).totalPaymentWithCosts
+                )}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
       {!premiumLoading && <AdBanner enabled={!isPremium} />}
     </ScrollView>
   );
@@ -257,5 +325,39 @@ const styles = StyleSheet.create({
   highlightText: {
     color: '#1E3A8A',
     fontWeight: '600',
+  },
+  helperText: {
+    color: '#6B7280',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  quickCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+  },
+  quickTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  quickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  inputSmall: {
+    flex: 1,
+    minWidth: 120,
+  },
+  quickLabel: {
+    color: '#6B7280',
+  },
+  quickValue: {
+    fontWeight: '700',
+    color: '#111827',
   },
 });
