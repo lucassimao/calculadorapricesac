@@ -14,9 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
     },
     "android": {
+      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,7 +30,9 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "react-native-google-mobile-ads",
+      "expo-iap"
     ]
   }
 }

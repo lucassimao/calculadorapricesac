@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule } from '../../src/lib/calculations';
+import { AdBanner } from '../../src/components/AdBanner';
+import { usePremium } from '../../src/hooks/usePremium';
 
 const BASE_SCENARIO: Scenario = {
   id: 'base',
@@ -38,6 +40,7 @@ export default function ComparisonScreen() {
   const [principalText, setPrincipalText] = useState('300000');
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
+  const { isPremium, loading: premiumLoading } = usePremium();
 
   const priceSchedule = useMemo(
     () => generateAmortizationSchedule({ ...base, system: 'PRICE' }),
@@ -56,6 +59,7 @@ export default function ComparisonScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Comparar SAC vs Price</Text>
+      {!premiumLoading && <AdBanner enabled={!isPremium} />}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Parâmetros</Text>
@@ -128,6 +132,8 @@ export default function ComparisonScreen() {
           </Text>
         </View>
       </View>
+
+      {!premiumLoading && <AdBanner enabled={!isPremium} />}
     </ScrollView>
   );
 }

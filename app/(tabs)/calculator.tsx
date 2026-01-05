@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View, Pressable, Alert } from 'react-native';
+import { useIAP } from 'expo-iap';
 import type { PrepaymentEvent, Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, validateScenario } from '../../src/lib/calculations';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
+import { AdBanner } from '../../src/components/AdBanner';
+import { usePremium } from '../../src/hooks/usePremium';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -45,6 +48,16 @@ export default function CalculatorScreen() {
   const [startDateText, setStartDateText] = useState(new Date().toISOString().slice(0, 10));
   const [dueDayText, setDueDayText] = useState('5');
   const [showCumulative, setShowCumulative] = useState(false);
+  const { isPremium, loading: premiumLoading, markPremium } = usePremium();
+  const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
+    onPurchaseSuccess: async () => {
+      await markPremium(true);
+      Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
+    },
+    onPurchaseError: () => {
+      Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    },
+  });
   const [newPrepayment, setNewPrepayment] = useState<Partial<PrepaymentEvent>>({
     amount: 0,
     type: 'fixed_amount',
@@ -125,9 +138,51 @@ export default function CalculatorScreen() {
     }));
   };
 
+  const handlePurchase = async () => {
+    try {
+      if (isPremium) {
+        Alert.alert('Premium ativo', 'Você já removeu os anúncios.');
+        return;
+      }
+      await requestPurchase({
+        type: 'in-app',
+        request: {
+          ios: { sku: 'remove_ads' },
+          android: { skus: ['remove_ads'] },
+        },
+      });
+    } catch {
+      Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restorePurchases();
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      if (availablePurchases.length > 0) {
+        await markPremium(true);
+        Alert.alert('Restaurado', 'Compra restaurada com sucesso.');
+      } else {
+        Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível restaurar a compra.');
+    }
+  };
+
+  const handleExport = () => {
+    if (!isPremium) {
+      Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
+      return;
+    }
+    Alert.alert('Em breve', 'Exportação será entregue na Fase 4.');
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Calculadora Price & SAC</Text>
+      {!premiumLoading && <AdBanner enabled={!isPremium} />}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cenário</Text>
@@ -138,7 +193,7 @@ export default function CalculatorScreen() {
           style={styles.input}
           placeholder="Cenário Principal"
         />
-        <View style={styles.row}>
+        <View style={styles.rowWrap}>
           <Pressable style={styles.primaryButton} onPress={handleSaveScenario}>
             <Text style={styles.primaryButtonText}>Salvar cenário</Text>
           </Pressable>
@@ -208,7 +263,7 @@ export default function CalculatorScreen() {
         />
 
         <Text style={styles.label}>Taxa de Juros</Text>
-        <View style={styles.row}>
+        <View style={styles.rowWrap}>
           <TextInput
             value={rateText}
             onChangeText={(text) => {
@@ -243,7 +298,7 @@ export default function CalculatorScreen() {
         </View>
 
         <Text style={styles.label}>Prazo</Text>
-        <View style={styles.row}>
+        <View style={styles.rowWrap}>
           <TextInput
             value={termText}
             onChangeText={(text) => {
@@ -323,6 +378,26 @@ export default function CalculatorScreen() {
           ))}
         </View>
       )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Plano Premium</Text>
+        <Text style={styles.label}>
+          Remova anúncios e libere exportações por R$ 5,00 (pagamento único).
+        </Text>
+        <View style={styles.rowWrap}>
+          <Pressable
+            style={[styles.primaryButton, isPremium && styles.primaryButtonDisabled]}
+            onPress={handlePurchase}
+          >
+            <Text style={styles.primaryButtonText}>
+              {isPremium ? 'Premium ativo' : 'Remover anúncios'}
+            </Text>
+          </Pressable>
+          <Pressable style={styles.secondaryButton} onPress={handleRestore}>
+            <Text style={styles.secondaryButtonText}>Restaurar</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Resumo</Text>
@@ -444,6 +519,23 @@ export default function CalculatorScreen() {
           </View>
         )}
       </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Exportar</Text>
+        <View style={styles.row}>
+          <Pressable style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]} onPress={handleExport}>
+            <Text style={styles.primaryButtonText}>PDF</Text>
+          </Pressable>
+          <Pressable style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]} onPress={handleExport}>
+            <Text style={styles.primaryButtonText}>XLSX</Text>
+          </Pressable>
+          <Pressable style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]} onPress={handleExport}>
+            <Text style={styles.primaryButtonText}>CSV</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {!premiumLoading && <AdBanner enabled={!isPremium} />}
     </ScrollView>
   );
 }
@@ -487,6 +579,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  rowWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignItems: 'center',
   },
   inputFlex: {
     flex: 1,
@@ -550,6 +648,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     color: '#FFFFFF',
