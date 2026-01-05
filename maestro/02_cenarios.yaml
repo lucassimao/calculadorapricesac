@@ -1,0 +1,11 @@
+appId: ${APP_ID}
+---
+- launchApp
+- tapOn: "Nome do cenário"
+- clearText
+- inputText: "Cenário Teste"
+- tapOn: "Salvar cenário"
+- assertVisible: "Cenário Teste"
+- tapOn: "Novo"
+- tapOn: "Cenário Teste"
+- assertVisible: "Cenário Teste"

@@ -1,0 +1,17 @@
+appId: ${APP_ID}
+---
+- launchApp
+- tapOn: "Comparar"
+- assertVisible: "Comparar SAC vs Price"
+- scrollUntilVisible:
+    text: "Comparador Rápido"
+- tapOn: "Juros condição Condição A"
+- clearText
+- inputText: "1,3"
+- tapOn: "Prazo condição Condição B"
+- clearText
+- inputText: "180"
+- tapOn: "Entrada condição Condição C"
+- clearText
+- inputText: "50000"
+- assertVisible: "Total c/ Custos"

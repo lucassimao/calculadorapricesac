@@ -1,0 +1,15 @@
+appId: ${APP_ID}
+---
+- launchApp
+- scrollUntilVisible:
+    text: "FGTS"
+- tapOn: "Data do FGTS"
+- clearText
+- inputText: "2026-01-10"
+- tapOn: "Valor do FGTS"
+- clearText
+- inputText: "800"
+- tapOn: "FGTS para parcela"
+- tapOn: "Adicionar FGTS"
+- assertVisible: "Parcela"
+- tapOn: "Remover"

@@ -1,0 +1,7 @@
+appId: ${APP_ID}
+---
+- launchApp
+- scrollUntilVisible:
+    text: "Exportar"
+- tapOn: "PDF"
+- assertVisible: "Exportação disponível apenas para assinantes."

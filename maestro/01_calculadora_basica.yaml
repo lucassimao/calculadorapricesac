@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+---
+- launchApp
+- assertVisible: "Calculadora Price & SAC"
+- tapOn: "Valor do Financiamento (R$)"
+- clearText
+- inputText: "250000"
+- tapOn: "Taxa de Juros"
+- clearText
+- inputText: "1,1"
+- tapOn: "Prazo"
+- clearText
+- inputText: "240"
+- tapOn: "Dia de Vencimento"
+- clearText
+- inputText: "10"
+- scrollUntilVisible:
+    text: "Resumo"
+- assertVisible: "Total Pago"
+- assertVisible: "Total de Juros"

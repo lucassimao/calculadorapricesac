@@ -1,0 +1,14 @@
+appId: ${APP_ID}
+---
+- launchApp
+- scrollUntilVisible:
+    text: "Amortizações Extras"
+- tapOn: "Data (YYYY-MM-DD)"
+- clearText
+- inputText: "2026-01-05"
+- tapOn: "Valor (R$)"
+- clearText
+- inputText: "1000"
+- tapOn: "Adicionar amortização"
+- assertVisible: "Reduzir prazo"
+- tapOn: "Remover"
