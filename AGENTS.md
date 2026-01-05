@@ -20,6 +20,7 @@
 - `calculadora-price-sac/` — Expo app source
 - `EXPO_ROADMAP.md` — roadmap for mobile development
 - `Tabela Price e SAC.xlsx` — original reference model
+- `RELEASE_CHECKLIST.md` — passos de release (ads, IAP, stores)
 
 ## Tech Stack
 - Expo 54, TypeScript, ESLint (flat config)
@@ -32,6 +33,7 @@
 - `npm run ios`
 - `npm run lint`
 - `npx tsc --noEmit`
+- `npm test` (vitest)
 
 ## Product Constraints
 - Offline-first calculations and scenarios
@@ -42,3 +44,6 @@
 ## Notes
 - Use local storage for scenarios, settings, and premium state.
 - Keep UI clear and simple with large touch targets.
+- IAP SKU: `remove_ads` (iOS + Android).
+- AdMob IDs ficam em `app.json` e o banner usa `src/components/AdBanner.tsx`.
+- Exportadores em `src/lib/exports/` (CSV/XLSX/PDF) e usam `expo-sharing`.

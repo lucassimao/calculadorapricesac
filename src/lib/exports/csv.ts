@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { ScheduleRow, Scenario } from '../../types/loan';
 
@@ -27,7 +27,8 @@ const buildCsv = (schedule: ScheduleRow[], scenario: Scenario) => {
 
 export async function exportCsv(schedule: ScheduleRow[], scenario: Scenario) {
   const csv = buildCsv(schedule, scenario);
-  const fileUri = `${FileSystem.cacheDirectory}tabela_amortizacao.csv`;
-  await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-  await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Exportar CSV' });
+  const file = new File(Paths.cache, 'tabela_amortizacao.csv');
+  file.create({ overwrite: true });
+  file.write(csv);
+  await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', dialogTitle: 'Exportar CSV' });
 }
