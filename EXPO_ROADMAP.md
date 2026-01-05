@@ -89,6 +89,7 @@ Ensure the mobile app reproduces the spreadsheet’s core calculations:
 - 2026-01-05: Phase 4 complete (PDF/XLSX/CSV exports with share sheet).
 - 2026-01-05: Phase 5 started (acessibilidade, ajustes mobile, otimizações de tabela).
 - 2026-01-05: Phase 6 Sprint A/B iniciado (custos, modo imobiliário, UI e validações).
+- 2026-01-05: Phase 6 Sprint C iniciado (FGTS: entrada, amortização, parcela).
 
 ---
 
@@ -234,8 +235,8 @@ Checklist:
 - [ ] Entrada + valor do imóvel → calcular automaticamente valor financiado
 - [ ] Custos do imóvel no resumo (ITBI + taxas cartorárias)
 - [ ] Modo financiamento imobiliário (campos/labels dedicados)
-- [ ] FGTS opcional (entrada/amortização/parcelas)
-- [ ] FGTS: opções de uso (liquidação, amortização, pagamento parcial de parcelas)
+- [x] FGTS opcional (entrada/amortização/parcelas)
+- [x] FGTS: opções de uso (liquidação, amortização, pagamento parcial de parcelas)
 - [ ] Comparador rápido de condições (juros/prazo/entrada lado a lado)
 - [ ] Exportar relatório com resumo de custos adicionais
 
