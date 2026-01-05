@@ -8,6 +8,9 @@ import { LoanCharts } from '../../src/components/LoanCharts';
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
+import { exportCsv } from '../../src/lib/exports/csv';
+import { exportPdf } from '../../src/lib/exports/pdf';
+import { exportXlsx } from '../../src/lib/exports/xlsx';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -171,12 +174,22 @@ export default function CalculatorScreen() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async (format: 'pdf' | 'xlsx' | 'csv') => {
     if (!isPremium) {
       Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
       return;
     }
-    Alert.alert('Em breve', 'Exportação será entregue na Fase 4.');
+    try {
+      if (format === 'pdf') {
+        await exportPdf(scenario, summary, schedule);
+      } else if (format === 'xlsx') {
+        await exportXlsx(schedule, scenario);
+      } else {
+        await exportCsv(schedule, scenario);
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
+    }
   };
 
   return (
@@ -523,13 +536,22 @@ export default function CalculatorScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Exportar</Text>
         <View style={styles.row}>
-          <Pressable style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]} onPress={handleExport}>
+          <Pressable
+            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            onPress={() => handleExport('pdf')}
+          >
             <Text style={styles.primaryButtonText}>PDF</Text>
           </Pressable>
-          <Pressable style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]} onPress={handleExport}>
+          <Pressable
+            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            onPress={() => handleExport('xlsx')}
+          >
             <Text style={styles.primaryButtonText}>XLSX</Text>
           </Pressable>
-          <Pressable style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]} onPress={handleExport}>
+          <Pressable
+            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            onPress={() => handleExport('csv')}
+          >
             <Text style={styles.primaryButtonText}>CSV</Text>
           </Pressable>
         </View>
