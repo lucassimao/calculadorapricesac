@@ -17,8 +17,6 @@ Este documento reúne os passos necessários antes de publicar a Calculadora Pri
 ### AdMob (obrigatório para release)
 Trocar IDs de teste em:
 - `app.json`:
-  - `expo.ios.googleMobileAdsAppId`
-  - `expo.android.googleMobileAdsAppId`
   - `plugins -> react-native-google-mobile-ads -> iosAppId / androidAppId`
 - `src/components/AdBanner.tsx`:
   - Substituir o `unitId` de teste por um **Ad Unit ID** real (banner).
@@ -46,6 +44,7 @@ Depois, ler essas variáveis no `app.config.js` e no `AdBanner.tsx`.
 - Atualizar `expo.version` (semver) em `app.json`.
 - Garantir ícones/splash em `assets/` com dimensões corretas.
 - Conferir nome e slug do app.
+- Confirmar `android.package` em `app.json` (ex.: `com.lsimaocosta.calculadorapricesac`).
 
 ## 5) Qualidade e validações
 Rodar antes do build:
@@ -67,15 +66,29 @@ Submissão:
 - **iOS**: App Store Connect (metadata, screenshots, compliance).
 - **Android**: Play Console (metadata, políticas, Data Safety).
 
-## 7) Políticas e compliance
+## 7) EAS Build (setup obrigatório)
+- Projeto EAS vinculado (ver `extra.eas.projectId` no `app.json`).
+- Chaves Android geradas no EAS (keystore remoto).
+- `react-dom` travado em `19.1.0` para evitar conflito de peer deps no build local.
+- `expo-constants` instalado (peer dependency do `expo-router`).
+- `react-native-worklets` na versão compatível do SDK 54 (`0.5.1`).
+- **Sem** `googleMobileAdsAppId` em `expo.ios` e `expo.android` (o schema do Expo não aceita).
+- Build local: `eas build -p android --local`
+- Build remoto: `eas build -p android` / `eas build -p ios`
+
+## 8) Políticas e compliance
 - **Privacidade**: publicar política de privacidade (ads + compra).
 - **Data Safety (Play)**: declarar coleta/uso (ads + diagnóstico).
 - **App Privacy (iOS)**: declarar dados usados para ads e analytics (se aplicável).
 
 ---
 
+### Observação sobre o warning do AdMob
+Durante o build, o `react-native-google-mobile-ads` pode avisar sobre `android_app_id` fora do schema.
+Como usamos o **Expo config plugin**, esse warning pode ser ignorado.
+
 ### Pontos críticos antes do go‑live
-- IDs reais de AdMob em `app.json`.
+- IDs reais de AdMob no plugin do `app.json`.
 - Ad Unit ID real no `AdBanner.tsx`.
 - SKU `remove_ads` criado e aprovado nas duas lojas.
 - Versão atualizada e builds testados.
