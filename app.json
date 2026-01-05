@@ -14,17 +14,16 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~1458002511"
+      "supportsTablet": true
     },
     "android": {
-      "googleMobileAdsAppId": "ca-app-pub-3940256099942544~3347511713",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.lsimaocosta.calculadorapricesac"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,6 +38,12 @@
         }
       ],
       "expo-iap"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6d83845b-fcdd-4771-9479-8bbf3030c1a6"
+      }
+    }
   }
 }
