@@ -61,6 +61,7 @@ export default function ComparisonScreen() {
   );
 
   const interestDiff = priceSummary.totalInterest - sacSummary.totalInterest;
+  const totalDiff = priceSummary.totalPaymentWithCosts - sacSummary.totalPaymentWithCosts;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -121,6 +122,26 @@ export default function ComparisonScreen() {
           </View>
         </View>
 
+        {(priceSummary.totalPaymentWithCosts > priceSummary.totalPayment ||
+          sacSummary.totalPaymentWithCosts > sacSummary.totalPayment) && (
+          <View style={styles.cardRow}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Price</Text>
+              <Text style={styles.cardValue}>
+                {formatCurrency(priceSummary.totalPaymentWithCosts)}
+              </Text>
+              <Text style={styles.cardLabel}>Total c/ Custos</Text>
+            </View>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>SAC</Text>
+              <Text style={styles.cardValue}>
+                {formatCurrency(sacSummary.totalPaymentWithCosts)}
+              </Text>
+              <Text style={styles.cardLabel}>Total c/ Custos</Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.cardRow}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Price</Text>
@@ -140,6 +161,16 @@ export default function ComparisonScreen() {
             ({interestDiff > 0 ? 'SAC economiza' : 'Price economiza'})
           </Text>
         </View>
+
+        {(priceSummary.totalPaymentWithCosts > priceSummary.totalPayment ||
+          sacSummary.totalPaymentWithCosts > sacSummary.totalPayment) && (
+          <View style={styles.highlightAlt}>
+            <Text style={styles.highlightText}>
+              Diferença total c/ custos: {formatCurrency(Math.abs(totalDiff))} {' '}
+              ({totalDiff > 0 ? 'SAC economiza' : 'Price economiza'})
+            </Text>
+          </View>
+        )}
       </View>
 
       {!premiumLoading && <AdBanner enabled={!isPremium} />}
@@ -215,6 +246,11 @@ const styles = StyleSheet.create({
   },
   highlight: {
     backgroundColor: '#DBEAFE',
+    borderRadius: 10,
+    padding: 12,
+  },
+  highlightAlt: {
+    backgroundColor: '#E0F2FE',
     borderRadius: 10,
     padding: 12,
   },

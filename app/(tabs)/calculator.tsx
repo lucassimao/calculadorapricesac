@@ -741,6 +741,10 @@ export default function CalculatorScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Custos e Taxas</Text>
+        <Text style={styles.helperText}>
+          Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados
+          na assinatura.
+        </Text>
         <Text style={styles.label}>IOF (% do financiado)</Text>
         <TextInput
           value={iofRateText}
@@ -1037,6 +1041,11 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#D97706',
     fontSize: 13,
+  },
+  helperText: {
+    color: '#6B7280',
+    fontSize: 12,
+    lineHeight: 16,
   },
   tableMetaRow: {
     flexDirection: 'row',
