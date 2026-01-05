@@ -16,6 +16,7 @@ const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
   name: 'Cenário Principal',
   system: 'PRICE',
+  loanMode: 'standard',
   principal: 300000,
   rate: 1.2,
   rateType: 'monthly',
@@ -48,12 +49,21 @@ export default function CalculatorScreen() {
   const [scenario, setScenario] = useState<Scenario>(DEFAULT_SCENARIO);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [principalText, setPrincipalText] = useState('300000');
+  const [propertyValueText, setPropertyValueText] = useState('');
+  const [downPaymentText, setDownPaymentText] = useState('');
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
   const [startDateText, setStartDateText] = useState(new Date().toISOString().slice(0, 10));
   const [dueDayText, setDueDayText] = useState('5');
+  const [insuranceRateText, setInsuranceRateText] = useState('0');
+  const [adminFeeRateText, setAdminFeeRateText] = useState('0');
+  const [iofRateText, setIofRateText] = useState('0');
+  const [openingFeeText, setOpeningFeeText] = useState('0');
+  const [itbiRateText, setItbiRateText] = useState('0');
+  const [registryFeeText, setRegistryFeeText] = useState('0');
   const [showCumulative, setShowCumulative] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
+  const isPropertyMode = scenario.loanMode === 'property';
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
   const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
     onPurchaseSuccess: async () => {
@@ -82,7 +92,7 @@ export default function CalculatorScreen() {
     () => (showAllRows ? schedule : schedule.slice(0, MAX_TABLE_ROWS + 1)),
     [schedule, showAllRows]
   );
-  const summary = useMemo(() => calculateLoanSummary(schedule), [schedule]);
+  const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
 
@@ -111,10 +121,18 @@ export default function CalculatorScreen() {
   const handleLoadScenario = (target: Scenario) => {
     setScenario(target);
     setPrincipalText(String(target.principal));
+    setPropertyValueText(target.propertyValue ? String(target.propertyValue) : '');
+    setDownPaymentText(target.downPayment ? String(target.downPayment) : '');
     setRateText(String(target.rate).replace('.', ','));
     setTermText(String(target.term));
     setStartDateText(target.startDate.toISOString().slice(0, 10));
     setDueDayText(String(target.dueDay));
+    setInsuranceRateText(target.insuranceRate ? String(target.insuranceRate).replace('.', ',') : '0');
+    setAdminFeeRateText(target.adminFeeRate ? String(target.adminFeeRate).replace('.', ',') : '0');
+    setIofRateText(target.iofRate ? String(target.iofRate).replace('.', ',') : '0');
+    setOpeningFeeText(target.openingFee ? String(target.openingFee) : '0');
+    setItbiRateText(target.itbiRate ? String(target.itbiRate).replace('.', ',') : '0');
+    setRegistryFeeText(target.registryFee ? String(target.registryFee) : '0');
   };
 
   const handleAddPrepayment = () => {
@@ -279,6 +297,45 @@ export default function CalculatorScreen() {
             </Pressable>
           ))}
         </View>
+        <View style={styles.toggleRow}>
+          {(['standard', 'property'] as const).map((mode) => (
+            <Pressable
+              key={mode}
+              onPress={() => {
+                if (mode === 'standard') {
+                  setPropertyValueText('');
+                  setDownPaymentText('');
+                  setScenario((prev) => ({
+                    ...prev,
+                    loanMode: 'standard',
+                    propertyValue: undefined,
+                    downPayment: undefined,
+                    itbiRate: undefined,
+                    registryFee: undefined,
+                  }));
+                } else {
+                  setScenario((prev) => ({ ...prev, loanMode: 'property' }));
+                }
+              }}
+              style={[
+                styles.toggleButton,
+                scenario.loanMode === mode && styles.toggleButtonActive,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scenario.loanMode === mode }}
+              accessibilityLabel={mode === 'standard' ? 'Modo padrão' : 'Modo imobiliário'}
+            >
+              <Text
+                style={[
+                  styles.toggleButtonText,
+                  scenario.loanMode === mode && styles.toggleButtonTextActive,
+                ]}
+              >
+                {mode === 'standard' ? 'Padrão' : 'Imobiliário'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -296,6 +353,36 @@ export default function CalculatorScreen() {
           placeholder="300000 ou 300.000,00"
           accessibilityLabel="Valor do financiamento"
         />
+
+        {isPropertyMode && (
+          <>
+            <Text style={styles.label}>Valor do Imóvel (R$)</Text>
+            <TextInput
+              value={propertyValueText}
+              onChangeText={(text) => {
+                setPropertyValueText(text);
+                setScenario((prev) => ({ ...prev, propertyValue: parseCurrencyInput(text) }));
+              }}
+              keyboardType="numeric"
+              style={styles.input}
+              placeholder="500000"
+              accessibilityLabel="Valor do imóvel"
+            />
+
+            <Text style={styles.label}>Entrada (R$)</Text>
+            <TextInput
+              value={downPaymentText}
+              onChangeText={(text) => {
+                setDownPaymentText(text);
+                setScenario((prev) => ({ ...prev, downPayment: parseCurrencyInput(text) }));
+              }}
+              keyboardType="numeric"
+              style={styles.input}
+              placeholder="100000"
+              accessibilityLabel="Entrada"
+            />
+          </>
+        )}
 
         <Text style={styles.label}>Taxa de Juros</Text>
         <View style={styles.rowWrap}>
@@ -453,10 +540,44 @@ export default function CalculatorScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Resumo</Text>
+        {summary.financedPrincipal !== scenario.principal && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Principal Financiado</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(summary.financedPrincipal)}</Text>
+          </View>
+        )}
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total Pago</Text>
           <Text style={styles.summaryValue}>{formatCurrency(summary.totalPayment)}</Text>
         </View>
+        {(summary.totalUpfrontCosts > 0 || summary.totalMonthlyCosts > 0) && (
+          <>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Custos Iniciais</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(summary.totalUpfrontCosts)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Custos Mensais</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(summary.totalMonthlyCosts)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total com Custos</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(summary.totalPaymentWithCosts)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>CET (a.a.)</Text>
+              <Text style={styles.summaryValue}>
+                {summary.cetAnnualRate.toFixed(2).replace('.', ',')}%
+              </Text>
+            </View>
+          </>
+        )}
+        {summary.propertyTotalCost > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Custo Total do Imóvel</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(summary.propertyTotalCost)}</Text>
+          </View>
+        )}
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total de Juros</Text>
           <Text style={styles.summaryValue}>{formatCurrency(summary.totalInterest)}</Text>
@@ -615,6 +736,98 @@ export default function CalculatorScreen() {
               </View>
             ))}
           </View>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Custos e Taxas</Text>
+        <Text style={styles.label}>IOF (% do financiado)</Text>
+        <TextInput
+          value={iofRateText}
+          onChangeText={(text) => {
+            setIofRateText(text);
+            setScenario((prev) => ({ ...prev, iofRate: parseNumberInput(text), includeIOF: parseNumberInput(text) > 0 }));
+          }}
+          keyboardType="numeric"
+          style={styles.input}
+          accessibilityLabel="Taxa de IOF"
+        />
+
+        <Text style={styles.label}>Seguro (% do saldo ao mês)</Text>
+        <TextInput
+          value={insuranceRateText}
+          onChangeText={(text) => {
+            setInsuranceRateText(text);
+            setScenario((prev) => ({
+              ...prev,
+              insuranceRate: parseNumberInput(text),
+              includeInsurance: parseNumberInput(text) > 0,
+            }));
+          }}
+          keyboardType="numeric"
+          style={styles.input}
+          accessibilityLabel="Taxa de seguro"
+        />
+
+        <Text style={styles.label}>Tarifa administrativa (% do saldo ao mês)</Text>
+        <TextInput
+          value={adminFeeRateText}
+          onChangeText={(text) => {
+            setAdminFeeRateText(text);
+            setScenario((prev) => ({
+              ...prev,
+              adminFeeRate: parseNumberInput(text),
+              includeAdminFee: parseNumberInput(text) > 0,
+            }));
+          }}
+          keyboardType="numeric"
+          style={styles.input}
+          accessibilityLabel="Taxa administrativa"
+        />
+
+        <Text style={styles.label}>Taxa de abertura (R$)</Text>
+        <TextInput
+          value={openingFeeText}
+          onChangeText={(text) => {
+            setOpeningFeeText(text);
+            const value = parseCurrencyInput(text);
+            setScenario((prev) => ({
+              ...prev,
+              openingFee: value,
+              includeOpeningFee: value > 0,
+            }));
+          }}
+          keyboardType="numeric"
+          style={styles.input}
+          accessibilityLabel="Taxa de abertura"
+        />
+
+        {isPropertyMode && (
+          <>
+            <Text style={styles.label}>ITBI (% do imóvel)</Text>
+            <TextInput
+              value={itbiRateText}
+              onChangeText={(text) => {
+                setItbiRateText(text);
+                setScenario((prev) => ({ ...prev, itbiRate: parseNumberInput(text) }));
+              }}
+              keyboardType="numeric"
+              style={styles.input}
+              accessibilityLabel="Taxa de ITBI"
+            />
+
+            <Text style={styles.label}>Cartório (R$)</Text>
+            <TextInput
+              value={registryFeeText}
+              onChangeText={(text) => {
+                setRegistryFeeText(text);
+                setScenario((prev) => ({ ...prev, registryFee: parseCurrencyInput(text) }));
+              }}
+              keyboardType="numeric"
+              style={styles.input}
+              accessibilityLabel="Taxa de cartório"
+            />
+          </>
         )}
       </View>
 

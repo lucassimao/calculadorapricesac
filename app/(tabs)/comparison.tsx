@@ -51,8 +51,14 @@ export default function ComparisonScreen() {
     [base]
   );
 
-  const priceSummary = useMemo(() => calculateLoanSummary(priceSchedule), [priceSchedule]);
-  const sacSummary = useMemo(() => calculateLoanSummary(sacSchedule), [sacSchedule]);
+  const priceSummary = useMemo(
+    () => calculateLoanSummary(priceSchedule, base),
+    [priceSchedule, base]
+  );
+  const sacSummary = useMemo(
+    () => calculateLoanSummary(sacSchedule, base),
+    [sacSchedule, base]
+  );
 
   const interestDiff = priceSummary.totalInterest - sacSummary.totalInterest;
 

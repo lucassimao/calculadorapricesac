@@ -59,6 +59,12 @@ const summary: LoanSummary = {
   lastPayment: 9000,
   averagePayment: 9500,
   interestPercentage: 20,
+  totalUpfrontCosts: 0,
+  totalMonthlyCosts: 0,
+  totalPaymentWithCosts: 120000,
+  cetAnnualRate: 0,
+  financedPrincipal: 100000,
+  propertyTotalCost: 0,
 };
 
 const schedule: ScheduleRow[] = [

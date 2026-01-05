@@ -94,12 +94,32 @@ describe('generateAmortizationSchedule', () => {
 describe('calculateLoanSummary', () => {
   it('computes summary totals from schedule', () => {
     const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
-    const summary = calculateLoanSummary(schedule);
+    const summary = calculateLoanSummary(schedule, baseScenario);
 
     expect(summary.totalPayment).toBeGreaterThan(0);
     expect(summary.totalInterest).toBeGreaterThan(0);
     expect(summary.firstPayment).toBeCloseTo(schedule[1].payment, 2);
     expect(summary.lastPayment).toBeCloseTo(schedule[schedule.length - 1].payment, 2);
+  });
+
+  it('includes upfront and monthly costs in totals', () => {
+    const scenario = {
+      ...baseScenario,
+      principal: 100000,
+      includeIOF: true,
+      iofRate: 2,
+      includeOpeningFee: true,
+      openingFee: 1500,
+      includeInsurance: true,
+      insuranceRate: 0.1,
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const summary = calculateLoanSummary(schedule, scenario);
+
+    expect(summary.totalUpfrontCosts).toBeGreaterThan(0);
+    expect(summary.totalMonthlyCosts).toBeGreaterThan(0);
+    expect(summary.totalPaymentWithCosts).toBeGreaterThan(summary.totalPayment);
+    expect(summary.cetAnnualRate).toBeGreaterThan(0);
   });
 });
 
@@ -124,6 +144,17 @@ describe('validateScenario', () => {
     });
 
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('validates property value and down payment', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      loanMode: 'property',
+      propertyValue: 500000,
+      downPayment: 600000,
+    });
+
+    expect(result.errors.length).toBeGreaterThan(0);
   });
 });
 

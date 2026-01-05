@@ -12,6 +12,7 @@ export interface Scenario {
   id: string;
   name: string;
   system: LoanSystem;
+  loanMode?: 'standard' | 'property';
   principal: number;
   rate: number;
   rateType: RateType;
@@ -20,6 +21,18 @@ export interface Scenario {
   startDate: Date;
   dueDay: number;
   prepayments?: PrepaymentEvent[];
+  propertyValue?: number;
+  downPayment?: number;
+  includeIOF?: boolean;
+  iofRate?: number;
+  includeInsurance?: boolean;
+  insuranceRate?: number;
+  includeAdminFee?: boolean;
+  adminFeeRate?: number;
+  includeOpeningFee?: boolean;
+  openingFee?: number;
+  itbiRate?: number;
+  registryFee?: number;
 }
 
 export interface PrepaymentEvent {
@@ -40,6 +53,10 @@ export interface ScheduleRow {
   balance: number;
   prepaymentAmount?: number;
   prepaymentDescription?: string;
+  insurance?: number;
+  adminFee?: number;
+  extraCosts?: number;
+  totalCost?: number;
 }
 
 export interface LoanSummary {
@@ -49,4 +66,10 @@ export interface LoanSummary {
   lastPayment: number;
   averagePayment: number;
   interestPercentage: number;
+  totalUpfrontCosts: number;
+  totalMonthlyCosts: number;
+  totalPaymentWithCosts: number;
+  cetAnnualRate: number;
+  financedPrincipal: number;
+  propertyTotalCost: number;
 }
