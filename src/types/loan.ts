@@ -8,6 +8,8 @@ export type PrepaymentStrategy = 'reduce_term' | 'reduce_payment';
 
 export type PrepaymentType = 'fixed_amount' | 'percentage' | 'available_monthly' | 'one_time';
 
+export type FgtsUsage = 'down_payment' | 'amortization' | 'installment';
+
 export interface Scenario {
   id: string;
   name: string;
@@ -21,6 +23,7 @@ export interface Scenario {
   startDate: Date;
   dueDay: number;
   prepayments?: PrepaymentEvent[];
+  fgtsEvents?: FgtsEvent[];
   propertyValue?: number;
   downPayment?: number;
   includeIOF?: boolean;
@@ -44,6 +47,15 @@ export interface PrepaymentEvent {
   description?: string;
 }
 
+export interface FgtsEvent {
+  id: string;
+  date: Date;
+  amount: number;
+  usage: FgtsUsage;
+  strategy?: PrepaymentStrategy;
+  description?: string;
+}
+
 export interface ScheduleRow {
   installmentNumber: number;
   date: Date;
@@ -57,6 +69,9 @@ export interface ScheduleRow {
   adminFee?: number;
   extraCosts?: number;
   totalCost?: number;
+  fgtsAmortization?: number;
+  fgtsSubsidy?: number;
+  netPayment?: number;
 }
 
 export interface LoanSummary {
@@ -72,4 +87,6 @@ export interface LoanSummary {
   cetAnnualRate: number;
   financedPrincipal: number;
   propertyTotalCost: number;
+  totalFgtsUsed: number;
+  totalPaymentNet: number;
 }

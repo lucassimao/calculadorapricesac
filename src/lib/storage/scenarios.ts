@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { PrepaymentEvent, Scenario } from '../../types/loan';
+import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../types/loan';
 
 const STORAGE_KEY = 'scenarios:v1';
 
-type StoredScenario = Omit<Scenario, 'startDate' | 'prepayments'> & {
+type StoredScenario = Omit<Scenario, 'startDate' | 'prepayments' | 'fgtsEvents'> & {
   startDate: string;
   prepayments?: (Omit<PrepaymentEvent, 'date'> & { date: string })[];
+  fgtsEvents?: (Omit<FgtsEvent, 'date'> & { date: string })[];
 };
 
 const toStoredScenario = (scenario: Scenario): StoredScenario => ({
@@ -15,6 +16,10 @@ const toStoredScenario = (scenario: Scenario): StoredScenario => ({
     ...p,
     date: p.date.toISOString(),
   })),
+  fgtsEvents: scenario.fgtsEvents?.map((event) => ({
+    ...event,
+    date: event.date.toISOString(),
+  })),
 });
 
 const fromStoredScenario = (scenario: StoredScenario): Scenario => ({
@@ -23,6 +28,10 @@ const fromStoredScenario = (scenario: StoredScenario): Scenario => ({
   prepayments: scenario.prepayments?.map((p) => ({
     ...p,
     date: new Date(p.date),
+  })),
+  fgtsEvents: scenario.fgtsEvents?.map((event) => ({
+    ...event,
+    date: new Date(event.date),
   })),
 });
 

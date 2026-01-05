@@ -1,4 +1,4 @@
-import type { LoanSummary, PrepaymentEvent, Scenario, ScheduleRow } from '../types/loan';
+import type { FgtsEvent, LoanSummary, PrepaymentEvent, Scenario, ScheduleRow } from '../types/loan';
 
 const roundCents = (value: number) => Math.round(value * 100) / 100;
 
@@ -45,6 +45,37 @@ function getUpfrontCosts(scenario: Scenario, principal: number): CostSummary {
     itbi,
     registryFee,
   };
+}
+
+function getFgtsDownPayment(scenario: Scenario): number {
+  const fgtsEvents = scenario.fgtsEvents ?? [];
+  return fgtsEvents
+    .filter((event) => event.usage === 'down_payment')
+    .reduce((total, event) => total + event.amount, 0);
+}
+
+function getFgtsAmortizationsForMonth(fgtsEvents: FgtsEvent[], installmentDate: Date): FgtsEvent[] {
+  const month = installmentDate.getMonth();
+  const year = installmentDate.getFullYear();
+  return fgtsEvents.filter(
+    (event) =>
+      event.usage === 'amortization' &&
+      event.date.getMonth() === month &&
+      event.date.getFullYear() === year
+  );
+}
+
+function getFgtsInstallmentForMonth(fgtsEvents: FgtsEvent[], installmentDate: Date): number {
+  const month = installmentDate.getMonth();
+  const year = installmentDate.getFullYear();
+  return fgtsEvents
+    .filter(
+      (event) =>
+        event.usage === 'installment' &&
+        event.date.getMonth() === month &&
+        event.date.getFullYear() === year
+    )
+    .reduce((total, event) => total + event.amount, 0);
 }
 
 function getMonthlyExtraCosts(balance: number, scenario: Scenario) {
@@ -94,10 +125,13 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
 
   const schedule: ScheduleRow[] = [];
-  let balance = getFinancedPrincipal(scenario);
+  const fgtsDownPayment = getFgtsDownPayment(scenario);
+  let balance = Math.max(getFinancedPrincipal(scenario) - fgtsDownPayment, 0);
   let currentDate = new Date(scenario.startDate);
   const prepayments = scenario.prepayments ?? [];
+  const fgtsEvents = scenario.fgtsEvents ?? [];
   const sortedPrepayments = [...prepayments].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const sortedFgts = [...fgtsEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // Row 0 (spreadsheet parity)
   schedule.push({
@@ -114,6 +148,18 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     const year = installmentDate.getFullYear();
     return sortedPrepayments.filter((p) => p.date.getMonth() === month && p.date.getFullYear() === year);
   };
+  const getAllAmortizationsForMonth = (installmentDate: Date): PrepaymentEvent[] => {
+    const base = getPrepaymentsForMonth(installmentDate);
+    const fgtsAmortizations = getFgtsAmortizationsForMonth(sortedFgts, installmentDate).map((event) => ({
+      id: event.id,
+      date: event.date,
+      amount: event.amount,
+      type: 'fixed_amount' as const,
+      strategy: event.strategy ?? 'reduce_term',
+      description: event.description ?? 'FGTS',
+    }));
+    return [...base, ...fgtsAmortizations];
+  };
 
   if (scenario.system === 'PRICE') {
     let fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths);
@@ -126,7 +172,8 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const installmentDate = new Date(currentDate);
       installmentDate.setDate(scenario.dueDay);
 
-      const prepaymentsForMonth = getPrepaymentsForMonth(installmentDate);
+      const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
+      let fgtsAmortization = 0;
       let prepaymentAmount = 0;
       let prepaymentDescription: string | undefined;
 
@@ -145,6 +192,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
           if (amount > 0) {
             prepaymentAmount += amount;
             prepaymentDescription = prepayment.description || prepaymentDescription;
+            if (prepayment.description === 'FGTS') {
+              fgtsAmortization += amount;
+            }
           }
         }
 
@@ -166,6 +216,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       balance -= amortization;
       const isPaidOff = balance <= 0;
 
+      const fgtsSubsidy = Math.min(getFgtsInstallmentForMonth(sortedFgts, installmentDate), payment);
+      const netPayment = payment - fgtsSubsidy;
+
       schedule.push({
         installmentNumber: i,
         date: installmentDate,
@@ -179,6 +232,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
         totalCost: roundCents(payment + extraCosts),
+        fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
+        fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
+        netPayment: roundCents(netPayment),
       });
 
       if (isPaidOff) {
@@ -198,7 +254,8 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const installmentDate = new Date(currentDate);
       installmentDate.setDate(scenario.dueDay);
 
-      const prepaymentsForMonth = getPrepaymentsForMonth(installmentDate);
+      const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
+      let fgtsAmortization = 0;
       let prepaymentAmount = 0;
       let prepaymentDescription: string | undefined;
 
@@ -217,6 +274,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
           if (amount > 0) {
             prepaymentAmount += amount;
             prepaymentDescription = prepayment.description || prepaymentDescription;
+            if (prepayment.description === 'FGTS') {
+              fgtsAmortization += amount;
+            }
           }
         }
 
@@ -238,6 +298,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       balance -= amortization;
       const isPaidOff = balance <= 0;
 
+      const fgtsSubsidy = Math.min(getFgtsInstallmentForMonth(sortedFgts, installmentDate), payment);
+      const netPayment = payment - fgtsSubsidy;
+
       schedule.push({
         installmentNumber: i,
         date: installmentDate,
@@ -251,6 +314,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
         totalCost: roundCents(payment + extraCosts),
+        fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
+        fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
+        netPayment: roundCents(netPayment),
       });
 
       if (isPaidOff) {
@@ -270,8 +336,11 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
       payment: acc.payment + row.payment,
       interest: acc.interest + row.interest,
       extraCosts: acc.extraCosts + (row.extraCosts ?? 0),
+      netPayment: acc.netPayment + (row.netPayment ?? row.payment),
+      fgtsAmortization: acc.fgtsAmortization + (row.fgtsAmortization ?? 0),
+      fgtsSubsidy: acc.fgtsSubsidy + (row.fgtsSubsidy ?? 0),
     }),
-    { payment: 0, interest: 0, extraCosts: 0 }
+    { payment: 0, interest: 0, extraCosts: 0, netPayment: 0, fgtsAmortization: 0, fgtsSubsidy: 0 }
   );
 
   const payments = schedule.map((row) => row.payment).filter((p) => p > 0);
@@ -282,6 +351,7 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
 
   const financedPrincipal = getFinancedPrincipal(scenario);
   const upfrontCosts = getUpfrontCosts(scenario, financedPrincipal);
+  const fgtsDownPayment = getFgtsDownPayment(scenario);
   const totalUpfrontCosts = upfrontCosts.upfront;
   const totalMonthlyCosts = totals.extraCosts;
   const totalPaymentWithCosts = totals.payment + totalUpfrontCosts + totalMonthlyCosts;
@@ -292,7 +362,7 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
       : 0;
 
   const installments = schedule.filter((row) => row.installmentNumber > 0);
-  const netDisbursement = financedPrincipal - totalUpfrontCosts;
+  const netDisbursement = financedPrincipal - totalUpfrontCosts - fgtsDownPayment;
   let cetAnnualRate = 0;
   if (netDisbursement > 0 && installments.length > 0) {
     const cashFlows = installments.map((row) => row.payment + (row.extraCosts ?? 0));
@@ -334,6 +404,8 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
     cetAnnualRate: roundCents(cetAnnualRate * 100),
     financedPrincipal: roundCents(financedPrincipal),
     propertyTotalCost: roundCents(propertyTotalCost),
+    totalFgtsUsed: roundCents(fgtsDownPayment + totals.fgtsAmortization + totals.fgtsSubsidy),
+    totalPaymentNet: roundCents(totals.netPayment),
   };
 }
 

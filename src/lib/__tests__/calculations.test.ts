@@ -121,6 +121,33 @@ describe('calculateLoanSummary', () => {
     expect(summary.totalPaymentWithCosts).toBeGreaterThan(summary.totalPayment);
     expect(summary.cetAnnualRate).toBeGreaterThan(0);
   });
+
+  it('applies FGTS down payment and installment subsidy', () => {
+    const scenario = {
+      ...baseScenario,
+      fgtsEvents: [
+        {
+          id: 'fgts-down',
+          date: new Date(2026, 0, 1),
+          amount: 2000,
+          usage: 'down_payment' as const,
+        },
+        {
+          id: 'fgts-install',
+          date: new Date(2026, 0, 5),
+          amount: 500,
+          usage: 'installment' as const,
+        },
+      ],
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const summary = calculateLoanSummary(schedule, scenario);
+
+    expect(summary.financedPrincipal).toBeCloseTo(baseScenario.principal, 2);
+    expect(summary.totalFgtsUsed).toBeGreaterThan(0);
+    expect(summary.totalPaymentNet).toBeLessThan(summary.totalPayment);
+    expect(schedule[1]?.netPayment).toBeLessThanOrEqual(schedule[1]?.payment ?? 0);
+  });
 });
 
 describe('validateScenario', () => {

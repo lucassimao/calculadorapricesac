@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View, Pressable, Alert } from 'react-native';
 import { useIAP } from 'expo-iap';
-import type { PrepaymentEvent, Scenario } from '../../src/types/loan';
+import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, validateScenario } from '../../src/lib/calculations';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
@@ -64,6 +64,12 @@ export default function CalculatorScreen() {
   const [showCumulative, setShowCumulative] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const isPropertyMode = scenario.loanMode === 'property';
+  const [newFgts, setNewFgts] = useState<Partial<FgtsEvent>>({
+    amount: 0,
+    usage: 'amortization',
+    strategy: 'reduce_term',
+    date: new Date(),
+  });
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
   const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
     onPurchaseSuccess: async () => {
@@ -165,6 +171,38 @@ export default function CalculatorScreen() {
     setScenario((prev) => ({
       ...prev,
       prepayments: (prev.prepayments ?? []).filter((p) => p.id !== id),
+    }));
+  };
+
+  const handleAddFgts = () => {
+    if (!newFgts.amount || !newFgts.date) {
+      Alert.alert('FGTS incompleto', 'Informe data e valor.');
+      return;
+    }
+    const next: FgtsEvent = {
+      id: Date.now().toString(),
+      amount: newFgts.amount,
+      date: new Date(newFgts.date),
+      usage: newFgts.usage as FgtsEvent['usage'],
+      strategy: newFgts.strategy,
+      description: newFgts.description,
+    };
+    setScenario((prev) => ({
+      ...prev,
+      fgtsEvents: [...(prev.fgtsEvents ?? []), next],
+    }));
+    setNewFgts({
+      amount: 0,
+      usage: 'amortization',
+      strategy: 'reduce_term',
+      date: new Date(),
+    });
+  };
+
+  const handleRemoveFgts = (id: string) => {
+    setScenario((prev) => ({
+      ...prev,
+      fgtsEvents: (prev.fgtsEvents ?? []).filter((event) => event.id !== id),
     }));
   };
 
@@ -580,6 +618,18 @@ export default function CalculatorScreen() {
             <Text style={styles.summaryValue}>{formatCurrency(summary.propertyTotalCost)}</Text>
           </View>
         )}
+        {summary.totalFgtsUsed > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>FGTS Usado</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(summary.totalFgtsUsed)}</Text>
+          </View>
+        )}
+        {summary.totalPaymentNet !== summary.totalPayment && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Total Pago Líquido</Text>
+            <Text style={styles.summaryValue}>{formatCurrency(summary.totalPaymentNet)}</Text>
+          </View>
+        )}
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total de Juros</Text>
           <Text style={styles.summaryValue}>{formatCurrency(summary.totalInterest)}</Text>
@@ -731,6 +781,129 @@ export default function CalculatorScreen() {
                   onPress={() => handleRemovePrepayment(payment.id)}
                   accessibilityRole="button"
                   accessibilityLabel="Remover amortização"
+                  hitSlop={8}
+                >
+                  <Text style={styles.deleteText}>Remover</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>FGTS</Text>
+        <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
+        <TextInput
+          value={newFgts.date?.toISOString().slice(0, 10)}
+          onChangeText={(text) => {
+            const parsed = new Date(text);
+            if (!Number.isNaN(parsed.getTime())) {
+              setNewFgts((prev) => ({ ...prev, date: parsed }));
+            }
+          }}
+          style={styles.input}
+          accessibilityLabel="Data do FGTS"
+        />
+        <Text style={styles.label}>Valor (R$)</Text>
+        <TextInput
+          value={newFgts.amount ? String(newFgts.amount) : ''}
+          onChangeText={(text) => {
+            const parsed = parseCurrencyInput(text);
+            setNewFgts((prev) => ({ ...prev, amount: parsed }));
+          }}
+          keyboardType="numeric"
+          style={styles.input}
+          accessibilityLabel="Valor do FGTS"
+        />
+        <View style={styles.row}>
+          <Pressable
+            style={[styles.chip, newFgts.usage === 'down_payment' && styles.chipActive]}
+            onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'down_payment' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newFgts.usage === 'down_payment' }}
+            accessibilityLabel="FGTS como entrada"
+          >
+            <Text style={styles.chipText}>Entrada</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.chip, newFgts.usage === 'amortization' && styles.chipActive]}
+            onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'amortization' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newFgts.usage === 'amortization' }}
+            accessibilityLabel="FGTS como amortização"
+          >
+            <Text style={styles.chipText}>Amortização</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.chip, newFgts.usage === 'installment' && styles.chipActive]}
+            onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'installment' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newFgts.usage === 'installment' }}
+            accessibilityLabel="FGTS para parcela"
+          >
+            <Text style={styles.chipText}>Parcela</Text>
+          </Pressable>
+        </View>
+        {newFgts.usage === 'amortization' && (
+          <View style={styles.row}>
+            <Pressable
+              style={[styles.chip, newFgts.strategy === 'reduce_term' && styles.chipActive]}
+              onPress={() => setNewFgts((prev) => ({ ...prev, strategy: 'reduce_term' }))}
+              accessibilityRole="button"
+              accessibilityState={{ selected: newFgts.strategy === 'reduce_term' }}
+              accessibilityLabel="FGTS reduzindo prazo"
+            >
+              <Text style={styles.chipText}>Reduzir prazo</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.chip, newFgts.strategy === 'reduce_payment' && styles.chipActive]}
+              onPress={() => setNewFgts((prev) => ({ ...prev, strategy: 'reduce_payment' }))}
+              accessibilityRole="button"
+              accessibilityState={{ selected: newFgts.strategy === 'reduce_payment' }}
+              accessibilityLabel="FGTS reduzindo parcela"
+            >
+              <Text style={styles.chipText}>Reduzir parcela</Text>
+            </Pressable>
+          </View>
+        )}
+        <Text style={styles.label}>Descrição (opcional)</Text>
+        <TextInput
+          value={newFgts.description ?? ''}
+          onChangeText={(text) => setNewFgts((prev) => ({ ...prev, description: text }))}
+          style={styles.input}
+          placeholder="Uso do FGTS..."
+          accessibilityLabel="Descrição do FGTS"
+        />
+        <Pressable
+          style={styles.primaryButton}
+          onPress={handleAddFgts}
+          accessibilityRole="button"
+          accessibilityLabel="Adicionar FGTS"
+        >
+          <Text style={styles.primaryButtonText}>Adicionar FGTS</Text>
+        </Pressable>
+
+        {(scenario.fgtsEvents ?? []).length > 0 && (
+          <View style={styles.list}>
+            {(scenario.fgtsEvents ?? []).map((event) => (
+              <View key={event.id} style={styles.listItemRow}>
+                <View>
+                  <Text style={styles.listTitle}>
+                    {event.date.toLocaleDateString('pt-BR')} • {formatCurrency(event.amount)}
+                  </Text>
+                  <Text style={styles.listSubtitle}>
+                    {event.usage === 'down_payment'
+                      ? 'Entrada'
+                      : event.usage === 'amortization'
+                        ? 'Amortização'
+                        : 'Parcela'}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => handleRemoveFgts(event.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remover FGTS"
                   hitSlop={8}
                 >
                   <Text style={styles.deleteText}>Remover</Text>

@@ -65,6 +65,8 @@ const summary: LoanSummary = {
   cetAnnualRate: 0,
   financedPrincipal: 100000,
   propertyTotalCost: 0,
+  totalFgtsUsed: 0,
+  totalPaymentNet: 120000,
 };
 
 const schedule: ScheduleRow[] = [
