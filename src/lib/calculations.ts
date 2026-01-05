@@ -378,6 +378,26 @@ export function validateScenario(scenario: Scenario): ValidationResult {
   if (scenario.rateType === 'annual' && scenario.rate < 5) {
     warnings.push('Taxa anual parece baixa. Verifique se não é mensal.');
   }
+  if (scenario.loanMode === 'property') {
+    if (!scenario.propertyValue || scenario.propertyValue <= 0) {
+      errors.push('Informe o valor do imóvel para o modo imobiliário.');
+    }
+    if (scenario.downPayment === undefined || scenario.downPayment < 0) {
+      errors.push('Informe a entrada para o modo imobiliário.');
+    }
+  }
+  if ((scenario.includeInsurance ?? false) && (scenario.insuranceRate ?? 0) <= 0) {
+    warnings.push('Seguro ativado sem taxa informada.');
+  }
+  if ((scenario.includeAdminFee ?? false) && (scenario.adminFeeRate ?? 0) <= 0) {
+    warnings.push('Tarifa administrativa ativada sem taxa informada.');
+  }
+  if ((scenario.includeIOF ?? false) && (scenario.iofRate ?? 0) <= 0) {
+    warnings.push('IOF ativado sem taxa informada.');
+  }
+  if ((scenario.includeOpeningFee ?? false) && (scenario.openingFee ?? 0) <= 0) {
+    warnings.push('Taxa de abertura ativada sem valor informado.');
+  }
 
   return { errors, warnings };
 }

@@ -95,6 +95,7 @@ export default function CalculatorScreen() {
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
+  const propertyModeHint = isPropertyMode ? 'Modo imobiliário ativo.' : 'Modo padrão ativo.';
 
   const persistScenarios = async (nextScenarios: Scenario[]) => {
     setScenarios(nextScenarios);
@@ -336,6 +337,7 @@ export default function CalculatorScreen() {
             </Pressable>
           ))}
         </View>
+        <Text style={styles.helperText}>{propertyModeHint}</Text>
       </View>
 
       <View style={styles.section}>

@@ -156,6 +156,18 @@ describe('validateScenario', () => {
 
     expect(result.errors.length).toBeGreaterThan(0);
   });
+
+  it('warns when cost toggles are enabled without values', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      includeInsurance: true,
+      includeAdminFee: true,
+      includeIOF: true,
+      includeOpeningFee: true,
+    });
+
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
 });
 
 describe('rate conversions and payment edge cases', () => {
