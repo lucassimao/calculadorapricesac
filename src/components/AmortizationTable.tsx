@@ -6,9 +6,14 @@ import { formatCurrency } from '../lib/calculations';
 interface AmortizationTableProps {
   schedule: ScheduleRow[];
   showCumulative?: boolean;
+  totalSchedule?: ScheduleRow[];
 }
 
-export function AmortizationTable({ schedule, showCumulative = false }: AmortizationTableProps) {
+export function AmortizationTable({
+  schedule,
+  showCumulative = false,
+  totalSchedule,
+}: AmortizationTableProps) {
   const rows = useMemo(() => {
     const filtered = schedule.filter((row) => row.installmentNumber > 0);
     let cumulativeInterest = 0;
@@ -25,7 +30,8 @@ export function AmortizationTable({ schedule, showCumulative = false }: Amortiza
   }, [schedule]);
 
   const totals = useMemo(() => {
-    return rows.reduce(
+    const source = (totalSchedule ?? schedule).filter((row) => row.installmentNumber > 0);
+    return source.reduce(
       (acc, row) => ({
         payment: acc.payment + row.payment,
         interest: acc.interest + row.interest,
@@ -33,7 +39,7 @@ export function AmortizationTable({ schedule, showCumulative = false }: Amortiza
       }),
       { payment: 0, interest: 0, amortization: 0 }
     );
-  }, [rows]);
+  }, [schedule, totalSchedule]);
 
   return (
     <View style={styles.container}>

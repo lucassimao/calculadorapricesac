@@ -26,6 +26,8 @@ const DEFAULT_SCENARIO: Scenario = {
   prepayments: [],
 };
 
+const MAX_TABLE_ROWS = 24;
+
 function parseCurrencyInput(value: string): number {
   if (!value.trim()) return 0;
   const cleaned = value
@@ -51,6 +53,7 @@ export default function CalculatorScreen() {
   const [startDateText, setStartDateText] = useState(new Date().toISOString().slice(0, 10));
   const [dueDayText, setDueDayText] = useState('5');
   const [showCumulative, setShowCumulative] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
   const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
     onPurchaseSuccess: async () => {
@@ -75,8 +78,13 @@ export default function CalculatorScreen() {
   }, []);
 
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
+  const scheduleForTable = useMemo(
+    () => (showAllRows ? schedule : schedule.slice(0, MAX_TABLE_ROWS + 1)),
+    [schedule, showAllRows]
+  );
   const summary = useMemo(() => calculateLoanSummary(schedule), [schedule]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
+  const totalInstallments = Math.max(schedule.length - 1, 0);
 
   const persistScenarios = async (nextScenarios: Scenario[]) => {
     setScenarios(nextScenarios);
@@ -193,7 +201,7 @@ export default function CalculatorScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Calculadora Price & SAC</Text>
       {!premiumLoading && <AdBanner enabled={!isPremium} />}
 
@@ -205,14 +213,22 @@ export default function CalculatorScreen() {
           onChangeText={(text) => setScenario((prev) => ({ ...prev, name: text }))}
           style={styles.input}
           placeholder="Cenário Principal"
+          accessibilityLabel="Nome do cenário"
         />
         <View style={styles.rowWrap}>
-          <Pressable style={styles.primaryButton} onPress={handleSaveScenario}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={handleSaveScenario}
+            accessibilityRole="button"
+            accessibilityLabel="Salvar cenário"
+          >
             <Text style={styles.primaryButtonText}>Salvar cenário</Text>
           </Pressable>
           <Pressable
             style={styles.secondaryButton}
             onPress={() => handleLoadScenario({ ...DEFAULT_SCENARIO, id: Date.now().toString() })}
+            accessibilityRole="button"
+            accessibilityLabel="Criar novo cenário"
           >
             <Text style={styles.secondaryButtonText}>Novo</Text>
           </Pressable>
@@ -224,6 +240,8 @@ export default function CalculatorScreen() {
                 key={item.id}
                 style={styles.listItem}
                 onPress={() => handleLoadScenario(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`Carregar cenário ${item.name}`}
               >
                 <Text style={styles.listTitle}>{item.name}</Text>
                 <Text style={styles.listSubtitle}>
@@ -246,6 +264,9 @@ export default function CalculatorScreen() {
                 styles.toggleButton,
                 scenario.system === system && styles.toggleButtonActive,
               ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scenario.system === system }}
+              accessibilityLabel={`Selecionar sistema ${system}`}
             >
               <Text
                 style={[
@@ -273,6 +294,7 @@ export default function CalculatorScreen() {
           keyboardType="numeric"
           style={styles.input}
           placeholder="300000 ou 300.000,00"
+          accessibilityLabel="Valor do financiamento"
         />
 
         <Text style={styles.label}>Taxa de Juros</Text>
@@ -286,6 +308,7 @@ export default function CalculatorScreen() {
             keyboardType="numeric"
             style={[styles.input, styles.inputFlex]}
             placeholder="1,2"
+            accessibilityLabel="Taxa de juros"
           />
           <View style={styles.toggleRow}>
             {(['monthly', 'annual'] as const).map((rateType) => (
@@ -296,6 +319,9 @@ export default function CalculatorScreen() {
                   styles.chip,
                   scenario.rateType === rateType && styles.chipActive,
                 ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: scenario.rateType === rateType }}
+                accessibilityLabel={`Taxa ${rateType === 'monthly' ? 'ao mês' : 'ao ano'}`}
               >
                 <Text
                   style={[
@@ -322,6 +348,7 @@ export default function CalculatorScreen() {
             keyboardType="numeric"
             style={[styles.input, styles.inputFlex]}
             placeholder="360"
+            accessibilityLabel="Prazo"
           />
           <View style={styles.toggleRow}>
             {(['months', 'years'] as const).map((termUnit) => (
@@ -332,6 +359,9 @@ export default function CalculatorScreen() {
                   styles.chip,
                   scenario.termUnit === termUnit && styles.chipActive,
                 ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: scenario.termUnit === termUnit }}
+                accessibilityLabel={`Prazo em ${termUnit === 'months' ? 'meses' : 'anos'}`}
               >
                 <Text
                   style={[
@@ -358,6 +388,7 @@ export default function CalculatorScreen() {
           }}
           style={styles.input}
           placeholder="2026-01-05"
+          accessibilityLabel="Data de início"
         />
 
         <Text style={styles.label}>Dia de Vencimento</Text>
@@ -373,6 +404,7 @@ export default function CalculatorScreen() {
           keyboardType="numeric"
           style={styles.input}
           placeholder="5"
+          accessibilityLabel="Dia de vencimento"
         />
       </View>
 
@@ -401,12 +433,19 @@ export default function CalculatorScreen() {
           <Pressable
             style={[styles.primaryButton, isPremium && styles.primaryButtonDisabled]}
             onPress={handlePurchase}
+            accessibilityRole="button"
+            accessibilityLabel="Remover anúncios"
           >
             <Text style={styles.primaryButtonText}>
               {isPremium ? 'Premium ativo' : 'Remover anúncios'}
             </Text>
           </Pressable>
-          <Pressable style={styles.secondaryButton} onPress={handleRestore}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={handleRestore}
+            accessibilityRole="button"
+            accessibilityLabel="Restaurar compra"
+          >
             <Text style={styles.secondaryButtonText}>Restaurar</Text>
           </Pressable>
         </View>
@@ -443,11 +482,32 @@ export default function CalculatorScreen() {
           <Pressable
             style={styles.chip}
             onPress={() => setShowCumulative((prev) => !prev)}
+            accessibilityRole="button"
+            accessibilityLabel={showCumulative ? 'Ocultar acumulado' : 'Mostrar acumulado'}
           >
             <Text style={styles.chipText}>{showCumulative ? 'Ocultar Acum.' : 'Mostrar Acum.'}</Text>
           </Pressable>
         </View>
-        <AmortizationTable schedule={schedule} showCumulative={showCumulative} />
+        {totalInstallments > MAX_TABLE_ROWS && (
+          <View style={styles.tableMetaRow}>
+            <Text style={styles.tableMetaText}>
+              Mostrando {showAllRows ? totalInstallments : MAX_TABLE_ROWS} de {totalInstallments} parcelas
+            </Text>
+            <Pressable
+              style={styles.chip}
+              onPress={() => setShowAllRows((prev) => !prev)}
+              accessibilityRole="button"
+              accessibilityLabel={showAllRows ? 'Mostrar menos parcelas' : 'Mostrar todas as parcelas'}
+            >
+              <Text style={styles.chipText}>{showAllRows ? 'Mostrar menos' : 'Mostrar todas'}</Text>
+            </Pressable>
+          </View>
+        )}
+        <AmortizationTable
+          schedule={scheduleForTable}
+          totalSchedule={schedule}
+          showCumulative={showCumulative}
+        />
       </View>
 
       <View style={styles.section}>
@@ -462,6 +522,7 @@ export default function CalculatorScreen() {
             }
           }}
           style={styles.input}
+          accessibilityLabel="Data da amortização extra"
         />
         <Text style={styles.label}>Valor (R$)</Text>
         <TextInput
@@ -472,17 +533,24 @@ export default function CalculatorScreen() {
           }}
           keyboardType="numeric"
           style={styles.input}
+          accessibilityLabel="Valor da amortização extra"
         />
         <View style={styles.row}>
           <Pressable
             style={[styles.chip, newPrepayment.type === 'fixed_amount' && styles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, type: 'fixed_amount' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newPrepayment.type === 'fixed_amount' }}
+            accessibilityLabel="Amortização por valor fixo"
           >
             <Text style={styles.chipText}>Valor fixo</Text>
           </Pressable>
           <Pressable
             style={[styles.chip, newPrepayment.type === 'percentage' && styles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, type: 'percentage' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newPrepayment.type === 'percentage' }}
+            accessibilityLabel="Amortização por porcentagem do saldo"
           >
             <Text style={styles.chipText}>% do saldo</Text>
           </Pressable>
@@ -491,12 +559,18 @@ export default function CalculatorScreen() {
           <Pressable
             style={[styles.chip, newPrepayment.strategy === 'reduce_term' && styles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_term' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newPrepayment.strategy === 'reduce_term' }}
+            accessibilityLabel="Reduzir prazo"
           >
             <Text style={styles.chipText}>Reduzir prazo</Text>
           </Pressable>
           <Pressable
             style={[styles.chip, newPrepayment.strategy === 'reduce_payment' && styles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_payment' }))}
+            accessibilityRole="button"
+            accessibilityState={{ selected: newPrepayment.strategy === 'reduce_payment' }}
+            accessibilityLabel="Reduzir parcela"
           >
             <Text style={styles.chipText}>Reduzir parcela</Text>
           </Pressable>
@@ -507,8 +581,14 @@ export default function CalculatorScreen() {
           onChangeText={(text) => setNewPrepayment((prev) => ({ ...prev, description: text }))}
           style={styles.input}
           placeholder="13º salário, bônus..."
+          accessibilityLabel="Descrição da amortização extra"
         />
-        <Pressable style={styles.primaryButton} onPress={handleAddPrepayment}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={handleAddPrepayment}
+          accessibilityRole="button"
+          accessibilityLabel="Adicionar amortização extra"
+        >
           <Text style={styles.primaryButtonText}>Adicionar amortização</Text>
         </Pressable>
 
@@ -524,7 +604,12 @@ export default function CalculatorScreen() {
                     {payment.strategy === 'reduce_term' ? 'Reduzir prazo' : 'Reduzir parcela'}
                   </Text>
                 </View>
-                <Pressable onPress={() => handleRemovePrepayment(payment.id)}>
+                <Pressable
+                  onPress={() => handleRemovePrepayment(payment.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remover amortização"
+                  hitSlop={8}
+                >
                   <Text style={styles.deleteText}>Remover</Text>
                 </Pressable>
               </View>
@@ -539,18 +624,24 @@ export default function CalculatorScreen() {
           <Pressable
             style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
             onPress={() => handleExport('pdf')}
+            accessibilityRole="button"
+            accessibilityLabel="Exportar PDF"
           >
             <Text style={styles.primaryButtonText}>PDF</Text>
           </Pressable>
           <Pressable
             style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
             onPress={() => handleExport('xlsx')}
+            accessibilityRole="button"
+            accessibilityLabel="Exportar XLSX"
           >
             <Text style={styles.primaryButtonText}>XLSX</Text>
           </Pressable>
           <Pressable
             style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
             onPress={() => handleExport('csv')}
+            accessibilityRole="button"
+            accessibilityLabel="Exportar CSV"
           >
             <Text style={styles.primaryButtonText}>CSV</Text>
           </Pressable>
@@ -565,6 +656,7 @@ export default function CalculatorScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
+    paddingBottom: 32,
     backgroundColor: '#F7F7F7',
   },
   title: {
@@ -601,6 +693,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexWrap: 'wrap',
   },
   rowWrap: {
     flexDirection: 'row',
@@ -657,6 +750,8 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    rowGap: 6,
   },
   summaryLabel: {
     color: '#374151',
@@ -670,6 +765,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
+    minHeight: 44,
   },
   primaryButtonDisabled: {
     opacity: 0.6,
@@ -684,6 +780,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
+    minHeight: 44,
   },
   secondaryButtonText: {
     color: '#374151',
@@ -727,5 +824,16 @@ const styles = StyleSheet.create({
   warningText: {
     color: '#D97706',
     fontSize: 13,
+  },
+  tableMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  tableMetaText: {
+    color: '#6B7280',
+    fontSize: 12,
   },
 });

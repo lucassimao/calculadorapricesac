@@ -57,7 +57,7 @@ export default function ComparisonScreen() {
   const interestDiff = priceSummary.totalInterest - sacSummary.totalInterest;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Comparar SAC vs Price</Text>
       {!premiumLoading && <AdBanner enabled={!isPremium} />}
 
@@ -72,6 +72,7 @@ export default function ComparisonScreen() {
           }}
           keyboardType="numeric"
           style={styles.input}
+          accessibilityLabel="Valor do financiamento"
         />
         <Text style={styles.label}>Taxa de Juros (% ao mês)</Text>
         <TextInput
@@ -82,6 +83,7 @@ export default function ComparisonScreen() {
           }}
           keyboardType="numeric"
           style={styles.input}
+          accessibilityLabel="Taxa de juros ao mês"
         />
         <Text style={styles.label}>Prazo (meses)</Text>
         <TextInput
@@ -93,6 +95,7 @@ export default function ComparisonScreen() {
           }}
           keyboardType="numeric"
           style={styles.input}
+          accessibilityLabel="Prazo em meses"
         />
       </View>
 
@@ -141,6 +144,7 @@ export default function ComparisonScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
+    paddingBottom: 32,
     backgroundColor: '#F7F7F7',
   },
   title: {
@@ -176,9 +180,12 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: 'row',
     gap: 12,
+    flexWrap: 'wrap',
   },
   card: {
     flex: 1,
+    minWidth: 140,
+    flexBasis: '48%',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 10,

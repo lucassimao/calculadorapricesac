@@ -68,21 +68,21 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
     <View style={styles.container}>
       <Text style={styles.title}>Gráficos</Text>
 
-      <View style={styles.chartBlock}>
+      <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico de saldo devedor">
         <Text style={styles.chartLabel}>Saldo Devedor</Text>
         <Svg width={chartWidth} height={chartHeight}>
           <Path d={balancePath} stroke="#EF4444" strokeWidth={2} fill="none" />
         </Svg>
       </View>
 
-      <View style={styles.chartBlock}>
+      <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico das parcelas">
         <Text style={styles.chartLabel}>Parcelas</Text>
         <Svg width={chartWidth} height={chartHeight}>
           <Path d={paymentPath} stroke="#2563EB" strokeWidth={2} fill="none" />
         </Svg>
       </View>
 
-      <View style={styles.chartBlock}>
+      <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico de juros versus amortização">
         <Text style={styles.chartLabel}>Juros vs Amortização</Text>
         <Svg width={chartWidth} height={chartHeight}>
           {barData.map((row) => {
