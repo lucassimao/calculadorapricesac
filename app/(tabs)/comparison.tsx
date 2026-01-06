@@ -47,6 +47,7 @@ export default function ComparisonScreen() {
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
   const { isPremium, loading: premiumLoading } = usePremium();
+  const showAds = !premiumLoading && !isPremium;
 
   const priceSchedule = useMemo(
     () => generateAmortizationSchedule({ ...base, system: 'PRICE' }),
@@ -72,7 +73,7 @@ export default function ComparisonScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Comparar SAC vs Price</Text>
-      {!premiumLoading && <AdBanner enabled={!isPremium} />}
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Parâmetros</Text>
@@ -111,6 +112,8 @@ export default function ComparisonScreen() {
           accessibilityLabel="Prazo em meses"
         />
       </View>
+
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Resumo Comparativo</Text>
@@ -179,8 +182,10 @@ export default function ComparisonScreen() {
         )}
       </View>
 
+      <AdBanner enabled={showAds} />
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Comparador Rápido</Text>
+        <Text style={styles.sectionTitle} testID="section-quick-compare">Comparador Rápido</Text>
         <Text style={styles.helperText}>
           Compare até 3 condições diferentes (juros, prazo e entrada). O ranking
           usa o total pago com custos.
@@ -201,6 +206,8 @@ export default function ComparisonScreen() {
                 style={[styles.input, styles.inputSmall]}
                 placeholder="Juros (%) a.m."
                 accessibilityLabel={`Juros condição ${item.name}`}
+                testID={`quick-rate-${index}`}
+                nativeID={`quick-rate-${index}`}
               />
               <TextInput
                 value={String(item.term)}
@@ -214,6 +221,8 @@ export default function ComparisonScreen() {
                 style={[styles.input, styles.inputSmall]}
                 placeholder="Prazo (meses)"
                 accessibilityLabel={`Prazo condição ${item.name}`}
+                testID={`quick-term-${index}`}
+                nativeID={`quick-term-${index}`}
               />
               <TextInput
                 value={String(item.downPayment ?? 0)}
@@ -227,6 +236,8 @@ export default function ComparisonScreen() {
                 style={[styles.input, styles.inputSmall]}
                 placeholder="Entrada (R$)"
                 accessibilityLabel={`Entrada condição ${item.name}`}
+                testID={`quick-down-${index}`}
+                nativeID={`quick-down-${index}`}
               />
             </View>
             <View style={styles.quickRow}>
@@ -241,7 +252,7 @@ export default function ComparisonScreen() {
         ))}
       </View>
 
-      {!premiumLoading && <AdBanner enabled={!isPremium} />}
+      <AdBanner enabled={showAds} />
     </ScrollView>
   );
 }

@@ -4,18 +4,21 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
     "test": "vitest run",
-    "ui:maestro": "maestro test maestro",
-    "ui:maestro:expo": "APP_ID=host.exp.exponent maestro test maestro"
+    "ui:maestro": "$HOME/.maestro/bin/maestro test maestro",
+    "ui:maestro:android": "$HOME/.maestro/bin/maestro test maestro",
+    "build:android:local": "eas build -p android --local --profile production",
+    "build:android:local:internal": "eas build -p android --local --profile internal"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~54.0.30",
     "expo-constants": "~18.0.12",
+    "expo-dev-client": "~6.0.20",
     "expo-file-system": "~19.0.21",
     "expo-iap": "^3.4.0",
     "expo-linking": "~8.0.11",

@@ -28,6 +28,7 @@ const DEFAULT_SCENARIO: Scenario = {
 };
 
 const MAX_TABLE_ROWS = 24;
+const ENABLE_IAP = !__DEV__;
 
 function parseCurrencyInput(value: string): number {
   if (!value.trim()) return 0;
@@ -43,6 +44,115 @@ function parseCurrencyInput(value: string): number {
 function parseNumberInput(value: string): number {
   const parsed = Number.parseFloat(value.replace(',', '.'));
   return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function PremiumSectionDisabled({ isPremium }: { isPremium: boolean }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Plano Premium</Text>
+      <Text style={styles.label}>
+        Compras no app desativadas no modo desenvolvimento.
+      </Text>
+      <View style={styles.rowWrap}>
+        <Pressable
+          style={[styles.primaryButton, styles.primaryButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Remover anúncios"
+        >
+          <Text style={styles.primaryButtonText}>
+            {isPremium ? 'Premium ativo' : 'Remover anúncios'}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.secondaryButton, styles.primaryButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Restaurar compra"
+        >
+          <Text style={styles.secondaryButtonText}>Restaurar</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function PremiumSectionIap({
+  isPremium,
+  markPremium,
+}: {
+  isPremium: boolean;
+  markPremium: (value: boolean) => Promise<void>;
+}) {
+  const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
+    onPurchaseSuccess: async () => {
+      await markPremium(true);
+      Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
+    },
+    onPurchaseError: () => {
+      Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    },
+  });
+
+  const handlePurchase = async () => {
+    try {
+      if (isPremium) {
+        Alert.alert('Premium ativo', 'Você já removeu os anúncios.');
+        return;
+      }
+      await requestPurchase({
+        type: 'in-app',
+        request: {
+          ios: { sku: 'remove_ads' },
+          android: { skus: ['remove_ads'] },
+        },
+      });
+    } catch {
+      Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restorePurchases();
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      if (availablePurchases.length > 0) {
+        await markPremium(true);
+        Alert.alert('Restaurado', 'Compra restaurada com sucesso.');
+      } else {
+        Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível restaurar a compra.');
+    }
+  };
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Plano Premium</Text>
+      <Text style={styles.label}>
+        Remova anúncios e libere exportações por R$ 5,00 (pagamento único).
+      </Text>
+      <View style={styles.rowWrap}>
+        <Pressable
+          style={[styles.primaryButton, isPremium && styles.primaryButtonDisabled]}
+          onPress={handlePurchase}
+          accessibilityRole="button"
+          accessibilityLabel="Remover anúncios"
+        >
+          <Text style={styles.primaryButtonText}>
+            {isPremium ? 'Premium ativo' : 'Remover anúncios'}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={handleRestore}
+          accessibilityRole="button"
+          accessibilityLabel="Restaurar compra"
+        >
+          <Text style={styles.secondaryButtonText}>Restaurar</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 export default function CalculatorScreen() {
@@ -71,15 +181,7 @@ export default function CalculatorScreen() {
     date: new Date(),
   });
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
-  const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
-    onPurchaseSuccess: async () => {
-      await markPremium(true);
-      Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
-    },
-    onPurchaseError: () => {
-      Alert.alert('Erro', 'Não foi possível concluir a compra.');
-    },
-  });
+  const showAds = !premiumLoading && !isPremium;
   const [newPrepayment, setNewPrepayment] = useState<Partial<PrepaymentEvent>>({
     amount: 0,
     type: 'fixed_amount',
@@ -206,38 +308,6 @@ export default function CalculatorScreen() {
     }));
   };
 
-  const handlePurchase = async () => {
-    try {
-      if (isPremium) {
-        Alert.alert('Premium ativo', 'Você já removeu os anúncios.');
-        return;
-      }
-      await requestPurchase({
-        type: 'in-app',
-        request: {
-          ios: { sku: 'remove_ads' },
-          android: { skus: ['remove_ads'] },
-        },
-      });
-    } catch {
-      Alert.alert('Erro', 'Não foi possível concluir a compra.');
-    }
-  };
-
-  const handleRestore = async () => {
-    try {
-      await restorePurchases();
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      if (availablePurchases.length > 0) {
-        await markPremium(true);
-        Alert.alert('Restaurado', 'Compra restaurada com sucesso.');
-      } else {
-        Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
-      }
-    } catch {
-      Alert.alert('Erro', 'Não foi possível restaurar a compra.');
-    }
-  };
 
   const handleExport = async (format: 'pdf' | 'xlsx' | 'csv') => {
     if (!isPremium) {
@@ -260,7 +330,7 @@ export default function CalculatorScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Calculadora Price & SAC</Text>
-      {!premiumLoading && <AdBanner enabled={!isPremium} />}
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cenário</Text>
@@ -271,6 +341,7 @@ export default function CalculatorScreen() {
           style={styles.input}
           placeholder="Cenário Principal"
           accessibilityLabel="Nome do cenário"
+          testID="input-scenario-name"
         />
         <View style={styles.rowWrap}>
           <Pressable
@@ -309,6 +380,8 @@ export default function CalculatorScreen() {
           </View>
         )}
       </View>
+
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sistema</Text>
@@ -378,6 +451,8 @@ export default function CalculatorScreen() {
         <Text style={styles.helperText}>{propertyModeHint}</Text>
       </View>
 
+      <AdBanner enabled={showAds} />
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Parâmetros</Text>
 
@@ -392,6 +467,8 @@ export default function CalculatorScreen() {
           style={styles.input}
           placeholder="300000 ou 300.000,00"
           accessibilityLabel="Valor do financiamento"
+          testID="input-principal"
+          nativeID="input-principal"
         />
 
         {isPropertyMode && (
@@ -436,6 +513,8 @@ export default function CalculatorScreen() {
             style={[styles.input, styles.inputFlex]}
             placeholder="1,2"
             accessibilityLabel="Taxa de juros"
+            testID="input-rate"
+            nativeID="input-rate"
           />
           <View style={styles.toggleRow}>
             {(['monthly', 'annual'] as const).map((rateType) => (
@@ -476,6 +555,8 @@ export default function CalculatorScreen() {
             style={[styles.input, styles.inputFlex]}
             placeholder="360"
             accessibilityLabel="Prazo"
+            testID="input-term"
+            nativeID="input-term"
           />
           <View style={styles.toggleRow}>
             {(['months', 'years'] as const).map((termUnit) => (
@@ -532,8 +613,12 @@ export default function CalculatorScreen() {
           style={styles.input}
           placeholder="5"
           accessibilityLabel="Dia de vencimento"
+          testID="input-due-day"
+          nativeID="input-due-day"
         />
       </View>
+
+      <AdBanner enabled={showAds} />
 
       {(validation.errors.length > 0 || validation.warnings.length > 0) && (
         <View style={styles.section}>
@@ -551,35 +636,16 @@ export default function CalculatorScreen() {
         </View>
       )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Plano Premium</Text>
-        <Text style={styles.label}>
-          Remova anúncios e libere exportações por R$ 5,00 (pagamento único).
-        </Text>
-        <View style={styles.rowWrap}>
-          <Pressable
-            style={[styles.primaryButton, isPremium && styles.primaryButtonDisabled]}
-            onPress={handlePurchase}
-            accessibilityRole="button"
-            accessibilityLabel="Remover anúncios"
-          >
-            <Text style={styles.primaryButtonText}>
-              {isPremium ? 'Premium ativo' : 'Remover anúncios'}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={handleRestore}
-            accessibilityRole="button"
-            accessibilityLabel="Restaurar compra"
-          >
-            <Text style={styles.secondaryButtonText}>Restaurar</Text>
-          </Pressable>
-        </View>
-      </View>
+      {ENABLE_IAP ? (
+        <PremiumSectionIap isPremium={isPremium} markPremium={markPremium} />
+      ) : (
+        <PremiumSectionDisabled isPremium={isPremium} />
+      )}
+
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resumo</Text>
+        <Text style={styles.sectionTitle} testID="section-summary">Resumo</Text>
         {summary.financedPrincipal !== scenario.principal && (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Principal Financiado</Text>
@@ -644,10 +710,13 @@ export default function CalculatorScreen() {
         </View>
       </View>
 
+      <AdBanner enabled={showAds} />
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Gráficos</Text>
         <LoanCharts schedule={schedule} />
       </View>
+
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <View style={styles.row}>
@@ -683,8 +752,10 @@ export default function CalculatorScreen() {
         />
       </View>
 
+      <AdBanner enabled={showAds} />
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Amortizações Extras</Text>
+        <Text style={styles.sectionTitle} testID="section-prepayments">Amortizações Extras</Text>
         <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
         <TextInput
           value={newPrepayment.date?.toISOString().slice(0, 10)}
@@ -696,6 +767,8 @@ export default function CalculatorScreen() {
           }}
           style={styles.input}
           accessibilityLabel="Data da amortização extra"
+          testID="input-prepayment-date"
+          nativeID="input-prepayment-date"
         />
         <Text style={styles.label}>Valor (R$)</Text>
         <TextInput
@@ -707,6 +780,8 @@ export default function CalculatorScreen() {
           keyboardType="numeric"
           style={styles.input}
           accessibilityLabel="Valor da amortização extra"
+          testID="input-prepayment-amount"
+          nativeID="input-prepayment-amount"
         />
         <View style={styles.row}>
           <Pressable
@@ -761,8 +836,12 @@ export default function CalculatorScreen() {
           onPress={handleAddPrepayment}
           accessibilityRole="button"
           accessibilityLabel="Adicionar amortização extra"
+          testID="btn-add-prepayment"
+          nativeID="btn-add-prepayment"
         >
-          <Text style={styles.primaryButtonText}>Adicionar amortização</Text>
+          <Text style={styles.primaryButtonText} testID="label-add-prepayment">
+            Adicionar amortização
+          </Text>
         </Pressable>
 
         {(scenario.prepayments ?? []).length > 0 && (
@@ -791,7 +870,9 @@ export default function CalculatorScreen() {
         )}
       </View>
 
-      <View style={styles.section}>
+      <AdBanner enabled={showAds} />
+
+      <View style={styles.section} testID="section-fgts">
         <Text style={styles.sectionTitle}>FGTS</Text>
         <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
         <TextInput
@@ -804,6 +885,8 @@ export default function CalculatorScreen() {
           }}
           style={styles.input}
           accessibilityLabel="Data do FGTS"
+          testID="input-fgts-date"
+          nativeID="input-fgts-date"
         />
         <Text style={styles.label}>Valor (R$)</Text>
         <TextInput
@@ -815,6 +898,8 @@ export default function CalculatorScreen() {
           keyboardType="numeric"
           style={styles.input}
           accessibilityLabel="Valor do FGTS"
+          testID="input-fgts-amount"
+          nativeID="input-fgts-amount"
         />
         <View style={styles.row}>
           <Pressable
@@ -880,8 +965,12 @@ export default function CalculatorScreen() {
           onPress={handleAddFgts}
           accessibilityRole="button"
           accessibilityLabel="Adicionar FGTS"
+          testID="btn-add-fgts"
+          nativeID="btn-add-fgts"
         >
-          <Text style={styles.primaryButtonText}>Adicionar FGTS</Text>
+          <Text style={styles.primaryButtonText} testID="label-add-fgts">
+            Adicionar FGTS
+          </Text>
         </Pressable>
 
         {(scenario.fgtsEvents ?? []).length > 0 && (
@@ -913,6 +1002,8 @@ export default function CalculatorScreen() {
           </View>
         )}
       </View>
+
+      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Custos e Taxas</Text>
@@ -1010,14 +1101,18 @@ export default function CalculatorScreen() {
         )}
       </View>
 
+      <AdBanner enabled={showAds} />
+
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Exportar</Text>
+        <Text style={styles.sectionTitle} testID="section-export">Exportar</Text>
         <View style={styles.row}>
           <Pressable
             style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
             onPress={() => handleExport('pdf')}
             accessibilityRole="button"
             accessibilityLabel="Exportar PDF"
+            testID="btn-export-pdf"
+            nativeID="btn-export-pdf"
           >
             <Text style={styles.primaryButtonText}>PDF</Text>
           </Pressable>
@@ -1026,6 +1121,8 @@ export default function CalculatorScreen() {
             onPress={() => handleExport('xlsx')}
             accessibilityRole="button"
             accessibilityLabel="Exportar XLSX"
+            testID="btn-export-xlsx"
+            nativeID="btn-export-xlsx"
           >
             <Text style={styles.primaryButtonText}>XLSX</Text>
           </Pressable>
@@ -1034,13 +1131,15 @@ export default function CalculatorScreen() {
             onPress={() => handleExport('csv')}
             accessibilityRole="button"
             accessibilityLabel="Exportar CSV"
+            testID="btn-export-csv"
+            nativeID="btn-export-csv"
           >
             <Text style={styles.primaryButtonText}>CSV</Text>
           </Pressable>
         </View>
       </View>
 
-      {!premiumLoading && <AdBanner enabled={!isPremium} />}
+      <AdBanner enabled={showAds} />
     </ScrollView>
   );
 }

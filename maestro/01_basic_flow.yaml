@@ -45,5 +45,14 @@ appId: com.lsimaocosta.calculadorapricesac
       text: "Resumo"
     centerElement: true
     visibilityPercentage: 10
+- assertVisible: "Resumo"
+- scrollUntilVisible:
+    element:
+      text: "Total Pago"
+    centerElement: true
+    visibilityPercentage: 10
 - assertVisible: "Total Pago"
 - assertVisible: "Total de Juros"
+- pressKey: Back
+- tapOn: "Comparar"
+- assertVisible: "Comparar SAC vs Price"

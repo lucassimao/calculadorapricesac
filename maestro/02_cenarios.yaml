@@ -1,9 +1,16 @@
-appId: ${APP_ID}
+appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
+- tapOn: "Calculadora"
+- scrollUntilVisible:
+    element:
+      text: "Nome do cenário"
+    centerElement: true
+    visibilityPercentage: 10
 - tapOn: "Nome do cenário"
-- clearText
+- eraseText
 - inputText: "Cenário Teste"
+- pressKey: Back
 - tapOn: "Salvar cenário"
 - assertVisible: "Cenário Teste"
 - tapOn: "Novo"

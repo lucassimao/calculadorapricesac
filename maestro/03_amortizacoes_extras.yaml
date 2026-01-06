@@ -1,14 +1,19 @@
-appId: ${APP_ID}
+appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
+- tapOn: "Calculadora"
 - scrollUntilVisible:
-    text: "Amortizações Extras"
-- tapOn: "Data (YYYY-MM-DD)"
-- clearText
+    element:
+      text: "Amortizações Extras"
+    centerElement: true
+    visibilityPercentage: 10
+- tapOn: "Data da amortização extra"
+- eraseText
 - inputText: "2026-01-05"
-- tapOn: "Valor (R$)"
-- clearText
+- tapOn: "Valor da amortização extra"
+- eraseText
 - inputText: "1000"
+- pressKey: Back
 - tapOn: "Adicionar amortização"
 - assertVisible: "Reduzir prazo"
 - tapOn: "Remover"

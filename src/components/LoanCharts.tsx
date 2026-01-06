@@ -13,16 +13,25 @@ const sampleData = (rows: ScheduleRow[], maxPoints: number) => {
   return rows.filter((_, index) => index % step === 0);
 };
 
-const createLinePath = (values: number[], width: number, height: number, padding: number) => {
+const createLinePath = (
+  values: number[],
+  width: number,
+  height: number,
+  padding: number,
+  minZero = false
+) => {
   if (values.length === 0) return '';
-  const min = Math.min(...values);
+  const min = minZero ? 0 : Math.min(...values);
   const max = Math.max(...values);
-  const span = max - min || 1;
+  const span = max - min;
   const stepX = (width - padding * 2) / (values.length - 1 || 1);
   return values
     .map((value, index) => {
       const x = padding + index * stepX;
-      const y = padding + (1 - (value - min) / span) * (height - padding * 2);
+      const y =
+        span === 0
+          ? padding + (height - padding * 2) / 2
+          : padding + (1 - (value - min) / span) * (height - padding * 2);
       return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
     })
     .join(' ');
@@ -40,12 +49,12 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
   }, [schedule]);
 
   const balancePath = useMemo(
-    () => createLinePath(data.map((row) => row.balance), chartWidth, chartHeight, padding),
+    () => createLinePath(data.map((row) => row.balance), chartWidth, chartHeight, padding, true),
     [data, chartWidth, chartHeight]
   );
 
   const paymentPath = useMemo(
-    () => createLinePath(data.map((row) => row.payment), chartWidth, chartHeight, padding),
+    () => createLinePath(data.map((row) => row.payment), chartWidth, chartHeight, padding, true),
     [data, chartWidth, chartHeight]
   );
 

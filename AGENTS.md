@@ -21,6 +21,7 @@
 - `EXPO_ROADMAP.md` — roadmap for mobile development
 - `Tabela Price e SAC.xlsx` — original reference model
 - `RELEASE_CHECKLIST.md` — passos de release (ads, IAP, stores)
+- `maestro/` — testes de UI (flows principais)
 
 ## Tech Stack
 - Expo 54, TypeScript, ESLint (flat config)
@@ -34,6 +35,8 @@
 - `npm run lint`
 - `npx tsc --noEmit`
 - `npm test` (vitest)
+- `npm run ui:maestro` (UI tests)
+- `npm run ui:maestro:expo` (UI tests via Expo Go)
 
 ## Product Constraints
 - Offline-first calculations and scenarios
@@ -47,3 +50,4 @@
 - IAP SKU: `remove_ads` (iOS + Android).
 - AdMob IDs ficam em `app.json` e o banner usa `src/components/AdBanner.tsx`.
 - Exportadores em `src/lib/exports/` (CSV/XLSX/PDF) e usam `expo-sharing`.
+- EAS build: `eas.json` presente, `expo-constants` instalado, `react-native-worklets` fixado na versão do SDK.
