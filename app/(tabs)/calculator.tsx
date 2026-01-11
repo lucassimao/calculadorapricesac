@@ -567,6 +567,9 @@ export default function CalculatorScreen() {
             </Pressable>
           ))}
         </View>
+        <Text style={styles.helperText}>
+          Price: parcelas fixas. SAC: amortização constante e parcelas decrescentes.
+        </Text>
         <View style={styles.toggleRow}>
           {(['standard', 'property'] as const).map((mode) => (
             <Pressable
@@ -606,6 +609,9 @@ export default function CalculatorScreen() {
             </Pressable>
           ))}
         </View>
+        <Text style={styles.helperText}>
+          Padrão usa o valor do financiamento. Imobiliário calcula pelo valor do imóvel e entrada.
+        </Text>
         <Text style={styles.helperText}>{propertyModeHint}</Text>
       </View>
 
@@ -793,14 +799,21 @@ export default function CalculatorScreen() {
         </View>
       )}
 
-      {iapAvailability === 'supported' ? (
-        <PremiumSectionIap isPremium={isPremium} markPremium={markPremium} />
-      ) : (
-        <PremiumSectionUnsupported />
-      )}
+      {!isPremium ? (
+        iapAvailability === 'supported' ? (
+          <PremiumSectionIap isPremium={isPremium} markPremium={markPremium} />
+        ) : (
+          <PremiumSectionUnsupported />
+        )
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} testID="section-summary">Resumo</Text>
+        {isPremium ? (
+          <View style={styles.premiumBadge}>
+            <Text style={styles.premiumBadgeText}>Premium ativo</Text>
+          </View>
+        ) : null}
         {summary.financedPrincipal !== scenario.principal && (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Principal Financiado</Text>
@@ -1442,6 +1455,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     rowGap: 6,
+  },
+  premiumBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E0F2FE',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  premiumBadgeText: {
+    color: '#0369A1',
+    fontSize: 12,
+    fontWeight: '600',
   },
   summaryLabel: {
     color: '#374151',

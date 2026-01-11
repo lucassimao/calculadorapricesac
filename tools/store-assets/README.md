@@ -1,0 +1,75 @@
+# Store Assets (TS)
+
+CLI em TypeScript para gerar assets de loja com Gemini:
+- **Capas** (com screenshot embutida)
+- **Feature banner**
+- **Ícones**
+
+Tudo em PT‑BR, sem i18n.
+
+## Setup
+
+1) Instale dependências:
+```bash
+cd tools/store-assets
+npm install
+```
+
+2) Configure a chave:
+```bash
+export GEMINI_API_KEY="..."
+```
+
+3) Coloque os arquivos:
+- Capturas:
+  - `tools/store-assets/screenshots/pt-BR/iphone11/{slot}.png`
+- Ícone base:
+  - `tools/store-assets/assets/icon-source.png`
+- Banner (opcional):
+  - `tools/store-assets/screenshots/pt-BR/iphone11/banner.png`
+- Frames (opcional):
+  - `tools/store-assets/frames/iphone11.png`
+  - `tools/store-assets/frames/pixel8pro.png`
+
+Edite o copy em `tools/store-assets/store-copy/pt-BR.json`.
+
+## Comandos
+
+Gerar capas (App Store + Play):
+```bash
+npm run start -- --action render --store all --slot all --attempts 2 --creative 2
+```
+
+Gerar guide/mask:
+```bash
+npm run start -- --action guide
+```
+
+Gerar banner:
+```bash
+npm run start -- --action banner --store all
+```
+
+Gerar ícones:
+```bash
+npm run start -- --action icon --store all
+```
+
+## Saídas
+
+`tools/store-assets/.local/store-assets/{store}/pt-BR/`
+
+## Configuração
+
+Arquivo `tools/store-assets/config.json`:
+- `stores`: tamanhos finais de App Store/Play (capas).
+- `banners`: tamanhos do banner por loja.
+- `icons`: tamanhos do ícone por loja.
+- `layout`: área de texto e screenshot na capa.
+- `models`: gemini model + aspect/size.
+
+## Notas
+
+- O fluxo gera `guide`/`mask` e usa a captura pré‑composta (screenshot embutida).
+- O Gemini recebe prompt + screenshot + guide (+ frame opcional).
+- Ajuste tamanhos/slots conforme necessário.

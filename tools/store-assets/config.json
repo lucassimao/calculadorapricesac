@@ -1,0 +1,84 @@
+{
+  "locales": ["pt-BR"],
+  "devices": ["iphone11"],
+  "slots": [
+    {
+      "id": 1,
+      "key": "calculadora",
+      "keywords": ["tabela de amortização", "Price e SAC", "simulação rápida"]
+    },
+    {
+      "id": 2,
+      "key": "comparacao",
+      "keywords": ["comparativo", "economia", "custos totais"]
+    },
+    {
+      "id": 3,
+      "key": "premium",
+      "keywords": ["exportação", "sem anúncios", "relatórios"]
+    }
+  ],
+  "stores": {
+    "appstore": {
+      "width": 1290,
+      "height": 2796,
+      "format": "png"
+    },
+    "play": {
+      "width": 1080,
+      "height": 1920,
+      "format": "png"
+    }
+  },
+  "banners": {
+    "appstore": {
+      "width": 1024,
+      "height": 500,
+      "format": "png"
+    },
+    "play": {
+      "width": 1024,
+      "height": 500,
+      "format": "png"
+    }
+  },
+  "icons": {
+    "appstore": {
+      "width": 1024,
+      "height": 1024,
+      "format": "png"
+    },
+    "play": {
+      "width": 512,
+      "height": 512,
+      "format": "png"
+    }
+  },
+  "layout": {
+    "textTopPct": 0.11,
+    "textSidePct": 0.1,
+    "textMaxWidthPct": 0.84,
+    "textBackdropHeightPct": 0.34,
+    "screenshotWidthPct": 0.72,
+    "screenshotTopPct": 0.36,
+    "screenshotBottomPct": 0.08
+  },
+  "defaults": {
+    "copyDir": "tools/store-assets/store-copy",
+    "screenshotDir": "tools/store-assets/screenshots",
+    "guideDir": "tools/store-assets/guides",
+    "maskDir": "tools/store-assets/guides",
+    "framePathApp": "tools/store-assets/frames/iphone11.png",
+    "framePathPlay": "tools/store-assets/frames/pixel8pro.png",
+    "outputDir": "tools/store-assets/.local/store-assets",
+    "baseWidth": 1024,
+    "baseHeight": 1536,
+    "iconSource": "tools/store-assets/assets/icon-source.png",
+    "bannerScreenshot": "tools/store-assets/screenshots/pt-BR/iphone11/banner.png"
+  },
+  "models": {
+    "image": "gemini-3-pro-image-preview",
+    "imageSize": "2K",
+    "aspectRatio": "9:16"
+  }
+}
