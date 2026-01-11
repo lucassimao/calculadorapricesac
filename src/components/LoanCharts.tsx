@@ -93,6 +93,16 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
 
       <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico de juros versus amortização">
         <Text style={styles.chartLabel}>Juros vs Amortização</Text>
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#F97316' }]} />
+            <Text style={styles.legendText}>Juros</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendColor, { backgroundColor: '#22C55E' }]} />
+            <Text style={styles.legendText}>Amortização</Text>
+          </View>
+        </View>
         <Svg width={chartWidth} height={chartHeight}>
           {barData.map((row) => {
             const totalHeight = (row.total / row.maxTotal) * (chartHeight - padding * 2);
@@ -143,5 +153,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     marginBottom: 8,
+  },
+  legend: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#6B7280',
   },
 });
