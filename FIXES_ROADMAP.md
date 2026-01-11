@@ -300,25 +300,12 @@ const handleDeleteScenario = async (id: string) => {
 
 ---
 
-### 4.5 🟢 Add loading state for calculations
+### 4.5 ✅ Add loading state for calculations (COMPLETED)
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** No loading indicator when recalculating large schedules.
 
-**Solution:**
-```typescript
-const [calculating, setCalculating] = useState(false);
-
-// Wrap calculation in useEffect with debounce
-useEffect(() => {
-  setCalculating(true);
-  const timeout = setTimeout(() => {
-    // calculations...
-    setCalculating(false);
-  }, 100);
-  return () => clearTimeout(timeout);
-}, [scenario]);
-```
+**Solution:** Added `isCalculating` state with 150ms debounce and subtle "calculando..." indicator next to the summary title.
 
 **Estimate:** 30 minutes
 
