@@ -222,7 +222,7 @@ export type PrepaymentType =
 
 ## Sprint 4: UX Enhancements
 
-### 4.1 🟡 Add chart legend
+### 4.1 ✅ Add chart legend (COMPLETED)
 **File:** `src/components/LoanCharts.tsx`
 
 **Problem:** "Juros vs Amortização" chart has no legend explaining colors.
