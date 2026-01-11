@@ -52,7 +52,7 @@ function addMonths(date: Date, months: number): Date {
 
 ---
 
-### 1.2 🔴 Fix timezone date parsing issue
+### 1.2 ✅ Fix timezone date parsing issue (COMPLETED)
 **File:** `app/(tabs)/calculator.tsx:591-595`
 
 **Problem:** `new Date('2026-01-05')` parses as UTC midnight, which in negative UTC timezones becomes the previous day.
@@ -140,7 +140,7 @@ const displayedPrincipal = isPropertyMode
 
 ## Sprint 3: Code Quality
 
-### 3.1 🟡 Extract duplicated utility functions
+### 3.1 ✅ Extract duplicated utility functions (COMPLETED)
 **Files:** `calculator.tsx:33-47`, `comparison.tsx:23-37`
 
 **Problem:** `parseCurrencyInput` and `parseNumberInput` are duplicated.
