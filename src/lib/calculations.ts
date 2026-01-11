@@ -443,8 +443,8 @@ export function validateScenario(scenario: Scenario): ValidationResult {
   if (financedPrincipal <= 0) {
     errors.push('Valor do financiamento deve ser maior que zero.');
   }
-  if (scenario.rate <= 0) {
-    errors.push('Taxa de juros deve ser maior que zero.');
+  if (scenario.rate < 0) {
+    errors.push('Taxa de juros não pode ser negativa.');
   }
   if (scenario.term <= 0) {
     errors.push('Prazo deve ser maior que zero.');

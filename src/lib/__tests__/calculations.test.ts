@@ -155,12 +155,23 @@ describe('validateScenario', () => {
     const result = validateScenario({
       ...baseScenario,
       principal: 0,
-      rate: 0,
+      rate: -1,
       term: 0,
       dueDay: 0,
     });
 
     expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('allows zero-rate (interest-free) loans', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      rate: 0,
+    });
+
+    // Should not have rate-related errors
+    const rateErrors = result.errors.filter((e) => e.toLowerCase().includes('taxa'));
+    expect(rateErrors.length).toBe(0);
   });
 
   it('warns on suspicious rate types', () => {
