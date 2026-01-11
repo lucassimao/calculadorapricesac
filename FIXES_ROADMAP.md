@@ -245,12 +245,12 @@ export type PrepaymentType =
 
 ---
 
-### 4.2 🟡 Show prepayment/FGTS details in table
+### 4.2 ✅ Show prepayment/FGTS details in table (COMPLETED)
 **File:** `src/components/AmortizationTable.tsx`
 
 **Problem:** Table doesn't display prepaymentAmount, fgtsAmortization, or fgtsSubsidy even though they're calculated.
 
-**Solution:** Add optional columns or expandable rows showing extra details.
+**Solution:** Added `showExtras` prop with conditional Extra and FGTS columns that appear when schedule has prepayments or FGTS events.
 
 **Estimate:** 1-2 hours
 
