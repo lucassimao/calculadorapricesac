@@ -13,6 +13,7 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
   const slots = selectSlots(cfg, slotFilter);
   const { guidePath } = await ensureGuideAndMask(cfg, false, overwrite);
   const copyFile = await loadCopyFile(cfg, 'pt-BR');
+  const outputs: string[] = [];
 
   for (const store of stores) {
     const storeCfg = cfg.stores[store];
@@ -31,7 +32,10 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
 
       for (let attempt = 1; attempt <= attempts; attempt++) {
         const outPath = outputPath(cfg, store, 'pt-BR', slot.key, storeCfg.format, attempts, attempt);
-        if (!overwrite && (await fileExists(outPath))) continue;
+        if (!overwrite && (await fileExists(outPath))) {
+          outputs.push(outPath);
+          continue;
+        }
 
         const prompt = buildCoverPrompt(cfg, creative, store, storeCfg, slot, copyEntry);
         const prepared = await prepareScreenshotCanvas(cfg, screenshotPath);
@@ -50,9 +54,12 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
         const resized = await resizeExact(buffer, storeCfg.width, storeCfg.height);
         await ensureDir(path.dirname(outPath));
         await sharp(resized).toFile(outPath);
+        outputs.push(outPath);
       }
     }
   }
+
+  logOutputs('Capas', outputs);
 }
 
 export async function renderBanner(cfg: Config, storeFilter: string, overwrite: boolean) {
@@ -62,11 +69,15 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
   if (!copyEntry) {
     throw new Error('Missing banner copy entry');
   }
+  const outputs: string[] = [];
 
   for (const store of stores) {
     const bannerCfg = cfg.banners[store];
     const outPath = bannerOutputPath(cfg, store, bannerCfg.format);
-    if (!overwrite && (await fileExists(outPath))) continue;
+    if (!overwrite && (await fileExists(outPath))) {
+      outputs.push(outPath);
+      continue;
+    }
 
     const prompt = buildBannerPrompt(copyEntry);
     const buffer = await generateImage(
@@ -79,16 +90,23 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
     }
     await ensureDir(path.dirname(outPath));
     await sharp(resized).toFile(outPath);
+    outputs.push(outPath);
   }
+
+  logOutputs('Banners', outputs);
 }
 
 export async function renderIcons(cfg: Config, storeFilter: string, overwrite: boolean) {
   const stores = selectStores(cfg, storeFilter);
+  const outputs: string[] = [];
 
   for (const store of stores) {
     const iconCfg = cfg.icons[store];
     const outPath = iconOutputPath(cfg, store, iconCfg.format);
-    if (!overwrite && (await fileExists(outPath))) continue;
+    if (!overwrite && (await fileExists(outPath))) {
+      outputs.push(outPath);
+      continue;
+    }
 
     const prompt = buildIconPrompt('Calculadora Price & SAC', store);
     const generated = await generateImage(
@@ -101,7 +119,10 @@ export async function renderIcons(cfg: Config, storeFilter: string, overwrite: b
     }
     await ensureDir(path.dirname(outPath));
     await fs.writeFile(outPath, buffer);
+    outputs.push(outPath);
   }
+
+  logOutputs('Ícones', outputs);
 }
 
 function selectStores(cfg: Config, filter: string): StoreKey[] {
@@ -114,4 +135,11 @@ function selectStores(cfg: Config, filter: string): StoreKey[] {
 function selectSlots(cfg: Config, filter: string) {
   if (filter === 'all') return cfg.slots;
   return cfg.slots.filter((slot) => slot.key === filter);
+}
+
+function logOutputs(label: string, paths: string[]) {
+  if (paths.length === 0) return;
+  const unique = Array.from(new Set(paths));
+  console.log(`\\n${label} gerados:`);
+  unique.forEach((p) => console.log(`- ${p}`));
 }
