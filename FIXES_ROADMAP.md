@@ -256,7 +256,7 @@ export type PrepaymentType =
 
 ---
 
-### 4.3 🟡 Add scenario deletion
+### 4.3 ✅ Add scenario deletion (COMPLETED)
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** Users can save scenarios but cannot delete them.
