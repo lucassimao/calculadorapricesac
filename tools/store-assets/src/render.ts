@@ -5,8 +5,8 @@ import type { Config, StoreKey } from './types.js';
 import { buildBannerPrompt, buildCoverPrompt, buildIconPrompt } from './prompt.js';
 import { ensureGuideAndMask } from './guide.js';
 import { generateImage } from './gemini.js';
-import { ensureDir, fileExists, findScreenshot, iconOutputPath, bannerOutputPath, loadCopyFile, outputPath, resolvePath } from './io.js';
-import { prepareScreenshotCanvas, resizeExact, resizeTo } from './image.js';
+import { ensureDir, fileExists, findScreenshot, bannerOutputPath, loadCopyFile, outputPath, resolvePath } from './io.js';
+import { prepareScreenshotCanvas, resizeExact } from './image.js';
 
 export async function renderCovers(cfg: Config, storeFilter: string, slotFilter: string, attempts: number, creative: number, overwrite: boolean) {
   const stores = selectStores(cfg, storeFilter);
@@ -17,34 +17,27 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
 
   for (const store of stores) {
     const storeCfg = cfg.stores[store];
-    const framePath = store === 'appstore' ? cfg.defaults.framePathApp : cfg.defaults.framePathPlay;
-    const useFrame = framePath ? await fileExists(resolvePath(framePath)) : false;
-
     for (const slot of slots) {
       const copyEntry = copyFile[slot.key];
       if (!copyEntry) {
         throw new Error(`Missing copy for slot ${slot.key}`);
       }
-      const screenshotPath = findScreenshot(cfg, 'pt-BR', cfg.devices[0], slot.key);
+      const screenshotPath = await findScreenshot(cfg, 'pt-BR', slot.key);
       if (!(await fileExists(screenshotPath))) {
         throw new Error(`Screenshot not found: ${screenshotPath}`);
       }
 
-      for (let attempt = 1; attempt <= attempts; attempt++) {
+      const prompt = buildCoverPrompt(cfg, creative, store, storeCfg, slot, copyEntry);
+      const prepared = await prepareScreenshotCanvas(cfg, screenshotPath);
+      const images = [
+        { path: prepared, mime: 'image/png' },
+        { path: guidePath, mime: 'image/png' },
+      ];
+      const tasks = Array.from({ length: attempts }, (_, idx) => idx + 1).map(async (attempt) => {
         const outPath = outputPath(cfg, store, 'pt-BR', slot.key, storeCfg.format, attempts, attempt);
         if (!overwrite && (await fileExists(outPath))) {
           outputs.push(outPath);
-          continue;
-        }
-
-        const prompt = buildCoverPrompt(cfg, creative, store, storeCfg, slot, copyEntry);
-        const prepared = await prepareScreenshotCanvas(cfg, screenshotPath);
-        const images = [
-          { path: prepared, mime: 'image/png' },
-          { path: guidePath, mime: 'image/png' },
-        ];
-        if (useFrame && framePath) {
-          images.push({ path: resolvePath(framePath), mime: 'image/png' });
+          return;
         }
 
         const buffer = await generateImage(
@@ -55,20 +48,17 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
         await ensureDir(path.dirname(outPath));
         await sharp(resized).toFile(outPath);
         outputs.push(outPath);
-      }
+      });
+      await Promise.all(tasks);
     }
   }
 
   logOutputs('Capas', outputs);
 }
 
-export async function renderBanner(cfg: Config, storeFilter: string, overwrite: boolean) {
+export async function renderBanner(cfg: Config, storeFilter: string, overwrite: boolean, attempts: number) {
   const stores = selectStores(cfg, storeFilter);
-  const copyFile = await loadCopyFile(cfg, 'pt-BR');
-  const copyEntry = copyFile.banner;
-  if (!copyEntry) {
-    throw new Error('Missing banner copy entry');
-  }
+  const tries = Math.max(1, attempts);
   const outputs: string[] = [];
 
   for (const store of stores) {
@@ -80,44 +70,56 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
       continue;
     }
 
-    const prompt = buildBannerPrompt(copyEntry);
-    const buffer = await generateImage(
-      { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '16:9' },
-      { prompt, images: [] }
-    );
-    let resized = await resizeExact(buffer, bannerCfg.width, bannerCfg.height);
-    if (store === 'play') {
-      resized = await sharp(resized).flatten({ background: '#ffffff' }).png().toBuffer();
-    }
-    await ensureDir(path.dirname(outPath));
-    await sharp(resized).toFile(outPath);
-    outputs.push(outPath);
+    const prompt = buildBannerPrompt();
+    const tasks = Array.from({ length: tries }, (_, idx) => idx + 1).map(async (attempt) => {
+      const outAttemptPath = outPath.replace('.png', `_try${attempt}.png`);
+      if (!overwrite && (await fileExists(outAttemptPath))) {
+        outputs.push(outAttemptPath);
+        return;
+      }
+      const buffer = await generateImage(
+        { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '16:9' },
+        { prompt, images: [] }
+      );
+      let resized = await resizeExact(buffer, bannerCfg.width, bannerCfg.height);
+      if (store === 'play') {
+        resized = await sharp(resized).flatten({ background: '#ffffff' }).png().toBuffer();
+      }
+      await ensureDir(path.dirname(outAttemptPath));
+      await sharp(resized).toFile(outAttemptPath);
+      outputs.push(outAttemptPath);
+    });
+    await Promise.all(tasks);
   }
 
   logOutputs('Banners', outputs);
 }
 
-export async function renderIcons(cfg: Config, storeFilter: string, overwrite: boolean) {
+export async function renderIcons(cfg: Config, storeFilter: string, overwrite: boolean, attempts: number) {
   const outputs: string[] = [];
   const outDir = path.join(resolvePath(cfg.defaults.outputDir), 'icons');
-  const outPath = path.join(outDir, 'icon.png');
-
-  if (!overwrite && (await fileExists(outPath))) {
-    outputs.push(outPath);
-    logOutputs('Ícones', outputs);
-    return;
-  }
+  const tries = Math.max(1, attempts);
 
   const prompt = buildIconPrompt('Calculadora Price & SAC', 'appstore');
-  const generated = await generateImage(
-    { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '1:1' },
-    { prompt, images: [] }
-  );
-  const buffer = await resizeExact(generated, 1024, 1024);
-  await ensureDir(path.dirname(outPath));
-  await fs.writeFile(outPath, buffer);
-  outputs.push(outPath);
 
+  const tasks = Array.from({ length: tries }, (_, idx) => idx + 1).map(async (attempt) => {
+    const outPath = path.join(outDir, `icon_try${attempt}.png`);
+    if (!overwrite && (await fileExists(outPath))) {
+      outputs.push(outPath);
+      return;
+    }
+
+    const generated = await generateImage(
+      { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '1:1' },
+      { prompt, images: [] }
+    );
+    const buffer = await resizeExact(generated, 1024, 1024);
+    await ensureDir(path.dirname(outPath));
+    await fs.writeFile(outPath, buffer);
+    outputs.push(outPath);
+  });
+
+  await Promise.all(tasks);
   logOutputs('Ícones', outputs);
 }
 

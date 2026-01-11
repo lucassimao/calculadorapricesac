@@ -39,10 +39,10 @@ const main = async () => {
       await ensureGuideAndMask(cfg, false, opts.overwrite);
       break;
     case 'banner':
-      await renderBanner(cfg, opts.store, opts.overwrite);
+      await renderBanner(cfg, opts.store, opts.overwrite, attempts);
       break;
     case 'icon':
-      await renderIcons(cfg, opts.store, opts.overwrite);
+      await renderIcons(cfg, opts.store, opts.overwrite, attempts);
       break;
     default:
       throw new Error(`Unknown action: ${opts.action}`);

@@ -1,18 +1,34 @@
 {
-  "calculadora": {
-    "headline": "Simule Price e SAC em minutos",
-    "subhead": "Entenda parcelas, juros e saldo devedor com clareza."
+  "parametros": {
+    "headline": "Ajuste taxa e prazo com facilidade",
+    "subhead": "Defina valores e veja o impacto nas parcelas."
   },
-  "comparacao": {
-    "headline": "Compare cenários lado a lado",
-    "subhead": "Veja o impacto de taxas e prazos no custo total."
+  "resumo": {
+    "headline": "Resumo claro do financiamento",
+    "subhead": "Total pago, juros e custos em um só lugar."
   },
-  "premium": {
-    "headline": "Exportações completas e sem anúncios",
-    "subhead": "Gere PDF, XLSX e CSV para analisar quando quiser."
+  "graficos": {
+    "headline": "Evolução visual das parcelas",
+    "subhead": "Gráficos mostram saldo e composição dos pagamentos."
   },
-  "banner": {
-    "headline": "Calculadora Price & SAC",
-    "subhead": "Resultados claros para tomar decisões melhores."
+  "tabela": {
+    "headline": "Tabela de amortização simplificada",
+    "subhead": "Veja parcelas e saldo mês a mês."
+  },
+  "amortizacoes": {
+    "headline": "Amortizações extras sob controle",
+    "subhead": "Simule reduzir prazo ou parcela."
+  },
+  "fgts": {
+    "headline": "Use FGTS nos seus cálculos",
+    "subhead": "Entrada, amortização ou abatimento da parcela."
+  },
+  "custos": {
+    "headline": "Custos e taxas detalhados",
+    "subhead": "IOF, seguro e tarifas no cálculo total."
+  },
+  "exportar": {
+    "headline": "Exportações prontas para compartilhar",
+    "subhead": "Gere PDF, XLSX e CSV quando quiser."
   }
 }

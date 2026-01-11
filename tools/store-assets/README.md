@@ -21,13 +21,13 @@ export GEMINI_API_KEY="..."
 ```
 
 3) Coloque os arquivos:
-- Capturas:
-  - `tools/store-assets/screenshots/pt-BR/iphone11/{slot}.png`
+- Capturas (uma por slot, sem pasta de device):
+  - `tools/store-assets/screenshots/pt-BR/{slot}.png`
 - Frames (opcional):
   - `tools/store-assets/frames/iphone11.png`
   - `tools/store-assets/frames/pixel8pro.png`
 
-Edite o copy em `tools/store-assets/store-copy/pt-BR.json`.
+Edite o copy em `tools/store-assets/store-copy/pt-BR.json` (capas). O banner gera texto livre no prompt.
 
 ## Comandos
 
@@ -50,6 +50,7 @@ Gerar ícones (via Gemini, sem base):
 ```bash
 npm run start -- --action icon --store all
 ```
+Gera `icon_try1.png`, `icon_try2.png`, etc em `tools/store-assets/.local/store-assets/icons/`.
 
 ## Saídas
 

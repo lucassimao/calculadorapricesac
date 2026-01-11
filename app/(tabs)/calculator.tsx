@@ -8,6 +8,13 @@ import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, val
 import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
+import {
+  ExportSection,
+  ScenarioSection,
+  SummarySection,
+  SystemSelector,
+  ValidationSection,
+} from '../../src/components/calculator';
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
@@ -307,7 +314,6 @@ export default function CalculatorScreen() {
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
-  const propertyModeHint = isPropertyMode ? 'Modo imobiliário ativo.' : 'Modo padrão ativo.';
 
   // Dynamic themed styles
   const themedStyles = useMemo(() => ({
@@ -516,145 +522,44 @@ export default function CalculatorScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, themedStyles.container]} keyboardShouldPersistTaps="handled">
-      <Text style={[styles.title, themedStyles.title]}>Calculadora Price & SAC</Text>
       <AdBanner enabled={showAds} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Cenário</Text>
-        <Text style={styles.label}>Nome do cenário</Text>
-        <TextInput
-          value={scenario.name}
-          onChangeText={(text) => setScenario((prev) => ({ ...prev, name: text }))}
-          style={styles.input}
-          placeholder="Cenário Principal"
-          accessibilityLabel="Nome do cenário"
-          testID="input-scenario-name"
-        />
-        <View style={styles.rowWrap}>
-          <Pressable
-            style={styles.primaryButton}
-            onPress={handleSaveScenario}
-            accessibilityRole="button"
-            accessibilityLabel="Salvar cenário"
-          >
-            <Text style={styles.primaryButtonText}>Salvar cenário</Text>
-          </Pressable>
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => handleLoadScenario({ ...DEFAULT_SCENARIO, id: Date.now().toString() })}
-            accessibilityRole="button"
-            accessibilityLabel="Criar novo cenário"
-          >
-            <Text style={styles.secondaryButtonText}>Novo</Text>
-          </Pressable>
-        </View>
-        {scenarios.length > 0 && (
-          <View style={styles.list}>
-            {scenarios.map((item) => (
-              <View key={item.id} style={styles.listItemRow}>
-                <Pressable
-                  style={styles.listItemContent}
-                  onPress={() => handleLoadScenario(item)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Carregar cenário ${item.name}`}
-                >
-                  <Text style={styles.listTitle}>{item.name}</Text>
-                  <Text style={styles.listSubtitle}>
-                    {item.system} • {formatCurrency(item.principal)}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  style={styles.deleteButton}
-                  onPress={() => handleDeleteScenario(item.id, item.name)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Excluir cenário ${item.name}`}
-                >
-                  <Text style={styles.deleteButtonText}>X</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
+      <ScenarioSection
+        scenario={scenario}
+        scenarios={scenarios}
+        onNameChange={(name) => setScenario((prev) => ({ ...prev, name }))}
+        onSave={handleSaveScenario}
+        onNew={() => handleLoadScenario({ ...DEFAULT_SCENARIO, id: Date.now().toString() })}
+        onLoad={handleLoadScenario}
+        onDelete={handleDeleteScenario}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sistema</Text>
-        <View style={styles.toggleRow}>
-          {(['PRICE', 'SAC'] as const).map((system) => (
-            <Pressable
-              key={system}
-              onPress={() => setScenario((prev) => ({ ...prev, system }))}
-              style={[
-                styles.toggleButton,
-                scenario.system === system && styles.toggleButtonActive,
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: scenario.system === system }}
-              accessibilityLabel={`Selecionar sistema ${system}`}
-            >
-              <Text
-                style={[
-                  styles.toggleButtonText,
-                  scenario.system === system && styles.toggleButtonTextActive,
-                ]}
-              >
-                {system}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={styles.helperText}>
-          Price: parcelas fixas. SAC: amortização constante e parcelas decrescentes.
-        </Text>
-        <View style={styles.toggleRow}>
-          {(['standard', 'property'] as const).map((mode) => (
-            <Pressable
-              key={mode}
-              onPress={() => {
-                if (mode === 'standard') {
-                  setPropertyValueText('');
-                  setDownPaymentText('');
-                  setScenario((prev) => ({
-                    ...prev,
-                    loanMode: 'standard',
-                    propertyValue: undefined,
-                    downPayment: undefined,
-                    itbiRate: undefined,
-                    registryFee: undefined,
-                  }));
-                } else {
-                  setScenario((prev) => ({ ...prev, loanMode: 'property' }));
-                }
-              }}
-              style={[
-                styles.toggleButton,
-                scenario.loanMode === mode && styles.toggleButtonActive,
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: scenario.loanMode === mode }}
-              accessibilityLabel={mode === 'standard' ? 'Modo padrão' : 'Modo imobiliário'}
-            >
-              <Text
-                style={[
-                  styles.toggleButtonText,
-                  scenario.loanMode === mode && styles.toggleButtonTextActive,
-                ]}
-              >
-                {mode === 'standard' ? 'Padrão' : 'Imobiliário'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={styles.helperText}>
-          Padrão usa o valor do financiamento. Imobiliário calcula pelo valor do imóvel e entrada.
-        </Text>
-        <Text style={styles.helperText}>{propertyModeHint}</Text>
-      </View>
+      <SystemSelector
+        system={scenario.system}
+        loanMode={scenario.loanMode ?? 'standard'}
+        onSystemChange={(system) => setScenario((prev) => ({ ...prev, system }))}
+        onLoanModeChange={(mode) => {
+          if (mode === 'standard') {
+            setPropertyValueText('');
+            setDownPaymentText('');
+            setScenario((prev) => ({
+              ...prev,
+              loanMode: 'standard',
+              propertyValue: undefined,
+              downPayment: undefined,
+              itbiRate: undefined,
+              registryFee: undefined,
+            }));
+          } else {
+            setScenario((prev) => ({ ...prev, loanMode: 'property' }));
+          }
+        }}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Parâmetros</Text>
+      <View style={[styles.section, themedStyles.section]}>
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Parâmetros</Text>
 
-        <Text style={styles.label}>Valor do Financiamento (R$)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Valor do Financiamento (R$)</Text>
         <TextInput
           value={principalText}
           onChangeText={(text) => {
@@ -662,8 +567,9 @@ export default function CalculatorScreen() {
             setScenario((prev) => ({ ...prev, principal: parseCurrencyInput(text) }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
           placeholder="300000 ou 300.000,00"
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Valor do financiamento"
           testID="input-principal"
           nativeID="input-principal"
@@ -671,7 +577,7 @@ export default function CalculatorScreen() {
 
         {isPropertyMode && (
           <>
-            <Text style={styles.label}>Valor do Imóvel (R$)</Text>
+            <Text style={[styles.label, themedStyles.label]}>Valor do Imóvel (R$)</Text>
             <TextInput
               value={propertyValueText}
               onChangeText={(text) => {
@@ -679,12 +585,13 @@ export default function CalculatorScreen() {
                 setScenario((prev) => ({ ...prev, propertyValue: parseCurrencyInput(text) }));
               }}
               keyboardType="numeric"
-              style={styles.input}
+              style={[styles.input, themedStyles.input]}
               placeholder="500000"
+              placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Valor do imóvel"
             />
 
-            <Text style={styles.label}>Entrada (R$)</Text>
+            <Text style={[styles.label, themedStyles.label]}>Entrada (R$)</Text>
             <TextInput
               value={downPaymentText}
               onChangeText={(text) => {
@@ -692,14 +599,15 @@ export default function CalculatorScreen() {
                 setScenario((prev) => ({ ...prev, downPayment: parseCurrencyInput(text) }));
               }}
               keyboardType="numeric"
-              style={styles.input}
+              style={[styles.input, themedStyles.input]}
               placeholder="100000"
+              placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Entrada"
             />
           </>
         )}
 
-        <Text style={styles.label}>Taxa de Juros</Text>
+        <Text style={[styles.label, themedStyles.label]}>Taxa de Juros</Text>
         <View style={styles.rowWrap}>
           <TextInput
             value={rateText}
@@ -708,8 +616,9 @@ export default function CalculatorScreen() {
               setScenario((prev) => ({ ...prev, rate: parseNumberInput(text) }));
             }}
             keyboardType="numeric"
-            style={[styles.input, styles.inputFlex]}
+            style={[styles.input, styles.inputFlex, themedStyles.input]}
             placeholder="1,2"
+            placeholderTextColor={colors.textTertiary}
             accessibilityLabel="Taxa de juros"
             testID="input-rate"
             nativeID="input-rate"
@@ -721,7 +630,8 @@ export default function CalculatorScreen() {
                 onPress={() => setScenario((prev) => ({ ...prev, rateType }))}
                 style={[
                   styles.chip,
-                  scenario.rateType === rateType && styles.chipActive,
+                  themedStyles.chip,
+                  scenario.rateType === rateType && themedStyles.chipActive,
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: scenario.rateType === rateType }}
@@ -730,7 +640,8 @@ export default function CalculatorScreen() {
                 <Text
                   style={[
                     styles.chipText,
-                    scenario.rateType === rateType && styles.chipTextActive,
+                    themedStyles.chipText,
+                    scenario.rateType === rateType && themedStyles.chipActiveText,
                   ]}
                 >
                   {rateType === 'monthly' ? 'a.m.' : 'a.a.'}
@@ -740,7 +651,7 @@ export default function CalculatorScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Prazo</Text>
+        <Text style={[styles.label, themedStyles.label]}>Prazo</Text>
         <View style={styles.rowWrap}>
           <TextInput
             value={termText}
@@ -750,8 +661,9 @@ export default function CalculatorScreen() {
               setScenario((prev) => ({ ...prev, term: Number.isNaN(parsed) ? 0 : parsed }));
             }}
             keyboardType="numeric"
-            style={[styles.input, styles.inputFlex]}
+            style={[styles.input, styles.inputFlex, themedStyles.input]}
             placeholder="360"
+            placeholderTextColor={colors.textTertiary}
             accessibilityLabel="Prazo"
             testID="input-term"
             nativeID="input-term"
@@ -763,7 +675,8 @@ export default function CalculatorScreen() {
                 onPress={() => setScenario((prev) => ({ ...prev, termUnit }))}
                 style={[
                   styles.chip,
-                  scenario.termUnit === termUnit && styles.chipActive,
+                  themedStyles.chip,
+                  scenario.termUnit === termUnit && themedStyles.chipActive,
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: scenario.termUnit === termUnit }}
@@ -772,7 +685,8 @@ export default function CalculatorScreen() {
                 <Text
                   style={[
                     styles.chipText,
-                    scenario.termUnit === termUnit && styles.chipTextActive,
+                    themedStyles.chipText,
+                    scenario.termUnit === termUnit && themedStyles.chipActiveText,
                   ]}
                 >
                   {termUnit === 'months' ? 'Meses' : 'Anos'}
@@ -782,14 +696,14 @@ export default function CalculatorScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Data de Início</Text>
+        <Text style={[styles.label, themedStyles.label]}>Data de Início</Text>
         <Pressable
-          style={[styles.input, styles.inputPressable]}
+          style={[styles.input, styles.inputPressable, themedStyles.input]}
           onPress={() => setShowDatePicker(true)}
           accessibilityRole="button"
           accessibilityLabel="Selecionar data de início"
         >
-          <Text style={styles.inputText}>{startDateText}</Text>
+          <Text style={[styles.inputText, { color: colors.text }]}>{startDateText}</Text>
         </Pressable>
         {showDatePicker ? (
           <DateTimePicker
@@ -800,7 +714,7 @@ export default function CalculatorScreen() {
           />
         ) : null}
 
-        <Text style={styles.label}>Dia de Vencimento</Text>
+        <Text style={[styles.label, themedStyles.label]}>Dia de Vencimento</Text>
         <TextInput
           value={dueDayText}
           onChangeText={(text) => {
@@ -811,29 +725,16 @@ export default function CalculatorScreen() {
             }
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
           placeholder="5"
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Dia de vencimento"
           testID="input-due-day"
           nativeID="input-due-day"
         />
       </View>
 
-      {(validation.errors.length > 0 || validation.warnings.length > 0) && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Validação</Text>
-          {validation.errors.map((error, index) => (
-            <Text key={`err-${index}`} style={styles.errorText}>
-              {error}
-            </Text>
-          ))}
-          {validation.warnings.map((warning, index) => (
-            <Text key={`warn-${index}`} style={styles.warningText}>
-              {warning}
-            </Text>
-          ))}
-        </View>
-      )}
+      <ValidationSection errors={validation.errors} warnings={validation.warnings} />
 
       {!isPremium ? (
         iapAvailability === 'supported' ? (
@@ -843,93 +744,26 @@ export default function CalculatorScreen() {
         )
       ) : null}
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle} testID="section-summary">Resumo</Text>
-          {isCalculating && <Text style={styles.calculatingText}>calculando...</Text>}
-        </View>
-        {isPremium ? (
-          <View style={styles.premiumBadge}>
-            <Text style={styles.premiumBadgeText}>Premium ativo</Text>
-          </View>
-        ) : null}
-        {summary.financedPrincipal !== scenario.principal && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Principal Financiado</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(summary.financedPrincipal)}</Text>
-          </View>
-        )}
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Total Pago</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(summary.totalPayment)}</Text>
-        </View>
-        {(summary.totalUpfrontCosts > 0 || summary.totalMonthlyCosts > 0) && (
-          <>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Custos Iniciais</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(summary.totalUpfrontCosts)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Custos Mensais</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(summary.totalMonthlyCosts)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total com Custos</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(summary.totalPaymentWithCosts)}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>CET (a.a.)</Text>
-              <Text style={styles.summaryValue}>
-                {summary.cetAnnualRate.toFixed(2).replace('.', ',')}%
-              </Text>
-            </View>
-          </>
-        )}
-        {summary.propertyTotalCost > 0 && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Custo Total do Imóvel</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(summary.propertyTotalCost)}</Text>
-          </View>
-        )}
-        {summary.totalFgtsUsed > 0 && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>FGTS Usado</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(summary.totalFgtsUsed)}</Text>
-          </View>
-        )}
-        {summary.totalPaymentNet !== summary.totalPayment && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Pago Líquido</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(summary.totalPaymentNet)}</Text>
-          </View>
-        )}
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Total de Juros</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(summary.totalInterest)}</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>1ª Parcela</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(summary.firstPayment)}</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Última Parcela</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(summary.lastPayment)}</Text>
-        </View>
-      </View>
+      <SummarySection
+        summary={summary}
+        principal={scenario.principal}
+        isPremium={isPremium}
+        isCalculating={isCalculating}
+      />
 
       <AdBanner enabled={showAds} />
 
-      <View style={styles.section}>
+      <View style={[styles.section, themedStyles.section]}>
         <LoanCharts schedule={schedule} />
       </View>
 
-      <View style={styles.section}>
+      <View style={[styles.section, themedStyles.section]}>
         <View style={styles.row}>
-          <Text style={styles.sectionTitle}>Tabela de Amortização</Text>
+          <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tabela de Amortização</Text>
         </View>
         {totalInstallments > 0 && (
           <View style={styles.tableMetaRow}>
-            <Text style={styles.tableMetaText}>
+            <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
               Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
             </Text>
           </View>
@@ -940,7 +774,7 @@ export default function CalculatorScreen() {
           showExtras
           columns={['installment', 'date', 'payment', 'balance']}
         />
-        <Text style={styles.subsectionTitle}>Gerar tabela completa</Text>
+        <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
         <View style={styles.row}>
           <Pressable
             style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
@@ -969,26 +803,26 @@ export default function CalculatorScreen() {
         </View>
         {exporting ? (
           <View style={styles.exportingRow} accessibilityLiveRegion="polite">
-            <ActivityIndicator size="small" color="#2563EB" />
-            <Text style={styles.exportingText}>Gerando arquivo...</Text>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.exportingText, { color: colors.textTertiary }]}>Gerando arquivo...</Text>
           </View>
         ) : null}
       </View>
 
       <AdBanner enabled={showAds} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} testID="section-prepayments">Amortizações Extras</Text>
-        <Text style={styles.label}>Data</Text>
+      <View style={[styles.section, themedStyles.section]}>
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]} testID="section-prepayments">Amortizações Extras</Text>
+        <Text style={[styles.label, themedStyles.label]}>Data</Text>
         <Pressable
-          style={[styles.input, styles.inputPressable]}
+          style={[styles.input, styles.inputPressable, themedStyles.input]}
           onPress={() => setShowPrepaymentDatePicker(true)}
           accessibilityRole="button"
           accessibilityLabel="Selecionar data da amortização extra"
           testID="input-prepayment-date"
           nativeID="input-prepayment-date"
         >
-          <Text style={styles.inputText}>
+          <Text style={[styles.inputText, { color: colors.text }]}>
             {newPrepayment.date?.toISOString().slice(0, 10)}
           </Text>
         </Pressable>
@@ -1000,7 +834,7 @@ export default function CalculatorScreen() {
             onChange={handlePrepaymentDateChange}
           />
         ) : null}
-        <Text style={styles.label}>Valor (R$)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Valor (R$)</Text>
         <TextInput
           value={newPrepayment.amount ? String(newPrepayment.amount) : ''}
           onChangeText={(text) => {
@@ -1008,57 +842,59 @@ export default function CalculatorScreen() {
             setNewPrepayment((prev) => ({ ...prev, amount: parsed }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Valor da amortização extra"
           testID="input-prepayment-amount"
           nativeID="input-prepayment-amount"
         />
         <View style={styles.row}>
           <Pressable
-            style={[styles.chip, newPrepayment.type === 'fixed_amount' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newPrepayment.type === 'fixed_amount' && themedStyles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, type: 'fixed_amount' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newPrepayment.type === 'fixed_amount' }}
             accessibilityLabel="Amortização por valor fixo"
           >
-            <Text style={styles.chipText}>Valor fixo</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.type === 'fixed_amount' && themedStyles.chipActiveText]}>Valor fixo</Text>
           </Pressable>
           <Pressable
-            style={[styles.chip, newPrepayment.type === 'percentage' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newPrepayment.type === 'percentage' && themedStyles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, type: 'percentage' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newPrepayment.type === 'percentage' }}
             accessibilityLabel="Amortização por porcentagem do saldo"
           >
-            <Text style={styles.chipText}>% do saldo</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.type === 'percentage' && themedStyles.chipActiveText]}>% do saldo</Text>
           </Pressable>
         </View>
         <View style={styles.row}>
           <Pressable
-            style={[styles.chip, newPrepayment.strategy === 'reduce_term' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newPrepayment.strategy === 'reduce_term' && themedStyles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_term' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newPrepayment.strategy === 'reduce_term' }}
             accessibilityLabel="Reduzir prazo"
           >
-            <Text style={styles.chipText}>Reduzir prazo</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.strategy === 'reduce_term' && themedStyles.chipActiveText]}>Reduzir prazo</Text>
           </Pressable>
           <Pressable
-            style={[styles.chip, newPrepayment.strategy === 'reduce_payment' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newPrepayment.strategy === 'reduce_payment' && themedStyles.chipActive]}
             onPress={() => setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_payment' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newPrepayment.strategy === 'reduce_payment' }}
             accessibilityLabel="Reduzir parcela"
           >
-            <Text style={styles.chipText}>Reduzir parcela</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.strategy === 'reduce_payment' && themedStyles.chipActiveText]}>Reduzir parcela</Text>
           </Pressable>
         </View>
-        <Text style={styles.label}>Descrição (opcional)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Descrição (opcional)</Text>
         <TextInput
           value={newPrepayment.description ?? ''}
           onChangeText={(text) => setNewPrepayment((prev) => ({ ...prev, description: text }))}
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
           placeholder="13º salário, bônus..."
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Descrição da amortização extra"
         />
         <Pressable
@@ -1077,12 +913,12 @@ export default function CalculatorScreen() {
         {(scenario.prepayments ?? []).length > 0 && (
           <View style={styles.list}>
             {(scenario.prepayments ?? []).map((payment) => (
-              <View key={payment.id} style={styles.listItemRow}>
+              <View key={payment.id} style={[styles.listItemRow, { borderColor: colors.border }]}>
                 <View>
-                  <Text style={styles.listTitle}>
+                  <Text style={[styles.listTitle, { color: colors.text }]}>
                     {payment.date.toLocaleDateString('pt-BR')} • {formatCurrency(payment.amount)}
                   </Text>
-                  <Text style={styles.listSubtitle}>
+                  <Text style={[styles.listSubtitle, { color: colors.textTertiary }]}>
                     {payment.strategy === 'reduce_term' ? 'Reduzir prazo' : 'Reduzir parcela'}
                   </Text>
                 </View>
@@ -1092,7 +928,7 @@ export default function CalculatorScreen() {
                   accessibilityLabel="Remover amortização"
                   hitSlop={8}
                 >
-                  <Text style={styles.deleteText}>Remover</Text>
+                  <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
                 </Pressable>
               </View>
             ))}
@@ -1100,18 +936,18 @@ export default function CalculatorScreen() {
         )}
       </View>
 
-      <View style={styles.section} testID="section-fgts">
-        <Text style={styles.sectionTitle}>FGTS</Text>
-        <Text style={styles.label}>Data</Text>
+      <View style={[styles.section, themedStyles.section]} testID="section-fgts">
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>FGTS</Text>
+        <Text style={[styles.label, themedStyles.label]}>Data</Text>
         <Pressable
-          style={[styles.input, styles.inputPressable]}
+          style={[styles.input, styles.inputPressable, themedStyles.input]}
           onPress={() => setShowFgtsDatePicker(true)}
           accessibilityRole="button"
           accessibilityLabel="Selecionar data do FGTS"
           testID="input-fgts-date"
           nativeID="input-fgts-date"
         >
-          <Text style={styles.inputText}>
+          <Text style={[styles.inputText, { color: colors.text }]}>
             {newFgts.date?.toISOString().slice(0, 10)}
           </Text>
         </Pressable>
@@ -1123,7 +959,7 @@ export default function CalculatorScreen() {
             onChange={handleFgtsDateChange}
           />
         ) : null}
-        <Text style={styles.label}>Valor (R$)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Valor (R$)</Text>
         <TextInput
           value={newFgts.amount ? String(newFgts.amount) : ''}
           onChangeText={(text) => {
@@ -1131,68 +967,70 @@ export default function CalculatorScreen() {
             setNewFgts((prev) => ({ ...prev, amount: parsed }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Valor do FGTS"
           testID="input-fgts-amount"
           nativeID="input-fgts-amount"
         />
         <View style={styles.row}>
           <Pressable
-            style={[styles.chip, newFgts.usage === 'down_payment' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newFgts.usage === 'down_payment' && themedStyles.chipActive]}
             onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'down_payment' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newFgts.usage === 'down_payment' }}
             accessibilityLabel="FGTS como entrada"
           >
-            <Text style={styles.chipText}>Entrada</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newFgts.usage === 'down_payment' && themedStyles.chipActiveText]}>Entrada</Text>
           </Pressable>
           <Pressable
-            style={[styles.chip, newFgts.usage === 'amortization' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newFgts.usage === 'amortization' && themedStyles.chipActive]}
             onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'amortization' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newFgts.usage === 'amortization' }}
             accessibilityLabel="FGTS como amortização"
           >
-            <Text style={styles.chipText}>Amortização</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newFgts.usage === 'amortization' && themedStyles.chipActiveText]}>Amortização</Text>
           </Pressable>
           <Pressable
-            style={[styles.chip, newFgts.usage === 'installment' && styles.chipActive]}
+            style={[styles.chip, themedStyles.chip, newFgts.usage === 'installment' && themedStyles.chipActive]}
             onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'installment' }))}
             accessibilityRole="button"
             accessibilityState={{ selected: newFgts.usage === 'installment' }}
             accessibilityLabel="FGTS para parcela"
           >
-            <Text style={styles.chipText}>Parcela</Text>
+            <Text style={[styles.chipText, themedStyles.chipText, newFgts.usage === 'installment' && themedStyles.chipActiveText]}>Parcela</Text>
           </Pressable>
         </View>
         {newFgts.usage === 'amortization' && (
           <View style={styles.row}>
             <Pressable
-              style={[styles.chip, newFgts.strategy === 'reduce_term' && styles.chipActive]}
+              style={[styles.chip, themedStyles.chip, newFgts.strategy === 'reduce_term' && themedStyles.chipActive]}
               onPress={() => setNewFgts((prev) => ({ ...prev, strategy: 'reduce_term' }))}
               accessibilityRole="button"
               accessibilityState={{ selected: newFgts.strategy === 'reduce_term' }}
               accessibilityLabel="FGTS reduzindo prazo"
             >
-              <Text style={styles.chipText}>Reduzir prazo</Text>
+              <Text style={[styles.chipText, themedStyles.chipText, newFgts.strategy === 'reduce_term' && themedStyles.chipActiveText]}>Reduzir prazo</Text>
             </Pressable>
             <Pressable
-              style={[styles.chip, newFgts.strategy === 'reduce_payment' && styles.chipActive]}
+              style={[styles.chip, themedStyles.chip, newFgts.strategy === 'reduce_payment' && themedStyles.chipActive]}
               onPress={() => setNewFgts((prev) => ({ ...prev, strategy: 'reduce_payment' }))}
               accessibilityRole="button"
               accessibilityState={{ selected: newFgts.strategy === 'reduce_payment' }}
               accessibilityLabel="FGTS reduzindo parcela"
             >
-              <Text style={styles.chipText}>Reduzir parcela</Text>
+              <Text style={[styles.chipText, themedStyles.chipText, newFgts.strategy === 'reduce_payment' && themedStyles.chipActiveText]}>Reduzir parcela</Text>
             </Pressable>
           </View>
         )}
-        <Text style={styles.label}>Descrição (opcional)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Descrição (opcional)</Text>
         <TextInput
           value={newFgts.description ?? ''}
           onChangeText={(text) => setNewFgts((prev) => ({ ...prev, description: text }))}
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
           placeholder="Uso do FGTS..."
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Descrição do FGTS"
         />
         <Pressable
@@ -1211,12 +1049,12 @@ export default function CalculatorScreen() {
         {(scenario.fgtsEvents ?? []).length > 0 && (
           <View style={styles.list}>
             {(scenario.fgtsEvents ?? []).map((event) => (
-              <View key={event.id} style={styles.listItemRow}>
+              <View key={event.id} style={[styles.listItemRow, { borderColor: colors.border }]}>
                 <View>
-                  <Text style={styles.listTitle}>
+                  <Text style={[styles.listTitle, { color: colors.text }]}>
                     {event.date.toLocaleDateString('pt-BR')} • {formatCurrency(event.amount)}
                   </Text>
-                  <Text style={styles.listSubtitle}>
+                  <Text style={[styles.listSubtitle, { color: colors.textTertiary }]}>
                     {event.usage === 'down_payment'
                       ? 'Entrada'
                       : event.usage === 'amortization'
@@ -1230,7 +1068,7 @@ export default function CalculatorScreen() {
                   accessibilityLabel="Remover FGTS"
                   hitSlop={8}
                 >
-                  <Text style={styles.deleteText}>Remover</Text>
+                  <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
                 </Pressable>
               </View>
             ))}
@@ -1238,13 +1076,13 @@ export default function CalculatorScreen() {
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Custos e Taxas</Text>
-        <Text style={styles.helperText}>
+      <View style={[styles.section, themedStyles.section]}>
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Custos e Taxas</Text>
+        <Text style={[styles.helperText, { color: colors.textTertiary }]}>
           Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados
           na assinatura.
         </Text>
-        <Text style={styles.label}>IOF (% do financiado)</Text>
+        <Text style={[styles.label, themedStyles.label]}>IOF (% do financiado)</Text>
         <TextInput
           value={iofRateText}
           onChangeText={(text) => {
@@ -1252,11 +1090,12 @@ export default function CalculatorScreen() {
             setScenario((prev) => ({ ...prev, iofRate: parseNumberInput(text), includeIOF: parseNumberInput(text) > 0 }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Taxa de IOF"
         />
 
-        <Text style={styles.label}>Seguro (% do saldo ao mês)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Seguro (% do saldo ao mês)</Text>
         <TextInput
           value={insuranceRateText}
           onChangeText={(text) => {
@@ -1268,11 +1107,12 @@ export default function CalculatorScreen() {
             }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Taxa de seguro"
         />
 
-        <Text style={styles.label}>Tarifa administrativa (% do saldo ao mês)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Tarifa administrativa (% do saldo ao mês)</Text>
         <TextInput
           value={adminFeeRateText}
           onChangeText={(text) => {
@@ -1284,11 +1124,12 @@ export default function CalculatorScreen() {
             }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Taxa administrativa"
         />
 
-        <Text style={styles.label}>Taxa de abertura (R$)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Taxa de abertura (R$)</Text>
         <TextInput
           value={openingFeeText}
           onChangeText={(text) => {
@@ -1301,13 +1142,14 @@ export default function CalculatorScreen() {
             }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Taxa de abertura"
         />
 
         {isPropertyMode && (
           <>
-            <Text style={styles.label}>ITBI (% do imóvel)</Text>
+            <Text style={[styles.label, themedStyles.label]}>ITBI (% do imóvel)</Text>
             <TextInput
               value={itbiRateText}
               onChangeText={(text) => {
@@ -1315,11 +1157,12 @@ export default function CalculatorScreen() {
                 setScenario((prev) => ({ ...prev, itbiRate: parseNumberInput(text) }));
               }}
               keyboardType="numeric"
-              style={styles.input}
+              style={[styles.input, themedStyles.input]}
+              placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Taxa de ITBI"
             />
 
-            <Text style={styles.label}>Cartório (R$)</Text>
+            <Text style={[styles.label, themedStyles.label]}>Cartório (R$)</Text>
             <TextInput
               value={registryFeeText}
               onChangeText={(text) => {
@@ -1327,57 +1170,19 @@ export default function CalculatorScreen() {
                 setScenario((prev) => ({ ...prev, registryFee: parseCurrencyInput(text) }));
               }}
               keyboardType="numeric"
-              style={styles.input}
+              style={[styles.input, themedStyles.input]}
+              placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Taxa de cartório"
             />
           </>
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} testID="section-export">Exportar</Text>
-        <Text style={styles.helperText}>
-          Inclui tabela completa com juros, amortização, custos, FGTS e resumo do cenário.
-        </Text>
-        <View style={styles.row}>
-          <Pressable
-            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
-            onPress={() => handleExport('pdf')}
-            accessibilityRole="button"
-            accessibilityLabel="Exportar PDF"
-            testID="btn-export-pdf"
-            nativeID="btn-export-pdf"
-          >
-            <Text style={styles.primaryButtonText}>PDF</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
-            onPress={() => handleExport('xlsx')}
-            accessibilityRole="button"
-            accessibilityLabel="Exportar XLSX"
-            testID="btn-export-xlsx"
-            nativeID="btn-export-xlsx"
-          >
-            <Text style={styles.primaryButtonText}>XLSX</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
-            onPress={() => handleExport('csv')}
-            accessibilityRole="button"
-            accessibilityLabel="Exportar CSV"
-            testID="btn-export-csv"
-            nativeID="btn-export-csv"
-          >
-            <Text style={styles.primaryButtonText}>CSV</Text>
-          </Pressable>
-        </View>
-        {exporting ? (
-          <View style={styles.exportingRow} accessibilityLiveRegion="polite">
-            <ActivityIndicator size="small" color="#2563EB" />
-            <Text style={styles.exportingText}>Gerando arquivo...</Text>
-          </View>
-        ) : null}
-      </View>
+      <ExportSection
+        isPremium={isPremium}
+        exporting={exporting}
+        onExport={handleExport}
+      />
 
       <AdBanner enabled={showAds} />
     </ScrollView>

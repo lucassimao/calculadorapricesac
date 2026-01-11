@@ -1,25 +1,54 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
+import { usePremium } from '../../src/hooks/usePremium';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const router = useRouter();
+  const { isPremium } = usePremium();
 
   return (
     <Tabs
       screenOptions={{
-        headerTitleAlign: 'center',
+        headerTitleAlign: 'left',
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
         tabBarActiveTintColor: colors.tabActive,
         tabBarInactiveTintColor: colors.tabInactive,
         tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+        headerTitle: () => (
+          <View style={styles.headerTitle}>
+            <View style={styles.headerTitleRow}>
+              <Ionicons name="analytics-outline" size={18} color={colors.tabActive} />
+              <Text style={[styles.headerTitleText, { color: colors.text }]}>Price & SAC</Text>
+            </View>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+              Simulador de financiamento
+            </Text>
+          </View>
+        ),
+        headerRight: () =>
+          !isPremium ? (
+            <Pressable
+              style={[
+                styles.headerChip,
+                { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
+              ]}
+              onPress={() => router.push('/(tabs)/premium')}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir Premium"
+            >
+              <Ionicons name="star-outline" size={14} color={colors.tabActive} />
+              <Text style={[styles.headerChipText, { color: colors.tabActive }]}>Assinar</Text>
+            </Pressable>
+          ) : null,
       }}
     >
       <Tabs.Screen
         name="calculator"
         options={{
-          title: 'Calculadora',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calculator-outline" size={size} color={color} />
           ),
@@ -55,3 +84,35 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  headerTitle: {
+    gap: 2,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerTitleText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  headerSubtitle: {
+    fontSize: 11,
+  },
+  headerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginRight: 8,
+  },
+  headerChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});

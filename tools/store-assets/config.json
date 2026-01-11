@@ -1,21 +1,46 @@
 {
   "locales": ["pt-BR"],
-  "devices": ["iphone11"],
+  "devices": [],
   "slots": [
     {
       "id": 1,
-      "key": "calculadora",
-      "keywords": ["tabela de amortização", "Price e SAC", "simulação rápida"]
+      "key": "parametros",
+      "keywords": ["entradas", "taxas", "prazo"]
     },
     {
       "id": 2,
-      "key": "comparacao",
-      "keywords": ["comparativo", "economia", "custos totais"]
+      "key": "resumo",
+      "keywords": ["resumo", "total pago", "juros"]
     },
     {
       "id": 3,
-      "key": "premium",
-      "keywords": ["exportação", "sem anúncios", "relatórios"]
+      "key": "graficos",
+      "keywords": ["gráficos", "saldo", "parcelas"]
+    },
+    {
+      "id": 4,
+      "key": "tabela",
+      "keywords": ["tabela de amortização", "parcelas", "saldo"]
+    },
+    {
+      "id": 5,
+      "key": "amortizacoes",
+      "keywords": ["amortizações extras", "redução de prazo", "redução de parcela"]
+    },
+    {
+      "id": 6,
+      "key": "fgts",
+      "keywords": ["fgts", "entrada", "amortização"]
+    },
+    {
+      "id": 7,
+      "key": "custos",
+      "keywords": ["custos", "iof", "seguro"]
+    },
+    {
+      "id": 8,
+      "key": "exportar",
+      "keywords": ["exportar", "pdf", "xlsx", "csv"]
     }
   ],
   "stores": {
@@ -63,8 +88,6 @@
     "screenshotDir": "screenshots",
     "guideDir": "guides",
     "maskDir": "guides",
-    "framePathApp": "frames/iphone11.png",
-    "framePathPlay": "frames/pixel8pro.png",
     "outputDir": ".local/store-assets",
     "baseWidth": 1024,
     "baseHeight": 1536

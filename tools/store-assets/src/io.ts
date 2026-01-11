@@ -61,7 +61,11 @@ export function iconOutputPath(cfg: Config, store: StoreKey, format: string) {
   return path.join(base, store, 'pt-BR', `icon.${format}`);
 }
 
-export function findScreenshot(cfg: Config, locale: string, device: string, slot: string) {
+export async function findScreenshot(cfg: Config, locale: string, slot: string) {
   const dir = resolvePath(cfg.defaults.screenshotDir);
-  return path.join(dir, locale, device, `${slot}.png`);
+  const direct = path.join(dir, locale, `${slot}.png`);
+  if (await fileExists(direct)) return direct;
+
+  const legacyDevice = cfg.devices?.[0] ?? 'iphone11';
+  return path.join(dir, locale, legacyDevice, `${slot}.png`);
 }

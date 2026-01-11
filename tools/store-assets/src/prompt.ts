@@ -13,9 +13,14 @@ export function buildCoverPrompt(
   const textHeight = Math.round(cfg.layout.textBackdropHeightPct * 100);
   const textBounds = calcTextBounds(cfg);
   const creativeBlock = creativeGuidance(creative);
-  const storeSafe = store === 'appstore'
-    ? '- Área segura App Store: deixe espaço livre acima do título; topo do título abaixo de 200px.'
-    : '';
+  const storeSafe =
+    store === 'appstore'
+      ? '- Área segura App Store: deixe espaço livre acima do título; topo do título abaixo de 200px.'
+      : '';
+  const frameGuidance =
+    store === 'appstore'
+      ? '- Enquadre a captura dentro de um frame de iPhone (estilo iOS), com bordas finas e cantos arredondados.'
+      : '- Enquadre a captura dentro de um frame de Android (estilo Pixel), com bordas finas e cantos arredondados.';
 
   return `
 Crie um banner vertical para ${store} com 1024x1536.
@@ -35,27 +40,26 @@ ${storeSafe}
 
 Layout:
 - Mantenha a captura de tela centralizada na área inferior.
+- A captura deve aparecer dentro do frame do dispositivo solicitado (não use imagens reais de aparelhos).
+- O conteúdo da captura deve permanecer intacto; não altere textos/cores da UI.
 - Fundo limpo, alto contraste e sem ruído próximo ao texto.
 ${keywords ? `- Temas: ${keywords}.` : ''}
 ${creativeBlock}
+${frameGuidance}
 
 Saída final será redimensionada para ${storeCfg.width}x${storeCfg.height}.
   `.trim();
 }
 
-export function buildBannerPrompt(copy: CopyEntry) {
+export function buildBannerPrompt() {
   return `
-Crie um banner horizontal promocional (1024x500).
-- Use a captura de tela enviada como referência visual do app.
-- Renderize o texto exatamente como abaixo.
-
-Texto:
-Título: "${copy.headline}"
-Subtítulo: "${copy.subhead}"
-
-Tipografia:
+Crie um banner horizontal promocional (1280x720).
+- Gere o texto livremente (headline + subhead) em PT-BR.
+- Texto deve destacar: calculadora de financiamento Price e SAC, comparativo, clareza, exportação.
+- Tom moderno, direto e confiável.
 - Título em destaque; subtítulo menor.
 - Alto contraste e fundo limpo.
+- Não use marcas registradas ou logos conhecidos.
   `.trim();
 }
 

@@ -48,6 +48,9 @@ export function SystemSelector({
           </Pressable>
         ))}
       </View>
+      <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+        Price: parcelas fixas. SAC: amortização constante e parcelas decrescentes.
+      </Text>
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>Modo</Text>
       <View style={styles.toggleRow}>
@@ -79,6 +82,11 @@ export function SystemSelector({
           </Pressable>
         ))}
       </View>
+      <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+        {loanMode === 'property'
+          ? 'Modo imobiliário: calcula pelo valor do imóvel e entrada.'
+          : 'Modo padrão: usa o valor do financiamento diretamente.'}
+      </Text>
     </View>
   );
 }
@@ -98,6 +106,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   toggleRow: {
     flexDirection: 'row',

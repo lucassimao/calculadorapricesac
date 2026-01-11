@@ -5,6 +5,7 @@ import { useTheme } from '../../src/lib/theme';
 import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
+import { AdBanner } from '../../src/components/AdBanner';
 
 export default function PremiumScreen() {
   const iapAvailability = useIapAvailability();
@@ -15,6 +16,7 @@ export default function PremiumScreen() {
 function PremiumIapScreen() {
   const { colors } = useTheme();
   const { isPremium, markPremium } = usePremium();
+  const showAds = !isPremium;
   const [modalVisible, setModalVisible] = useState(false);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
@@ -146,6 +148,7 @@ function PremiumIapScreen() {
       <Text style={styles.subtitle}>
         Desbloqueie recursos essenciais para comparar financiamentos com clareza.
       </Text>
+      <AdBanner enabled={showAds} />
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>O que você ganha</Text>
@@ -266,6 +269,9 @@ function PremiumIapScreen() {
 }
 
 function PremiumUnsupportedScreen() {
+  const { isPremium } = usePremium();
+  const showAds = !isPremium;
+
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Plano Premium</Text>
@@ -277,6 +283,7 @@ function PremiumUnsupportedScreen() {
       <Text style={styles.subtitle}>
         Compras no app não estão disponíveis neste dispositivo. Use uma build instalada com loja compatível.
       </Text>
+      <AdBanner enabled={showAds} />
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Pagamento único</Text>
         <Text style={styles.price}>{IAP_FALLBACK_PRICE}</Text>
