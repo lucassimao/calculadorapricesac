@@ -99,7 +99,7 @@ const parsed = new Date(text + 'T00:00:00');
 
 ---
 
-### 2.2 🟠 Sync quick comparison with base parameters
+### 2.2 ✅ Sync quick comparison with base parameters (COMPLETED)
 **File:** `app/(tabs)/comparison.tsx:41-45`
 
 **Problem:** Quick comparison scenarios use hardcoded defaults, don't update when user changes base principal/rate/term.
