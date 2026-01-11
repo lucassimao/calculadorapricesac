@@ -32,8 +32,6 @@ export interface DefaultsConfig {
   outputDir: string;
   baseWidth: number;
   baseHeight: number;
-  iconSource: string;
-  bannerScreenshot: string;
 }
 
 export interface ModelsConfig {

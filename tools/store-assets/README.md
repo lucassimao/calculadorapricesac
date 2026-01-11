@@ -23,10 +23,6 @@ export GEMINI_API_KEY="..."
 3) Coloque os arquivos:
 - Capturas:
   - `tools/store-assets/screenshots/pt-BR/iphone11/{slot}.png`
-- Ícone base:
-  - `tools/store-assets/assets/icon-source.png`
-- Banner (opcional):
-  - `tools/store-assets/screenshots/pt-BR/iphone11/banner.png`
 - Frames (opcional):
   - `tools/store-assets/frames/iphone11.png`
   - `tools/store-assets/frames/pixel8pro.png`
@@ -45,12 +41,12 @@ Gerar guide/mask:
 npm run start -- --action guide
 ```
 
-Gerar banner:
+Gerar banner (via Gemini, sem base):
 ```bash
 npm run start -- --action banner --store all
 ```
 
-Gerar ícones:
+Gerar ícones (via Gemini, sem base):
 ```bash
 npm run start -- --action icon --store all
 ```

@@ -2,7 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import sharp from 'sharp';
 import type { Config, StoreKey } from './types.js';
-import { buildBannerPrompt, buildCoverPrompt } from './prompt.js';
+import { buildBannerPrompt, buildCoverPrompt, buildIconPrompt } from './prompt.js';
 import { ensureGuideAndMask } from './guide.js';
 import { generateImage } from './gemini.js';
 import { ensureDir, fileExists, findScreenshot, iconOutputPath, bannerOutputPath, loadCopyFile, outputPath, resolvePath } from './io.js';
@@ -63,21 +63,20 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
     throw new Error('Missing banner copy entry');
   }
 
-  const bannerShot = resolvePath(cfg.defaults.bannerScreenshot);
-  const hasBannerShot = await fileExists(bannerShot);
-
   for (const store of stores) {
     const bannerCfg = cfg.banners[store];
     const outPath = bannerOutputPath(cfg, store, bannerCfg.format);
     if (!overwrite && (await fileExists(outPath))) continue;
 
     const prompt = buildBannerPrompt(copyEntry);
-    const images = hasBannerShot ? [{ path: bannerShot, mime: 'image/png' }] : [];
     const buffer = await generateImage(
       { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '2:1' },
-      { prompt, images }
+      { prompt, images: [] }
     );
-    const resized = await resizeExact(buffer, bannerCfg.width, bannerCfg.height);
+    let resized = await resizeExact(buffer, bannerCfg.width, bannerCfg.height);
+    if (store === 'play') {
+      resized = await sharp(resized).flatten({ background: '#ffffff' }).png().toBuffer();
+    }
     await ensureDir(path.dirname(outPath));
     await sharp(resized).toFile(outPath);
   }
@@ -85,17 +84,21 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
 
 export async function renderIcons(cfg: Config, storeFilter: string, overwrite: boolean) {
   const stores = selectStores(cfg, storeFilter);
-  const iconSource = resolvePath(cfg.defaults.iconSource);
-  if (!(await fileExists(iconSource))) {
-    throw new Error(`Icon source not found: ${iconSource}`);
-  }
 
   for (const store of stores) {
     const iconCfg = cfg.icons[store];
     const outPath = iconOutputPath(cfg, store, iconCfg.format);
     if (!overwrite && (await fileExists(outPath))) continue;
 
-    const buffer = await resizeTo(iconSource, iconCfg.width, iconCfg.height, iconCfg.format);
+    const prompt = buildIconPrompt('Calculadora Price & SAC', store);
+    const generated = await generateImage(
+      { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '1:1' },
+      { prompt, images: [] }
+    );
+    let buffer = await resizeExact(generated, iconCfg.width, iconCfg.height);
+    if (store === 'appstore') {
+      buffer = await sharp(buffer).flatten({ background: '#ffffff' }).png().toBuffer();
+    }
     await ensureDir(path.dirname(outPath));
     await fs.writeFile(outPath, buffer);
   }

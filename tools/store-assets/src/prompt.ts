@@ -59,6 +59,32 @@ Tipografia:
   `.trim();
 }
 
+export function buildIconPrompt(appName: string, store: 'appstore' | 'play') {
+  const storeGuidance =
+    store === 'appstore'
+      ? `
+- Ícone da App Store: 1024x1024 PNG, sem transparência (sem alpha).
+- Não aplique cantos arredondados; o sistema aplica a máscara.
+- Sem sombras externas.
+      `
+      : `
+- Ícone do Google Play: 512x512 PNG, quadrado cheio.
+- Sem transparência e sem sombras; o Play aplica máscara e sombra.
+      `;
+
+  return `
+Crie um ícone de app minimalista e moderno (${store === 'appstore' ? '1024x1024' : '512x512'}).
+- Estilo limpo, alto contraste, sem texto nem números.
+- Formas simples, bem definidas e fáceis de reconhecer em tamanhos pequenos.
+- Inspiração: finanças, gráficos, cálculo, planejamento.
+- Fundo sólido ou gradiente suave.
+- Não use marcas registradas ou logos conhecidos.
+${storeGuidance}
+
+App: "${appName}"
+  `.trim();
+}
+
 function creativeGuidance(level: number) {
   const clamped = Math.max(0, Math.min(5, level));
   switch (clamped) {

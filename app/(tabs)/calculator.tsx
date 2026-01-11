@@ -264,6 +264,7 @@ export default function CalculatorScreen() {
   const showAds = !premiumLoading && !isPremium;
   const iapAvailability = useIapAvailability();
   const [exporting, setExporting] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
   const [newPrepayment, setNewPrepayment] = useState<Partial<PrepaymentEvent>>({
     amount: 0,
     type: 'fixed_amount',
@@ -297,6 +298,13 @@ export default function CalculatorScreen() {
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
   const propertyModeHint = isPropertyMode ? 'Modo imobiliário ativo.' : 'Modo padrão ativo.';
+
+  // Brief loading indicator when scenario changes
+  useEffect(() => {
+    setIsCalculating(true);
+    const timeout = setTimeout(() => setIsCalculating(false), 150);
+    return () => clearTimeout(timeout);
+  }, [scenario]);
 
   const persistScenarios = async (nextScenarios: Scenario[]) => {
     setScenarios(nextScenarios);
@@ -808,7 +816,10 @@ export default function CalculatorScreen() {
       ) : null}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle} testID="section-summary">Resumo</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle} testID="section-summary">Resumo</Text>
+          {isCalculating && <Text style={styles.calculatingText}>calculando...</Text>}
+        </View>
         {isPremium ? (
           <View style={styles.premiumBadge}>
             <Text style={styles.premiumBadgeText}>Premium ativo</Text>
@@ -1368,6 +1379,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  calculatingText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
   subsectionTitle: {
     fontSize: 13,

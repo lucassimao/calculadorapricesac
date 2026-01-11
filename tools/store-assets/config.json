@@ -72,9 +72,7 @@
     "framePathPlay": "frames/pixel8pro.png",
     "outputDir": ".local/store-assets",
     "baseWidth": 1024,
-    "baseHeight": 1536,
-    "iconSource": "assets/icon-source.png",
-    "bannerScreenshot": "screenshots/pt-BR/iphone11/banner.png"
+    "baseHeight": 1536
   },
   "models": {
     "image": "gemini-3-pro-image-preview",

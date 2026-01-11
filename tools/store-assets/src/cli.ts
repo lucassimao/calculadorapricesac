@@ -1,10 +1,15 @@
 import { Command } from 'commander';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { loadConfig } from './io.js';
 import { ensureGuideAndMask } from './guide.js';
 import { renderBanner, renderCovers, renderIcons } from './render.js';
 
-dotenv.config({ path: '.env' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const toolRoot = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(toolRoot, '.env') });
 
 const program = new Command();
 
