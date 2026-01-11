@@ -30,6 +30,7 @@ const DEFAULT_SCENARIO: Scenario = {
 
 const MAX_TABLE_ROWS = 24;
 const ENABLE_IAP = !__DEV__;
+const IAP_PRODUCT_ID = 'remove_ads';
 
 function PremiumSectionDisabled({ isPremium }: { isPremium: boolean }) {
   return (
@@ -67,8 +68,25 @@ function PremiumSectionIap({
   isPremium: boolean;
   markPremium: (value: boolean) => Promise<void>;
 }) {
-  const { requestPurchase, restorePurchases, availablePurchases } = useIAP({
-    onPurchaseSuccess: async () => {
+  const [purchaseInProgress, setPurchaseInProgress] = useState(false);
+  const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
+  const {
+    connected,
+    products,
+    availablePurchases,
+    requestPurchase,
+    restorePurchases,
+    fetchProducts,
+    getAvailablePurchases,
+    finishTransaction,
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      if (purchase.productId !== IAP_PRODUCT_ID) return;
+      try {
+        await finishTransaction({ purchase, isConsumable: false });
+      } catch {
+        // Ignore finish errors; entitlement is still granted locally.
+      }
       await markPremium(true);
       Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
     },
@@ -77,34 +95,89 @@ function PremiumSectionIap({
     },
   });
 
+  const product = useMemo(
+    () => products.find((item) => item.id === IAP_PRODUCT_ID),
+    [products]
+  );
+  const hasEntitlement = useMemo(
+    () => availablePurchases.some((purchase) => purchase.productId === IAP_PRODUCT_ID),
+    [availablePurchases]
+  );
+  const priceLabel = product?.displayPrice ?? 'R$ 5,00';
+  const isStoreReady = connected && !!product;
+  const restoreInProgress = restoreRequestedAt !== null;
+
+  useEffect(() => {
+    if (!connected) return;
+    fetchProducts({ skus: [IAP_PRODUCT_ID], type: 'in-app' }).catch(() => {});
+    getAvailablePurchases().catch(() => {});
+  }, [connected, fetchProducts, getAvailablePurchases]);
+
+  useEffect(() => {
+    if (hasEntitlement && !isPremium) {
+      markPremium(true).catch(() => {});
+    }
+  }, [hasEntitlement, isPremium, markPremium]);
+
+  useEffect(() => {
+    if (restoreRequestedAt === null) return;
+    if (hasEntitlement) {
+      markPremium(true)
+        .then(() => Alert.alert('Restaurado', 'Compra restaurada com sucesso.'))
+        .catch(() => {});
+      setRestoreRequestedAt(null);
+    }
+  }, [restoreRequestedAt, hasEntitlement, markPremium]);
+
+  useEffect(() => {
+    if (restoreRequestedAt === null) return;
+    const timeout = setTimeout(() => {
+      if (!hasEntitlement) {
+        Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
+        setRestoreRequestedAt(null);
+      }
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [restoreRequestedAt, hasEntitlement]);
+
   const handlePurchase = async () => {
     try {
+      if (!connected) {
+        Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para comprar.');
+        return;
+      }
       if (isPremium) {
         Alert.alert('Premium ativo', 'Você já removeu os anúncios.');
         return;
       }
+      if (!product) {
+        Alert.alert('Produto indisponível', 'Não foi possível carregar o produto. Tente novamente.');
+        return;
+      }
+      setPurchaseInProgress(true);
       await requestPurchase({
         type: 'in-app',
         request: {
-          ios: { sku: 'remove_ads' },
-          android: { skus: ['remove_ads'] },
+          ios: { sku: IAP_PRODUCT_ID },
+          android: { skus: [IAP_PRODUCT_ID] },
         },
       });
     } catch {
       Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    } finally {
+      setPurchaseInProgress(false);
     }
   };
 
   const handleRestore = async () => {
     try {
-      await restorePurchases();
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      if (availablePurchases.length > 0) {
-        await markPremium(true);
-        Alert.alert('Restaurado', 'Compra restaurada com sucesso.');
-      } else {
-        Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
+      if (!connected) {
+        Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para restaurar.');
+        return;
       }
+      setRestoreRequestedAt(Date.now());
+      await restorePurchases();
+      await getAvailablePurchases();
     } catch {
       Alert.alert('Erro', 'Não foi possível restaurar a compra.');
     }
@@ -114,26 +187,34 @@ function PremiumSectionIap({
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Plano Premium</Text>
       <Text style={styles.label}>
-        Remova anúncios e libere exportações por R$ 5,00 (pagamento único).
+        Remova anúncios e libere exportações por {priceLabel} (pagamento único).
       </Text>
       <View style={styles.rowWrap}>
         <Pressable
-          style={[styles.primaryButton, isPremium && styles.primaryButtonDisabled]}
+          style={[
+            styles.primaryButton,
+            (isPremium || !isStoreReady || purchaseInProgress) && styles.primaryButtonDisabled,
+          ]}
           onPress={handlePurchase}
           accessibilityRole="button"
           accessibilityLabel="Remover anúncios"
         >
           <Text style={styles.primaryButtonText}>
-            {isPremium ? 'Premium ativo' : 'Remover anúncios'}
+            {isPremium ? 'Premium ativo' : purchaseInProgress ? 'Processando...' : 'Remover anúncios'}
           </Text>
         </Pressable>
         <Pressable
-          style={styles.secondaryButton}
+          style={[
+            styles.secondaryButton,
+            (!connected || restoreInProgress) && styles.primaryButtonDisabled,
+          ]}
           onPress={handleRestore}
           accessibilityRole="button"
           accessibilityLabel="Restaurar compra"
         >
-          <Text style={styles.secondaryButtonText}>Restaurar</Text>
+          <Text style={styles.secondaryButtonText}>
+            {restoreInProgress ? 'Restaurando...' : 'Restaurar'}
+          </Text>
         </Pressable>
       </View>
     </View>
