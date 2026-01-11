@@ -180,6 +180,15 @@ export default function CalculatorScreen() {
       .catch(() => {});
   }, []);
 
+  // Sync principal display when in property mode
+  useEffect(() => {
+    if (isPropertyMode && scenario.propertyValue && scenario.downPayment !== undefined) {
+      const computed = Math.max(scenario.propertyValue - (scenario.downPayment ?? 0), 0);
+      setPrincipalText(String(computed));
+      setScenario((prev) => ({ ...prev, principal: computed }));
+    }
+  }, [isPropertyMode, scenario.propertyValue, scenario.downPayment]);
+
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
   const scheduleForTable = useMemo(
     () => (showAllRows ? schedule : schedule.slice(0, MAX_TABLE_ROWS + 1)),
