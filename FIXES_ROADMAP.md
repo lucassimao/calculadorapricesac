@@ -337,7 +337,7 @@ useEffect(() => {
 
 ---
 
-### 5.2 🟢 Allow zero-rate (interest-free) loans
+### 5.2 ✅ Allow zero-rate (interest-free) loans (COMPLETED)
 **File:** `src/lib/calculations.ts:427-429`
 
 **Problem:** Validation rejects rate <= 0, but `calculatePricePayment` handles rate = 0 correctly.
