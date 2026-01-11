@@ -31,14 +31,9 @@
     }
   },
   "banners": {
-    "appstore": {
-      "width": 1024,
-      "height": 500,
-      "format": "png"
-    },
     "play": {
-      "width": 1024,
-      "height": 500,
+      "width": 1280,
+      "height": 720,
       "format": "png"
     }
   },

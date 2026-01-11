@@ -79,6 +79,8 @@ Crie um ícone de app minimalista e moderno (${store === 'appstore' ? '1024x1024
 - Inspiração: finanças, gráficos, cálculo, planejamento.
 - Fundo sólido ou gradiente suave.
 - Não use marcas registradas ou logos conhecidos.
+- Mantenha o símbolo principal centralizado e com margem interna de pelo menos 15% em todos os lados
+  para ficar seguro em máscaras de ambas as lojas.
 ${storeGuidance}
 
 App: "${appName}"

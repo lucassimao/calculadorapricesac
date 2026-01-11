@@ -73,6 +73,7 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
 
   for (const store of stores) {
     const bannerCfg = cfg.banners[store];
+    if (!bannerCfg) continue;
     const outPath = bannerOutputPath(cfg, store, bannerCfg.format);
     if (!overwrite && (await fileExists(outPath))) {
       outputs.push(outPath);
@@ -81,7 +82,7 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
 
     const prompt = buildBannerPrompt(copyEntry);
     const buffer = await generateImage(
-      { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '2:1' },
+      { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '16:9' },
       { prompt, images: [] }
     );
     let resized = await resizeExact(buffer, bannerCfg.width, bannerCfg.height);
@@ -97,30 +98,25 @@ export async function renderBanner(cfg: Config, storeFilter: string, overwrite: 
 }
 
 export async function renderIcons(cfg: Config, storeFilter: string, overwrite: boolean) {
-  const stores = selectStores(cfg, storeFilter);
   const outputs: string[] = [];
+  const outDir = path.join(resolvePath(cfg.defaults.outputDir), 'icons');
+  const outPath = path.join(outDir, 'icon.png');
 
-  for (const store of stores) {
-    const iconCfg = cfg.icons[store];
-    const outPath = iconOutputPath(cfg, store, iconCfg.format);
-    if (!overwrite && (await fileExists(outPath))) {
-      outputs.push(outPath);
-      continue;
-    }
-
-    const prompt = buildIconPrompt('Calculadora Price & SAC', store);
-    const generated = await generateImage(
-      { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '1:1' },
-      { prompt, images: [] }
-    );
-    let buffer = await resizeExact(generated, iconCfg.width, iconCfg.height);
-    if (store === 'appstore') {
-      buffer = await sharp(buffer).flatten({ background: '#ffffff' }).png().toBuffer();
-    }
-    await ensureDir(path.dirname(outPath));
-    await fs.writeFile(outPath, buffer);
+  if (!overwrite && (await fileExists(outPath))) {
     outputs.push(outPath);
+    logOutputs('Ícones', outputs);
+    return;
   }
+
+  const prompt = buildIconPrompt('Calculadora Price & SAC', 'appstore');
+  const generated = await generateImage(
+    { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: '1:1' },
+    { prompt, images: [] }
+  );
+  const buffer = await resizeExact(generated, 1024, 1024);
+  await ensureDir(path.dirname(outPath));
+  await fs.writeFile(outPath, buffer);
+  outputs.push(outPath);
 
   logOutputs('Ícones', outputs);
 }

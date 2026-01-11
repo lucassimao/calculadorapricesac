@@ -41,7 +41,7 @@ Gerar guide/mask:
 npm run start -- --action guide
 ```
 
-Gerar banner (via Gemini, sem base):
+Gerar feature graphic do Play (via Gemini, sem base):
 ```bash
 npm run start -- --action banner --store all
 ```
@@ -54,6 +54,8 @@ npm run start -- --action icon --store all
 ## Saídas
 
 `tools/store-assets/.local/store-assets/{store}/pt-BR/`
+
+Play Feature Graphic sai em `tools/store-assets/.local/store-assets/play/pt-BR/banner.png`.
 
 ## Configuração
 
