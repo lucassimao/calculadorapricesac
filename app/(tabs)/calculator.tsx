@@ -760,6 +760,7 @@ export default function CalculatorScreen() {
           schedule={scheduleForTable}
           totalSchedule={schedule}
           showCumulative={showCumulative}
+          showExtras={true}
         />
       </View>
 

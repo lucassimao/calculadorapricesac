@@ -7,12 +7,14 @@ interface AmortizationTableProps {
   schedule: ScheduleRow[];
   showCumulative?: boolean;
   totalSchedule?: ScheduleRow[];
+  showExtras?: boolean;
 }
 
 export function AmortizationTable({
   schedule,
   showCumulative = false,
   totalSchedule,
+  showExtras = false,
 }: AmortizationTableProps) {
   const rows = useMemo(() => {
     const filtered = schedule.filter((row) => row.installmentNumber > 0);
@@ -36,10 +38,24 @@ export function AmortizationTable({
         payment: acc.payment + row.payment,
         interest: acc.interest + row.interest,
         amortization: acc.amortization + row.amortization,
+        prepayment: acc.prepayment + (row.prepaymentAmount ?? 0),
+        fgts: acc.fgts + (row.fgtsAmortization ?? 0) + (row.fgtsSubsidy ?? 0),
       }),
-      { payment: 0, interest: 0, amortization: 0 }
+      { payment: 0, interest: 0, amortization: 0, prepayment: 0, fgts: 0 }
     );
   }, [schedule, totalSchedule]);
+
+  // Check if there are any extras to show
+  const hasExtras = useMemo(() => {
+    return schedule.some(
+      (row) =>
+        (row.prepaymentAmount && row.prepaymentAmount > 0) ||
+        (row.fgtsAmortization && row.fgtsAmortization > 0) ||
+        (row.fgtsSubsidy && row.fgtsSubsidy > 0)
+    );
+  }, [schedule]);
+
+  const displayExtras = showExtras && hasExtras;
 
   return (
     <View style={styles.container}>
@@ -54,12 +70,19 @@ export function AmortizationTable({
           {showCumulative ? 'Amort. Acum.' : 'Amort.'}
         </Text>
         <Text style={[styles.cell, styles.cellRight]}>Saldo</Text>
+        {displayExtras && (
+          <>
+            <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>Extra</Text>
+            <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>FGTS</Text>
+          </>
+        )}
       </View>
 
       <View>
         {rows.map((item, index) => {
           const interestValue = showCumulative ? item.cumulativeInterest : item.interest;
           const amortValue = showCumulative ? item.cumulativeAmortization : item.amortization;
+          const fgtsValue = (item.fgtsAmortization ?? 0) + (item.fgtsSubsidy ?? 0);
           return (
             <View key={item.installmentNumber} style={[styles.row, index % 2 === 0 ? styles.rowAlt : null]}>
               <Text style={[styles.cell, styles.cellSmall]}>{item.installmentNumber}</Text>
@@ -68,6 +91,16 @@ export function AmortizationTable({
               <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(interestValue)}</Text>
               <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(amortValue)}</Text>
               <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(item.balance)}</Text>
+              {displayExtras && (
+                <>
+                  <Text style={[styles.cell, styles.cellRight, styles.cellExtra, item.prepaymentAmount ? styles.cellHighlight : null]}>
+                    {item.prepaymentAmount ? formatCurrency(item.prepaymentAmount) : '-'}
+                  </Text>
+                  <Text style={[styles.cell, styles.cellRight, styles.cellExtra, fgtsValue > 0 ? styles.cellHighlight : null]}>
+                    {fgtsValue > 0 ? formatCurrency(fgtsValue) : '-'}
+                  </Text>
+                </>
+              )}
             </View>
           );
         })}
@@ -78,6 +111,16 @@ export function AmortizationTable({
           <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(totals.interest)}</Text>
           <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(totals.amortization)}</Text>
           <Text style={[styles.cell, styles.cellRight]}>-</Text>
+          {displayExtras && (
+            <>
+              <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>
+                {totals.prepayment > 0 ? formatCurrency(totals.prepayment) : '-'}
+              </Text>
+              <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>
+                {totals.fgts > 0 ? formatCurrency(totals.fgts) : '-'}
+              </Text>
+            </>
+          )}
         </View>
       </View>
     </View>
@@ -121,5 +164,13 @@ const styles = StyleSheet.create({
   },
   cellRight: {
     textAlign: 'right',
+  },
+  cellExtra: {
+    flex: 0.8,
+    fontSize: 11,
+  },
+  cellHighlight: {
+    color: '#059669',
+    fontWeight: '600',
   },
 });
