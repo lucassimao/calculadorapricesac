@@ -1,95 +1,104 @@
 import { useColorScheme } from 'react-native';
 
+/**
+ * Theme color definitions with WCAG AA compliant contrast ratios.
+ *
+ * Contrast requirements:
+ * - Normal text: 4.5:1 minimum
+ * - Large text (18px+ or 14px+ bold): 3:1 minimum
+ * - UI components: 3:1 minimum
+ */
+
 export const lightColors = {
   // Backgrounds
   background: '#FFFFFF',
   backgroundSecondary: '#F9FAFB',
   backgroundTertiary: '#F3F4F6',
 
-  // Text
-  text: '#111827',
-  textSecondary: '#374151',
-  textTertiary: '#6B7280',
+  // Text - WCAG AA compliant on white background
+  text: '#111827',           // ~16:1 ratio
+  textSecondary: '#374151',  // ~8:1 ratio
+  textTertiary: '#4B5563',   // ~6:1 ratio (improved from #6B7280)
   textInverse: '#FFFFFF',
 
   // Borders
-  border: '#E5E7EB',
-  borderLight: '#F3F4F6',
+  border: '#D1D5DB',         // Improved visibility
+  borderLight: '#E5E7EB',
 
-  // Primary (blue)
+  // Primary (blue) - 4.5:1 contrast on white
   primary: '#2563EB',
   primaryLight: '#DBEAFE',
   primaryDark: '#1D4ED8',
 
-  // Success (green)
-  success: '#22C55E',
+  // Success (green) - 3:1 contrast for UI
+  success: '#16A34A',        // Darker green for better contrast
   successLight: '#DCFCE7',
   successDark: '#059669',
 
-  // Warning (orange/yellow)
-  warning: '#F97316',
+  // Warning (orange) - 3:1 contrast for UI
+  warning: '#EA580C',        // Darker orange for better contrast
   warningLight: '#FEF3C7',
-  warningDark: '#D97706',
+  warningDark: '#C2410C',
 
-  // Error (red)
-  error: '#EF4444',
+  // Error (red) - 4.5:1 contrast on white
+  error: '#DC2626',          // Darker red for text use
   errorLight: '#FEE2E2',
-  errorDark: '#DC2626',
+  errorDark: '#B91C1C',
 
   // Alternate rows
-  rowAlt: '#FAFAFA',
+  rowAlt: '#F9FAFB',
 
-  // Chart colors
-  chartLine1: '#2563EB',
-  chartLine2: '#EF4444',
-  chartBar1: '#F97316',
-  chartBar2: '#22C55E',
+  // Chart colors - sufficient contrast on light backgrounds
+  chartLine1: '#1D4ED8',     // Darker blue for visibility
+  chartLine2: '#DC2626',     // Darker red for visibility
+  chartBar1: '#EA580C',      // Darker orange
+  chartBar2: '#16A34A',      // Darker green
 
   // Tab bar
   tabActive: '#2563EB',
-  tabInactive: '#6B7280',
+  tabInactive: '#4B5563',    // Improved contrast
 };
 
 export const darkColors: typeof lightColors = {
   // Backgrounds
-  background: '#111827',
-  backgroundSecondary: '#1F2937',
-  backgroundTertiary: '#374151',
+  background: '#0F172A',     // Slightly darker for better contrast
+  backgroundSecondary: '#1E293B',
+  backgroundTertiary: '#334155',
 
-  // Text
-  text: '#F9FAFB',
-  textSecondary: '#E5E7EB',
-  textTertiary: '#9CA3AF',
-  textInverse: '#111827',
+  // Text - WCAG AA compliant on dark background
+  text: '#F8FAFC',           // ~15:1 ratio
+  textSecondary: '#E2E8F0',  // ~12:1 ratio
+  textTertiary: '#94A3B8',   // ~7:1 ratio
+  textInverse: '#0F172A',
 
   // Borders
-  border: '#374151',
-  borderLight: '#4B5563',
+  border: '#475569',
+  borderLight: '#334155',
 
-  // Primary (blue) - slightly lighter for dark mode
+  // Primary (blue) - bright for dark mode
   primary: '#3B82F6',
   primaryLight: '#1E3A5F',
   primaryDark: '#60A5FA',
 
-  // Success (green)
+  // Success (green) - bright for dark mode
   success: '#22C55E',
   successLight: '#14532D',
   successDark: '#4ADE80',
 
-  // Warning (orange/yellow)
+  // Warning (orange) - bright for dark mode
   warning: '#FB923C',
   warningLight: '#78350F',
   warningDark: '#FDBA74',
 
-  // Error (red)
+  // Error (red) - bright for dark mode
   error: '#F87171',
   errorLight: '#7F1D1D',
   errorDark: '#FCA5A5',
 
   // Alternate rows
-  rowAlt: '#1F2937',
+  rowAlt: '#1E293B',
 
-  // Chart colors - brighter for dark mode
+  // Chart colors - high visibility on dark backgrounds
   chartLine1: '#60A5FA',
   chartLine2: '#F87171',
   chartBar1: '#FB923C',
@@ -97,7 +106,7 @@ export const darkColors: typeof lightColors = {
 
   // Tab bar
   tabActive: '#60A5FA',
-  tabInactive: '#9CA3AF',
+  tabInactive: '#94A3B8',
 };
 
 export type ThemeColors = typeof lightColors;
