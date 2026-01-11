@@ -199,7 +199,7 @@ src/components/
 
 ---
 
-### 3.3 🟢 Remove unused PrepaymentType values
+### 3.3 ✅ Remove unused PrepaymentType values (COMPLETED)
 **File:** `src/types/loan.ts:9`
 
 **Problem:** `available_monthly` and `one_time` are defined but never used.
