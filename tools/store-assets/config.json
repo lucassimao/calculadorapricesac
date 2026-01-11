@@ -64,17 +64,17 @@
     "screenshotBottomPct": 0.08
   },
   "defaults": {
-    "copyDir": "tools/store-assets/store-copy",
-    "screenshotDir": "tools/store-assets/screenshots",
-    "guideDir": "tools/store-assets/guides",
-    "maskDir": "tools/store-assets/guides",
-    "framePathApp": "tools/store-assets/frames/iphone11.png",
-    "framePathPlay": "tools/store-assets/frames/pixel8pro.png",
-    "outputDir": "tools/store-assets/.local/store-assets",
+    "copyDir": "store-copy",
+    "screenshotDir": "screenshots",
+    "guideDir": "guides",
+    "maskDir": "guides",
+    "framePathApp": "frames/iphone11.png",
+    "framePathPlay": "frames/pixel8pro.png",
+    "outputDir": ".local/store-assets",
     "baseWidth": 1024,
     "baseHeight": 1536,
-    "iconSource": "tools/store-assets/assets/icon-source.png",
-    "bannerScreenshot": "tools/store-assets/screenshots/pt-BR/iphone11/banner.png"
+    "iconSource": "assets/icon-source.png",
+    "bannerScreenshot": "screenshots/pt-BR/iphone11/banner.png"
   },
   "models": {
     "image": "gemini-3-pro-image-preview",

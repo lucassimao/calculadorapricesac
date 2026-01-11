@@ -9,7 +9,7 @@ dotenv.config({ path: '.env' });
 const program = new Command();
 
 program
-  .option('-c, --config <path>', 'config path', 'tools/store-assets/config.json')
+  .option('-c, --config <path>', 'config path', 'config.json')
   .option('-a, --action <action>', 'action: render, guide, banner, icon', 'render')
   .option('-s, --store <store>', 'store: appstore, play, all', 'all')
   .option('-l, --slot <slot>', 'slot key or all', 'all')

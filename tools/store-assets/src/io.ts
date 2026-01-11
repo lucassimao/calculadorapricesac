@@ -5,10 +5,11 @@ import type { Config, CopyFile, StoreKey } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const toolRoot = path.resolve(__dirname, '..');
 
 export function resolvePath(inputPath: string) {
   if (path.isAbsolute(inputPath)) return inputPath;
-  return path.resolve(__dirname, '..', '..', inputPath);
+  return path.resolve(toolRoot, inputPath);
 }
 
 export async function loadConfig(configPath: string): Promise<Config> {
