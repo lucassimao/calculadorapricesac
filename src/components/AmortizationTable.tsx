@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ScheduleRow } from '../types/loan';
 import { formatCurrency } from '../lib/calculations';
+import { useTheme } from '../lib/theme';
 
 type ColumnKey = 'installment' | 'date' | 'payment' | 'interest' | 'amortization' | 'balance' | 'extra' | 'fgts';
 
@@ -20,6 +21,8 @@ export function AmortizationTable({
   showExtras = false,
   columns = ['installment', 'date', 'payment', 'interest', 'amortization', 'balance', 'extra', 'fgts'],
 }: AmortizationTableProps) {
+  const { colors } = useTheme();
+
   const rows = useMemo(() => {
     const filtered = schedule.filter((row) => row.installmentNumber > 0);
     let cumulativeInterest = 0;
@@ -76,31 +79,52 @@ export function AmortizationTable({
     fgts: 'FGTS',
   };
 
+  // Dynamic themed styles
+  const themedStyles = useMemo(() => ({
+    container: { borderColor: colors.border },
+    headerRow: { backgroundColor: colors.backgroundTertiary },
+    row: { backgroundColor: colors.background },
+    rowAlt: { backgroundColor: colors.rowAlt },
+    footerRow: { backgroundColor: colors.backgroundTertiary },
+    cell: { color: colors.textSecondary },
+    cellHighlight: { color: colors.successDark },
+  }), [colors]);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
+    <View
+      style={[styles.container, themedStyles.container]}
+      accessible={true}
+      accessibilityLabel="Tabela de amortização"
+    >
+      <View style={[styles.headerRow, themedStyles.headerRow]} accessibilityRole="header">
         {visibleColumns.map((col) => (
           <Text
             key={`header-${col}`}
             style={[
               styles.cell,
+              themedStyles.cell,
               col === 'installment' ? styles.cellSmall : null,
               col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
               (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
             ]}
+            accessibilityLabel={`Coluna ${headerLabels[col]}`}
           >
             {headerLabels[col]}
           </Text>
         ))}
       </View>
 
-      <View>
+      <View accessibilityLabel="Dados da tabela">
         {rows.map((item, index) => {
           const interestValue = showCumulative ? item.cumulativeInterest : item.interest;
           const amortValue = showCumulative ? item.cumulativeAmortization : item.amortization;
           const fgtsValue = (item.fgtsAmortization ?? 0) + (item.fgtsSubsidy ?? 0);
           return (
-            <View key={item.installmentNumber} style={[styles.row, index % 2 === 0 ? styles.rowAlt : null]}>
+            <View
+              key={item.installmentNumber}
+              style={[styles.row, index % 2 === 0 ? themedStyles.rowAlt : themedStyles.row]}
+              accessibilityLabel={`Parcela ${item.installmentNumber}`}
+            >
               {visibleColumns.map((col) => {
                 let value: string | number = '-';
                 if (col === 'installment') value = item.installmentNumber;
@@ -117,13 +141,15 @@ export function AmortizationTable({
                     key={`${item.installmentNumber}-${col}`}
                     style={[
                       styles.cell,
+                      themedStyles.cell,
                       col === 'installment' ? styles.cellSmall : null,
                       col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
                       (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
                       (col === 'extra' && item.prepaymentAmount) || (col === 'fgts' && fgtsValue > 0)
-                        ? styles.cellHighlight
+                        ? themedStyles.cellHighlight
                         : null,
                     ]}
+                    accessibilityLabel={`${headerLabels[col]}: ${value}`}
                   >
                     {value}
                   </Text>
@@ -132,7 +158,7 @@ export function AmortizationTable({
             </View>
           );
         })}
-        <View style={styles.footerRow}>
+        <View style={[styles.footerRow, themedStyles.footerRow]} accessibilityLabel="Totais">
           {visibleColumns.map((col) => {
             let value: string | number = '-';
             if (col === 'installment') value = 'Tot.';
@@ -146,10 +172,12 @@ export function AmortizationTable({
                 key={`footer-${col}`}
                 style={[
                   styles.cell,
+                  themedStyles.cell,
                   col === 'installment' ? styles.cellSmall : null,
                   col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
                   (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
                 ]}
+                accessibilityLabel={`Total ${headerLabels[col]}: ${value}`}
               >
                 {value}
               </Text>
@@ -164,13 +192,11 @@ export function AmortizationTable({
 const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     borderRadius: 12,
     overflow: 'hidden',
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
     paddingVertical: 8,
     paddingHorizontal: 6,
   },
@@ -179,19 +205,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 6,
   },
-  rowAlt: {
-    backgroundColor: '#FAFAFA',
-  },
   footerRow: {
     flexDirection: 'row',
     paddingVertical: 10,
     paddingHorizontal: 6,
-    backgroundColor: '#E5E7EB',
   },
   cell: {
     flex: 1,
     fontSize: 12,
-    color: '#374151',
   },
   cellSmall: {
     flex: 0.5,
@@ -205,9 +226,5 @@ const styles = StyleSheet.create({
   cellExtra: {
     flex: 0.8,
     fontSize: 11,
-  },
-  cellHighlight: {
-    color: '#059669',
-    fontWeight: '600',
   },
 });

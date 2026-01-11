@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { G, Path, Rect } from 'react-native-svg';
 import type { ScheduleRow } from '../types/loan';
+import { useTheme } from '../lib/theme';
 
 interface LoanChartsProps {
   schedule: ScheduleRow[];
@@ -38,6 +39,7 @@ const createLinePath = (
 };
 
 export function LoanCharts({ schedule }: LoanChartsProps) {
+  const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const chartWidth = Math.min(width - 64, 400);
   const chartHeight = 160;
@@ -124,36 +126,45 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
     return 'Composição entre juros e amortização se mantém estável.';
   }, [schedule]);
 
+  // Dynamic themed styles
+  const themedStyles = useMemo(() => ({
+    title: { color: colors.text },
+    chartBlock: { backgroundColor: colors.backgroundSecondary },
+    chartLabel: { color: colors.textSecondary },
+    chartSubtitle: { color: colors.textTertiary },
+    legendText: { color: colors.textTertiary },
+  }), [colors]);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Gráficos</Text>
+      <Text style={[styles.title, themedStyles.title]}>Gráficos</Text>
 
-      <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico de saldo devedor">
-        <Text style={styles.chartLabel}>Saldo Devedor</Text>
+      <View style={[styles.chartBlock, themedStyles.chartBlock]} accessibilityRole="image" accessibilityLabel="Gráfico de saldo devedor">
+        <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Saldo Devedor</Text>
         <Svg width={chartWidth} height={chartHeight}>
-          <Path d={balancePath} stroke="#EF4444" strokeWidth={2} fill="none" />
+          <Path d={balancePath} stroke={colors.chartLine2} strokeWidth={2} fill="none" />
         </Svg>
-        <Text style={styles.chartSubtitle}>{balanceSubtitle}</Text>
+        <Text style={[styles.chartSubtitle, themedStyles.chartSubtitle]}>{balanceSubtitle}</Text>
       </View>
 
-      <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico das parcelas">
-        <Text style={styles.chartLabel}>Parcelas</Text>
+      <View style={[styles.chartBlock, themedStyles.chartBlock]} accessibilityRole="image" accessibilityLabel="Gráfico das parcelas">
+        <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Parcelas</Text>
         <Svg width={chartWidth} height={chartHeight}>
-          <Path d={paymentPath} stroke="#2563EB" strokeWidth={2} fill="none" />
+          <Path d={paymentPath} stroke={colors.chartLine1} strokeWidth={2} fill="none" />
         </Svg>
-        <Text style={styles.chartSubtitle}>{paymentSubtitle}</Text>
+        <Text style={[styles.chartSubtitle, themedStyles.chartSubtitle]}>{paymentSubtitle}</Text>
       </View>
 
-      <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico de juros versus amortização">
-        <Text style={styles.chartLabel}>Juros vs Amortização</Text>
+      <View style={[styles.chartBlock, themedStyles.chartBlock]} accessibilityRole="image" accessibilityLabel="Gráfico de juros versus amortização">
+        <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Juros vs Amortização</Text>
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: '#F97316' }]} />
-            <Text style={styles.legendText}>Juros</Text>
+            <View style={[styles.legendColor, { backgroundColor: colors.chartBar1 }]} />
+            <Text style={[styles.legendText, themedStyles.legendText]}>Juros</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: '#22C55E' }]} />
-            <Text style={styles.legendText}>Amortização</Text>
+            <View style={[styles.legendColor, { backgroundColor: colors.chartBar2 }]} />
+            <Text style={[styles.legendText, themedStyles.legendText]}>Amortização</Text>
           </View>
         </View>
         <Svg width={chartWidth} height={chartHeight}>
@@ -170,20 +181,20 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
                   y={yBase - totalHeight}
                   width={barWidth - 4}
                   height={interestHeight}
-                  fill="#F97316"
+                  fill={colors.chartBar1}
                 />
                 <Rect
                   x={x}
                   y={yBase - totalHeight + interestHeight}
                   width={barWidth - 4}
                   height={amortHeight}
-                  fill="#22C55E"
+                  fill={colors.chartBar2}
                 />
               </G>
             );
           })}
         </Svg>
-        <Text style={styles.chartSubtitle}>{compositionSubtitle}</Text>
+        <Text style={[styles.chartSubtitle, themedStyles.chartSubtitle]}>{compositionSubtitle}</Text>
       </View>
     </View>
   );
@@ -196,22 +207,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
   },
   chartBlock: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
   },
   chartLabel: {
     fontSize: 13,
-    color: '#374151',
     marginBottom: 8,
   },
   chartSubtitle: {
     marginTop: 8,
     fontSize: 12,
-    color: '#6B7280',
   },
   legend: {
     flexDirection: 'row',
@@ -230,6 +237,5 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: '#6B7280',
   },
 });

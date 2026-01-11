@@ -16,6 +16,7 @@ import { exportPdf } from '../../src/lib/exports/pdf';
 import { exportXlsx } from '../../src/lib/exports/xlsx';
 import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
+import { useTheme } from '../../src/lib/theme';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -245,6 +246,7 @@ function PremiumSectionUnsupported() {
 
 export default function CalculatorScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [scenario, setScenario] = useState<Scenario>(DEFAULT_SCENARIO);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [principalText, setPrincipalText] = useState('300000');
@@ -306,6 +308,24 @@ export default function CalculatorScreen() {
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
   const propertyModeHint = isPropertyMode ? 'Modo imobiliário ativo.' : 'Modo padrão ativo.';
+
+  // Dynamic themed styles
+  const themedStyles = useMemo(() => ({
+    container: { backgroundColor: colors.background },
+    section: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+    title: { color: colors.text },
+    sectionTitle: { color: colors.text },
+    label: { color: colors.textSecondary },
+    input: { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+    summaryRow: { borderBottomColor: colors.borderLight },
+    summaryLabel: { color: colors.textSecondary },
+    summaryValue: { color: colors.text },
+    chip: { backgroundColor: colors.backgroundTertiary, borderColor: colors.border },
+    chipText: { color: colors.textSecondary },
+    chipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+    chipActiveText: { color: colors.primary },
+    rowAlt: { backgroundColor: colors.rowAlt },
+  }), [colors]);
 
   // Brief loading indicator when scenario changes
   useEffect(() => {
@@ -495,8 +515,8 @@ export default function CalculatorScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Calculadora Price & SAC</Text>
+    <ScrollView contentContainerStyle={[styles.container, themedStyles.container]} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.title, themedStyles.title]}>Calculadora Price & SAC</Text>
       <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
