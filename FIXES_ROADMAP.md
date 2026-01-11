@@ -16,7 +16,7 @@ Organized by priority and grouped into sprints for systematic implementation.
 
 ## Sprint 1: Critical Bug Fixes
 
-### 1.1 🔴 Fix `addMonths` date overflow bug
+### 1.1 ✅ Fix `addMonths` date overflow bug (COMPLETED)
 **File:** `src/lib/calculations.ts:116-121`
 
 **Problem:** When adding months to dates at end of month (e.g., Jan 31 + 1 month), JavaScript's `setMonth` overflows to March 3rd instead of Feb 28/29.
