@@ -366,8 +366,6 @@ export default function CalculatorScreen() {
         )}
       </View>
 
-      <AdBanner enabled={showAds} />
-
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Sistema</Text>
         <View style={styles.toggleRow}>
@@ -435,8 +433,6 @@ export default function CalculatorScreen() {
         </View>
         <Text style={styles.helperText}>{propertyModeHint}</Text>
       </View>
-
-      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Parâmetros</Text>
@@ -603,8 +599,6 @@ export default function CalculatorScreen() {
         />
       </View>
 
-      <AdBanner enabled={showAds} />
-
       {(validation.errors.length > 0 || validation.warnings.length > 0) && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Validação</Text>
@@ -626,8 +620,6 @@ export default function CalculatorScreen() {
       ) : (
         <PremiumSectionDisabled isPremium={isPremium} />
       )}
-
-      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} testID="section-summary">Resumo</Text>
@@ -700,8 +692,6 @@ export default function CalculatorScreen() {
       <View style={styles.section}>
         <LoanCharts schedule={schedule} />
       </View>
-
-      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <View style={styles.row}>
@@ -855,8 +845,6 @@ export default function CalculatorScreen() {
         )}
       </View>
 
-      <AdBanner enabled={showAds} />
-
       <View style={styles.section} testID="section-fgts">
         <Text style={styles.sectionTitle}>FGTS</Text>
         <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
@@ -988,8 +976,6 @@ export default function CalculatorScreen() {
         )}
       </View>
 
-      <AdBanner enabled={showAds} />
-
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Custos e Taxas</Text>
         <Text style={styles.helperText}>
@@ -1085,8 +1071,6 @@ export default function CalculatorScreen() {
           </>
         )}
       </View>
-
-      <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} testID="section-export">Exportar</Text>
