@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TextInput, View, Pressable, Alert } from 
 import { useIAP } from 'expo-iap';
 import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, validateScenario } from '../../src/lib/calculations';
+import { parseCurrencyInput, parseLocalDate, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
@@ -29,22 +30,6 @@ const DEFAULT_SCENARIO: Scenario = {
 
 const MAX_TABLE_ROWS = 24;
 const ENABLE_IAP = !__DEV__;
-
-function parseCurrencyInput(value: string): number {
-  if (!value.trim()) return 0;
-  const cleaned = value
-    .replace(/\s/g, '')
-    .replace(/R\$/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
-  const parsed = Number.parseFloat(cleaned);
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function parseNumberInput(value: string): number {
-  const parsed = Number.parseFloat(value.replace(',', '.'));
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
 
 function PremiumSectionDisabled({ isPremium }: { isPremium: boolean }) {
   return (
@@ -589,8 +574,8 @@ export default function CalculatorScreen() {
           value={startDateText}
           onChangeText={(text) => {
             setStartDateText(text);
-            const parsed = new Date(text);
-            if (!Number.isNaN(parsed.getTime())) {
+            const parsed = parseLocalDate(text);
+            if (parsed) {
               setScenario((prev) => ({ ...prev, startDate: parsed }));
             }
           }}
@@ -760,8 +745,8 @@ export default function CalculatorScreen() {
         <TextInput
           value={newPrepayment.date?.toISOString().slice(0, 10)}
           onChangeText={(text) => {
-            const parsed = new Date(text);
-            if (!Number.isNaN(parsed.getTime())) {
+            const parsed = parseLocalDate(text);
+            if (parsed) {
               setNewPrepayment((prev) => ({ ...prev, date: parsed }));
             }
           }}
@@ -878,8 +863,8 @@ export default function CalculatorScreen() {
         <TextInput
           value={newFgts.date?.toISOString().slice(0, 10)}
           onChangeText={(text) => {
-            const parsed = new Date(text);
-            if (!Number.isNaN(parsed.getTime())) {
+            const parsed = parseLocalDate(text);
+            if (parsed) {
               setNewFgts((prev) => ({ ...prev, date: parsed }));
             }
           }}

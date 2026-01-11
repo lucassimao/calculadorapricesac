@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule } from '../../src/lib/calculations';
+import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
 
@@ -19,22 +20,6 @@ const BASE_SCENARIO: Scenario = {
   dueDay: 5,
   prepayments: [],
 };
-
-function parseCurrencyInput(value: string): number {
-  if (!value.trim()) return 0;
-  const cleaned = value
-    .replace(/\s/g, '')
-    .replace(/R\$/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
-  const parsed = Number.parseFloat(cleaned);
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-function parseNumberInput(value: string): number {
-  const parsed = Number.parseFloat(value.replace(',', '.'));
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
 
 export default function ComparisonScreen() {
   const [base, setBase] = useState<Scenario>(BASE_SCENARIO);
