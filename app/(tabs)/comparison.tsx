@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule } from '../../src/lib/calculations';
@@ -54,6 +54,13 @@ export default function ComparisonScreen() {
 
   const interestDiff = priceSummary.totalInterest - sacSummary.totalInterest;
   const totalDiff = priceSummary.totalPaymentWithCosts - sacSummary.totalPaymentWithCosts;
+
+  // Sync quick comparison scenarios with base principal
+  useEffect(() => {
+    setQuickCases((prev) =>
+      prev.map((c) => ({ ...c, principal: base.principal }))
+    );
+  }, [base.principal]);
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
