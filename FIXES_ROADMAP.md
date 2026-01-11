@@ -120,7 +120,7 @@ useEffect(() => {
 
 ---
 
-### 2.3 🟡 Fix property mode principal display
+### 2.3 ✅ Fix property mode principal display (COMPLETED)
 **File:** `app/(tabs)/calculator.tsx:474-502`
 
 **Problem:** When in property mode, changing propertyValue or downPayment doesn't update the displayed principalText field.
