@@ -79,7 +79,7 @@ const parsed = new Date(text + 'T00:00:00');
 
 ## Sprint 2: UX Critical Issues
 
-### 2.1 🟠 Reduce excessive ad placements
+### 2.1 ✅ Reduce excessive ad placements (COMPLETED)
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** 9 AdBanner components on a single screen is excessive and may violate AdMob policies.
