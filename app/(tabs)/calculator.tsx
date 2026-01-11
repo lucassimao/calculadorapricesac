@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View, Pressable, Alert } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useIAP } from 'expo-iap';
+import { useRouter } from 'expo-router';
 import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, validateScenario } from '../../src/lib/calculations';
-import { parseCurrencyInput, parseLocalDate, parseNumberInput } from '../../src/lib/utils';
+import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
@@ -12,6 +14,8 @@ import { usePremium } from '../../src/hooks/usePremium';
 import { exportCsv } from '../../src/lib/exports/csv';
 import { exportPdf } from '../../src/lib/exports/pdf';
 import { exportXlsx } from '../../src/lib/exports/xlsx';
+import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
+import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -28,38 +32,8 @@ const DEFAULT_SCENARIO: Scenario = {
   prepayments: [],
 };
 
-const MAX_TABLE_ROWS = 24;
-const ENABLE_IAP = !__DEV__;
-const IAP_PRODUCT_ID = 'remove_ads';
-
-function PremiumSectionDisabled({ isPremium }: { isPremium: boolean }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Plano Premium</Text>
-      <Text style={styles.label}>
-        Compras no app desativadas no modo desenvolvimento.
-      </Text>
-      <View style={styles.rowWrap}>
-        <Pressable
-          style={[styles.primaryButton, styles.primaryButtonDisabled]}
-          accessibilityRole="button"
-          accessibilityLabel="Remover anúncios"
-        >
-          <Text style={styles.primaryButtonText}>
-            {isPremium ? 'Premium ativo' : 'Remover anúncios'}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.secondaryButton, styles.primaryButtonDisabled]}
-          accessibilityRole="button"
-          accessibilityLabel="Restaurar compra"
-        >
-          <Text style={styles.secondaryButtonText}>Restaurar</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
+const MAX_TABLE_ROWS = 10;
+const FREE_SCENARIO_LIMIT = 1;
 
 function PremiumSectionIap({
   isPremium,
@@ -103,8 +77,7 @@ function PremiumSectionIap({
     () => availablePurchases.some((purchase) => purchase.productId === IAP_PRODUCT_ID),
     [availablePurchases]
   );
-  const priceLabel = product?.displayPrice ?? 'R$ 5,00';
-  const isStoreReady = connected && !!product;
+  const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
   const restoreInProgress = restoreRequestedAt !== null;
 
   useEffect(() => {
@@ -187,22 +160,22 @@ function PremiumSectionIap({
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Plano Premium</Text>
       <Text style={styles.label}>
-        Remova anúncios e libere exportações por {priceLabel} (pagamento único).
+        Desbloqueie recursos premium por {priceLabel} (pagamento único).
       </Text>
       <View style={styles.rowWrap}>
-        <Pressable
-          style={[
-            styles.primaryButton,
-            (isPremium || !isStoreReady || purchaseInProgress) && styles.primaryButtonDisabled,
-          ]}
-          onPress={handlePurchase}
-          accessibilityRole="button"
-          accessibilityLabel="Remover anúncios"
-        >
-          <Text style={styles.primaryButtonText}>
-            {isPremium ? 'Premium ativo' : purchaseInProgress ? 'Processando...' : 'Remover anúncios'}
-          </Text>
-        </Pressable>
+          <Pressable
+            style={[
+              styles.primaryButton,
+              (isPremium || purchaseInProgress) && styles.primaryButtonDisabled,
+            ]}
+            onPress={handlePurchase}
+            accessibilityRole="button"
+            accessibilityLabel="Assinar Premium"
+          >
+            <Text style={styles.primaryButtonText}>
+              {isPremium ? 'Premium ativo' : purchaseInProgress ? 'Processando...' : 'Assinar premium'}
+            </Text>
+          </Pressable>
         <Pressable
           style={[
             styles.secondaryButton,
@@ -221,7 +194,49 @@ function PremiumSectionIap({
   );
 }
 
+function PremiumSectionUnsupported() {
+  const handleUnavailable = () => {
+    Alert.alert(
+      'Compras indisponíveis',
+      'As compras no app não estão disponíveis neste dispositivo. Use uma build instalada com loja compatível.'
+    );
+  };
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Plano Premium</Text>
+      <View style={styles.bannerWarning}>
+        <Text style={styles.bannerWarningText}>
+          Compras no app indisponíveis neste dispositivo.
+        </Text>
+      </View>
+      <Text style={styles.label}>
+        Remova anúncios e libere exportações por {IAP_FALLBACK_PRICE} (pagamento único).
+      </Text>
+      <View style={styles.rowWrap}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={handleUnavailable}
+          accessibilityRole="button"
+          accessibilityLabel="Remover anúncios"
+        >
+          <Text style={styles.primaryButtonText}>Remover anúncios</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={handleUnavailable}
+          accessibilityRole="button"
+          accessibilityLabel="Restaurar compra"
+        >
+          <Text style={styles.secondaryButtonText}>Restaurar</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function CalculatorScreen() {
+  const router = useRouter();
   const [scenario, setScenario] = useState<Scenario>(DEFAULT_SCENARIO);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [principalText, setPrincipalText] = useState('300000');
@@ -231,14 +246,13 @@ export default function CalculatorScreen() {
   const [termText, setTermText] = useState('360');
   const [startDateText, setStartDateText] = useState(new Date().toISOString().slice(0, 10));
   const [dueDayText, setDueDayText] = useState('5');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [insuranceRateText, setInsuranceRateText] = useState('0');
   const [adminFeeRateText, setAdminFeeRateText] = useState('0');
   const [iofRateText, setIofRateText] = useState('0');
   const [openingFeeText, setOpeningFeeText] = useState('0');
   const [itbiRateText, setItbiRateText] = useState('0');
   const [registryFeeText, setRegistryFeeText] = useState('0');
-  const [showCumulative, setShowCumulative] = useState(false);
-  const [showAllRows, setShowAllRows] = useState(false);
   const isPropertyMode = scenario.loanMode === 'property';
   const [newFgts, setNewFgts] = useState<Partial<FgtsEvent>>({
     amount: 0,
@@ -248,12 +262,16 @@ export default function CalculatorScreen() {
   });
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
   const showAds = !premiumLoading && !isPremium;
+  const iapAvailability = useIapAvailability();
+  const [exporting, setExporting] = useState(false);
   const [newPrepayment, setNewPrepayment] = useState<Partial<PrepaymentEvent>>({
     amount: 0,
     type: 'fixed_amount',
     strategy: 'reduce_term',
     date: new Date(),
   });
+  const [showPrepaymentDatePicker, setShowPrepaymentDatePicker] = useState(false);
+  const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
 
   useEffect(() => {
     loadScenarios()
@@ -272,8 +290,8 @@ export default function CalculatorScreen() {
 
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
   const scheduleForTable = useMemo(
-    () => (showAllRows ? schedule : schedule.slice(0, MAX_TABLE_ROWS + 1)),
-    [schedule, showAllRows]
+    () => schedule.slice(0, MAX_TABLE_ROWS + 1),
+    [schedule]
   );
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
@@ -291,6 +309,17 @@ export default function CalculatorScreen() {
       return;
     }
     const existingIndex = scenarios.findIndex((item) => item.id === scenario.id);
+    if (!isPremium && existingIndex < 0 && scenarios.length >= FREE_SCENARIO_LIMIT) {
+      Alert.alert(
+        'Plano Premium',
+        'Usuários gratuitos podem salvar apenas 1 cenário adicional. Assine o Premium para liberar mais cenários.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
+        ]
+      );
+      return;
+    }
     const nextList = [...scenarios];
     if (existingIndex >= 0) {
       nextList[existingIndex] = scenario;
@@ -401,12 +430,39 @@ export default function CalculatorScreen() {
     }));
   };
 
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (event.type === 'dismissed' || !selectedDate) return;
+    setScenario((prev) => ({ ...prev, startDate: selectedDate }));
+    setStartDateText(selectedDate.toISOString().slice(0, 10));
+  };
+
+  const handlePrepaymentDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowPrepaymentDatePicker(false);
+    }
+    if (event.type === 'dismissed' || !selectedDate) return;
+    setNewPrepayment((prev) => ({ ...prev, date: selectedDate }));
+  };
+
+  const handleFgtsDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowFgtsDatePicker(false);
+    }
+    if (event.type === 'dismissed' || !selectedDate) return;
+    setNewFgts((prev) => ({ ...prev, date: selectedDate }));
+  };
+
 
   const handleExport = async (format: 'pdf' | 'xlsx' | 'csv') => {
     if (!isPremium) {
       Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
       return;
     }
+    if (exporting) return;
+    setExporting(true);
     try {
       if (format === 'pdf') {
         await exportPdf(scenario, summary, schedule);
@@ -417,6 +473,8 @@ export default function CalculatorScreen() {
       }
     } catch {
       Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -682,20 +740,23 @@ export default function CalculatorScreen() {
           </View>
         </View>
 
-        <Text style={styles.label}>Data de Início (YYYY-MM-DD)</Text>
-        <TextInput
-          value={startDateText}
-          onChangeText={(text) => {
-            setStartDateText(text);
-            const parsed = parseLocalDate(text);
-            if (parsed) {
-              setScenario((prev) => ({ ...prev, startDate: parsed }));
-            }
-          }}
-          style={styles.input}
-          placeholder="2026-01-05"
-          accessibilityLabel="Data de início"
-        />
+        <Text style={styles.label}>Data de Início</Text>
+        <Pressable
+          style={[styles.input, styles.inputPressable]}
+          onPress={() => setShowDatePicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Selecionar data de início"
+        >
+          <Text style={styles.inputText}>{startDateText}</Text>
+        </Pressable>
+        {showDatePicker ? (
+          <DateTimePicker
+            value={scenario.startDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onChange={handleDateChange}
+          />
+        ) : null}
 
         <Text style={styles.label}>Dia de Vencimento</Text>
         <TextInput
@@ -732,10 +793,10 @@ export default function CalculatorScreen() {
         </View>
       )}
 
-      {ENABLE_IAP ? (
+      {iapAvailability === 'supported' ? (
         <PremiumSectionIap isPremium={isPremium} markPremium={markPremium} />
       ) : (
-        <PremiumSectionDisabled isPremium={isPremium} />
+        <PremiumSectionUnsupported />
       )}
 
       <View style={styles.section}>
@@ -813,56 +874,80 @@ export default function CalculatorScreen() {
       <View style={styles.section}>
         <View style={styles.row}>
           <Text style={styles.sectionTitle}>Tabela de Amortização</Text>
-          <Pressable
-            style={styles.chip}
-            onPress={() => setShowCumulative((prev) => !prev)}
-            accessibilityRole="button"
-            accessibilityLabel={showCumulative ? 'Ocultar acumulado' : 'Mostrar acumulado'}
-          >
-            <Text style={styles.chipText}>{showCumulative ? 'Ocultar Acum.' : 'Mostrar Acum.'}</Text>
-          </Pressable>
         </View>
-        {totalInstallments > MAX_TABLE_ROWS && (
+        {totalInstallments > 0 && (
           <View style={styles.tableMetaRow}>
             <Text style={styles.tableMetaText}>
-              Mostrando {showAllRows ? totalInstallments : MAX_TABLE_ROWS} de {totalInstallments} parcelas
+              Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
             </Text>
-            <Pressable
-              style={styles.chip}
-              onPress={() => setShowAllRows((prev) => !prev)}
-              accessibilityRole="button"
-              accessibilityLabel={showAllRows ? 'Mostrar menos parcelas' : 'Mostrar todas as parcelas'}
-            >
-              <Text style={styles.chipText}>{showAllRows ? 'Mostrar menos' : 'Mostrar todas'}</Text>
-            </Pressable>
           </View>
         )}
         <AmortizationTable
           schedule={scheduleForTable}
           totalSchedule={schedule}
-          showCumulative={showCumulative}
-          showExtras={true}
+          showExtras
+          columns={['installment', 'date', 'payment', 'balance']}
         />
+        <Text style={styles.subsectionTitle}>Gerar tabela completa</Text>
+        <View style={styles.row}>
+          <Pressable
+            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            onPress={() => handleExport('pdf')}
+            accessibilityRole="button"
+            accessibilityLabel="Gerar tabela completa em PDF"
+          >
+            <Text style={styles.primaryButtonText}>PDF</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            onPress={() => handleExport('xlsx')}
+            accessibilityRole="button"
+            accessibilityLabel="Gerar tabela completa em XLSX"
+          >
+            <Text style={styles.primaryButtonText}>XLSX</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            onPress={() => handleExport('csv')}
+            accessibilityRole="button"
+            accessibilityLabel="Gerar tabela completa em CSV"
+          >
+            <Text style={styles.primaryButtonText}>CSV</Text>
+          </Pressable>
+        </View>
+        {exporting ? (
+          <View style={styles.exportingRow} accessibilityLiveRegion="polite">
+            <ActivityIndicator size="small" color="#2563EB" />
+            <Text style={styles.exportingText}>Gerando arquivo...</Text>
+          </View>
+        ) : null}
       </View>
 
       <AdBanner enabled={showAds} />
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} testID="section-prepayments">Amortizações Extras</Text>
-        <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
-        <TextInput
-          value={newPrepayment.date?.toISOString().slice(0, 10)}
-          onChangeText={(text) => {
-            const parsed = parseLocalDate(text);
-            if (parsed) {
-              setNewPrepayment((prev) => ({ ...prev, date: parsed }));
-            }
-          }}
-          style={styles.input}
-          accessibilityLabel="Data da amortização extra"
+        <Text style={styles.label}>Data</Text>
+        <Pressable
+          style={[styles.input, styles.inputPressable]}
+          onPress={() => setShowPrepaymentDatePicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Selecionar data da amortização extra"
           testID="input-prepayment-date"
           nativeID="input-prepayment-date"
-        />
+        >
+          <Text style={styles.inputText}>
+            {newPrepayment.date?.toISOString().slice(0, 10)}
+          </Text>
+        </Pressable>
+        {showPrepaymentDatePicker ? (
+          <DateTimePicker
+            value={newPrepayment.date ?? new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onChange={handlePrepaymentDateChange}
+          />
+        ) : null}
         <Text style={styles.label}>Valor (R$)</Text>
         <TextInput
           value={newPrepayment.amount ? String(newPrepayment.amount) : ''}
@@ -965,20 +1050,27 @@ export default function CalculatorScreen() {
 
       <View style={styles.section} testID="section-fgts">
         <Text style={styles.sectionTitle}>FGTS</Text>
-        <Text style={styles.label}>Data (YYYY-MM-DD)</Text>
-        <TextInput
-          value={newFgts.date?.toISOString().slice(0, 10)}
-          onChangeText={(text) => {
-            const parsed = parseLocalDate(text);
-            if (parsed) {
-              setNewFgts((prev) => ({ ...prev, date: parsed }));
-            }
-          }}
-          style={styles.input}
-          accessibilityLabel="Data do FGTS"
+        <Text style={styles.label}>Data</Text>
+        <Pressable
+          style={[styles.input, styles.inputPressable]}
+          onPress={() => setShowFgtsDatePicker(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Selecionar data do FGTS"
           testID="input-fgts-date"
           nativeID="input-fgts-date"
-        />
+        >
+          <Text style={styles.inputText}>
+            {newFgts.date?.toISOString().slice(0, 10)}
+          </Text>
+        </Pressable>
+        {showFgtsDatePicker ? (
+          <DateTimePicker
+            value={newFgts.date ?? new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onChange={handleFgtsDateChange}
+          />
+        ) : null}
         <Text style={styles.label}>Valor (R$)</Text>
         <TextInput
           value={newFgts.amount ? String(newFgts.amount) : ''}
@@ -1192,6 +1284,9 @@ export default function CalculatorScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle} testID="section-export">Exportar</Text>
+        <Text style={styles.helperText}>
+          Inclui tabela completa com juros, amortização, custos, FGTS e resumo do cenário.
+        </Text>
         <View style={styles.row}>
           <Pressable
             style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
@@ -1224,6 +1319,12 @@ export default function CalculatorScreen() {
             <Text style={styles.primaryButtonText}>CSV</Text>
           </Pressable>
         </View>
+        {exporting ? (
+          <View style={styles.exportingRow} accessibilityLiveRegion="polite">
+            <ActivityIndicator size="small" color="#2563EB" />
+            <Text style={styles.exportingText}>Gerando arquivo...</Text>
+          </View>
+        ) : null}
       </View>
 
       <AdBanner enabled={showAds} />
@@ -1255,6 +1356,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
+  subsectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
   label: {
     fontSize: 14,
     color: '#374151',
@@ -1266,6 +1372,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
+  },
+  inputPressable: {
+    justifyContent: 'center',
+  },
+  inputText: {
+    color: '#111827',
   },
   row: {
     flexDirection: 'row',
@@ -1412,6 +1524,18 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     fontSize: 13,
   },
+  bannerWarning: {
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
+    padding: 10,
+    borderRadius: 8,
+  },
+  bannerWarningText: {
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   warningText: {
     color: '#D97706',
     fontSize: 13,
@@ -1420,6 +1544,15 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 12,
     lineHeight: 16,
+  },
+  exportingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  exportingText: {
+    fontSize: 12,
+    color: '#6B7280',
   },
   tableMetaRow: {
     flexDirection: 'row',

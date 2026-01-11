@@ -72,6 +72,57 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
   }, [schedule]);
 
   const barWidth = chartWidth / Math.max(barData.length, 1);
+  const trendThreshold = 0.05;
+  const getTrendSubtitle = (values: number[], stableText: string, downText: string, upText: string) => {
+    if (values.length < 2) return 'Sem dados suficientes para interpretar.';
+    const first = values[0];
+    const last = values[values.length - 1];
+    if (first === 0) return stableText;
+    const change = (last - first) / Math.abs(first);
+    if (change <= -trendThreshold) return downText;
+    if (change >= trendThreshold) return upText;
+    return stableText;
+  };
+
+  const balanceSubtitle = useMemo(
+    () =>
+      getTrendSubtitle(
+        data.map((row) => row.balance),
+        'Saldo permanece estável, sem quedas relevantes.',
+        'Saldo cai de forma consistente à medida que o principal é amortizado.',
+        'Saldo cresce ao longo do tempo; revise prazo e taxa.'
+      ),
+    [data]
+  );
+
+  const paymentSubtitle = useMemo(
+    () =>
+      getTrendSubtitle(
+        data.map((row) => row.payment),
+        'Parcelas ficam estáveis ao longo do prazo.',
+        'Parcelas tendem a cair conforme os juros diminuem.',
+        'Parcelas sobem ao longo do tempo.'
+      ),
+    [data]
+  );
+
+  const compositionSubtitle = useMemo(() => {
+    const rows = schedule.filter((row) => row.installmentNumber > 0);
+    if (rows.length < 2) return 'Sem dados suficientes para interpretar.';
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+    const firstTotal = first.interest + first.amortization || 1;
+    const lastTotal = last.interest + last.amortization || 1;
+    const firstInterestShare = first.interest / firstTotal;
+    const lastInterestShare = last.interest / lastTotal;
+    if (lastInterestShare < firstInterestShare - 0.05) {
+      return 'Juros perdem peso e a amortização ganha participação com o tempo.';
+    }
+    if (lastInterestShare > firstInterestShare + 0.05) {
+      return 'Juros ganham participação ao longo do prazo.';
+    }
+    return 'Composição entre juros e amortização se mantém estável.';
+  }, [schedule]);
 
   return (
     <View style={styles.container}>
@@ -82,6 +133,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
         <Svg width={chartWidth} height={chartHeight}>
           <Path d={balancePath} stroke="#EF4444" strokeWidth={2} fill="none" />
         </Svg>
+        <Text style={styles.chartSubtitle}>{balanceSubtitle}</Text>
       </View>
 
       <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico das parcelas">
@@ -89,6 +141,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
         <Svg width={chartWidth} height={chartHeight}>
           <Path d={paymentPath} stroke="#2563EB" strokeWidth={2} fill="none" />
         </Svg>
+        <Text style={styles.chartSubtitle}>{paymentSubtitle}</Text>
       </View>
 
       <View style={styles.chartBlock} accessibilityRole="image" accessibilityLabel="Gráfico de juros versus amortização">
@@ -130,6 +183,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             );
           })}
         </Svg>
+        <Text style={styles.chartSubtitle}>{compositionSubtitle}</Text>
       </View>
     </View>
   );
@@ -153,6 +207,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     marginBottom: 8,
+  },
+  chartSubtitle: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#6B7280',
   },
   legend: {
     flexDirection: 'row',

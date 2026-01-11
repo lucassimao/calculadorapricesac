@@ -20,7 +20,7 @@ is stored locally on-device.
 - **Offline-first**: no network required for calculator, scenarios, or exports.
 - **Freemium**:
   - **Free**: full calculations + ads.
-  - **Paid (R$ 5,00 one‑time)**: remove ads + enable exports (PDF/XLSX/CSV).
+  - **Paid (R$ 10,00 one‑time)**: remove ads + enable exports (PDF/XLSX/CSV).
 - **No login**. No server‑side persistence.
 
 ---
@@ -81,6 +81,10 @@ Ensure the mobile app reproduces the spreadsheet’s core calculations:
 - 2026-01-05: Repo cleaned (removed legacy `webapp/` and `video.md`).
 - 2026-01-05: Added `AGENTS.md` documenting project context.
 - 2026-01-05: Expo Router tabs scaffolded (Calculadora / Comparar).
+- 2026-01-11: Added tabs for Premium and Feedback (feedback opens email client).
+- 2026-01-11: Premium price updated to R$ 10,00 (one-time).
+- 2026-01-11: Sentry initialized (production-only, DSN via `extra.sentryDsn`).
+- 2026-01-11: IAP gated off in Expo Go (Store Client); use dev/prod builds for testing.
 - 2026-01-05: Core domain types + calculation engine ported to mobile.
 - 2026-01-05: Basic calculator and comparison screens implemented.
 - 2026-01-05: Phase 1 complete (lint + typecheck passing).
@@ -106,6 +110,7 @@ Ensure the mobile app reproduces the spreadsheet’s core calculations:
 - **Charts**: `react-native-svg` + `react-native-svg-charts` (SVG-based charts) citeturn2search1turn3search2
 - **Ads (AdMob)**: `react-native-google-mobile-ads` (Expo’s AdMob module is deprecated) citeturn4search4turn4search3
 - **IAP**: `expo-iap` (Expo-compatible IAP library) citeturn0search0turn0search6
+- **Crash reporting**: Sentry (`@sentry/react-native`) — enabled in production only.
 
 ---
 

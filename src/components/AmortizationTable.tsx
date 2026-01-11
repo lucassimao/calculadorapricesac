@@ -3,11 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { ScheduleRow } from '../types/loan';
 import { formatCurrency } from '../lib/calculations';
 
+type ColumnKey = 'installment' | 'date' | 'payment' | 'interest' | 'amortization' | 'balance' | 'extra' | 'fgts';
+
 interface AmortizationTableProps {
   schedule: ScheduleRow[];
   showCumulative?: boolean;
   totalSchedule?: ScheduleRow[];
   showExtras?: boolean;
+  columns?: ColumnKey[];
 }
 
 export function AmortizationTable({
@@ -15,6 +18,7 @@ export function AmortizationTable({
   showCumulative = false,
   totalSchedule,
   showExtras = false,
+  columns = ['installment', 'date', 'payment', 'interest', 'amortization', 'balance', 'extra', 'fgts'],
 }: AmortizationTableProps) {
   const rows = useMemo(() => {
     const filtered = schedule.filter((row) => row.installmentNumber > 0);
@@ -56,26 +60,38 @@ export function AmortizationTable({
   }, [schedule]);
 
   const displayExtras = showExtras && hasExtras;
+  const visibleColumns = columns.filter((col) => {
+    if ((col === 'extra' || col === 'fgts') && !displayExtras) return false;
+    return true;
+  });
+
+  const headerLabels: Record<ColumnKey, string> = {
+    installment: '#',
+    date: 'Data',
+    payment: 'Parcela',
+    interest: showCumulative ? 'Juros Acum.' : 'Juros',
+    amortization: showCumulative ? 'Amort. Acum.' : 'Amort.',
+    balance: 'Saldo',
+    extra: 'Extra',
+    fgts: 'FGTS',
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={[styles.cell, styles.cellSmall]}>#</Text>
-        <Text style={styles.cell}>Data</Text>
-        <Text style={[styles.cell, styles.cellRight]}>Parcela</Text>
-        <Text style={[styles.cell, styles.cellRight]}>
-          {showCumulative ? 'Juros Acum.' : 'Juros'}
-        </Text>
-        <Text style={[styles.cell, styles.cellRight]}>
-          {showCumulative ? 'Amort. Acum.' : 'Amort.'}
-        </Text>
-        <Text style={[styles.cell, styles.cellRight]}>Saldo</Text>
-        {displayExtras && (
-          <>
-            <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>Extra</Text>
-            <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>FGTS</Text>
-          </>
-        )}
+        {visibleColumns.map((col) => (
+          <Text
+            key={`header-${col}`}
+            style={[
+              styles.cell,
+              col === 'installment' ? styles.cellSmall : null,
+              col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
+              (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
+            ]}
+          >
+            {headerLabels[col]}
+          </Text>
+        ))}
       </View>
 
       <View>
@@ -85,42 +101,60 @@ export function AmortizationTable({
           const fgtsValue = (item.fgtsAmortization ?? 0) + (item.fgtsSubsidy ?? 0);
           return (
             <View key={item.installmentNumber} style={[styles.row, index % 2 === 0 ? styles.rowAlt : null]}>
-              <Text style={[styles.cell, styles.cellSmall]}>{item.installmentNumber}</Text>
-              <Text style={styles.cell}>{item.date.toLocaleDateString('pt-BR')}</Text>
-              <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(item.payment)}</Text>
-              <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(interestValue)}</Text>
-              <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(amortValue)}</Text>
-              <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(item.balance)}</Text>
-              {displayExtras && (
-                <>
-                  <Text style={[styles.cell, styles.cellRight, styles.cellExtra, item.prepaymentAmount ? styles.cellHighlight : null]}>
-                    {item.prepaymentAmount ? formatCurrency(item.prepaymentAmount) : '-'}
+              {visibleColumns.map((col) => {
+                let value: string | number = '-';
+                if (col === 'installment') value = item.installmentNumber;
+                if (col === 'date') value = item.date.toLocaleDateString('pt-BR');
+                if (col === 'payment') value = formatCurrency(item.payment);
+                if (col === 'interest') value = formatCurrency(interestValue);
+                if (col === 'amortization') value = formatCurrency(amortValue);
+                if (col === 'balance') value = formatCurrency(item.balance);
+                if (col === 'extra') value = item.prepaymentAmount ? formatCurrency(item.prepaymentAmount) : '-';
+                if (col === 'fgts') value = fgtsValue > 0 ? formatCurrency(fgtsValue) : '-';
+
+                return (
+                  <Text
+                    key={`${item.installmentNumber}-${col}`}
+                    style={[
+                      styles.cell,
+                      col === 'installment' ? styles.cellSmall : null,
+                      col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
+                      (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
+                      (col === 'extra' && item.prepaymentAmount) || (col === 'fgts' && fgtsValue > 0)
+                        ? styles.cellHighlight
+                        : null,
+                    ]}
+                  >
+                    {value}
                   </Text>
-                  <Text style={[styles.cell, styles.cellRight, styles.cellExtra, fgtsValue > 0 ? styles.cellHighlight : null]}>
-                    {fgtsValue > 0 ? formatCurrency(fgtsValue) : '-'}
-                  </Text>
-                </>
-              )}
+                );
+              })}
             </View>
           );
         })}
         <View style={styles.footerRow}>
-          <Text style={[styles.cell, styles.cellSmall]}>Tot.</Text>
-          <Text style={styles.cell}>-</Text>
-          <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(totals.payment)}</Text>
-          <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(totals.interest)}</Text>
-          <Text style={[styles.cell, styles.cellRight]}>{formatCurrency(totals.amortization)}</Text>
-          <Text style={[styles.cell, styles.cellRight]}>-</Text>
-          {displayExtras && (
-            <>
-              <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>
-                {totals.prepayment > 0 ? formatCurrency(totals.prepayment) : '-'}
+          {visibleColumns.map((col) => {
+            let value: string | number = '-';
+            if (col === 'installment') value = 'Tot.';
+            if (col === 'payment') value = formatCurrency(totals.payment);
+            if (col === 'interest') value = formatCurrency(totals.interest);
+            if (col === 'amortization') value = formatCurrency(totals.amortization);
+            if (col === 'extra') value = totals.prepayment > 0 ? formatCurrency(totals.prepayment) : '-';
+            if (col === 'fgts') value = totals.fgts > 0 ? formatCurrency(totals.fgts) : '-';
+            return (
+              <Text
+                key={`footer-${col}`}
+                style={[
+                  styles.cell,
+                  col === 'installment' ? styles.cellSmall : null,
+                  col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
+                  (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
+                ]}
+              >
+                {value}
               </Text>
-              <Text style={[styles.cell, styles.cellRight, styles.cellExtra]}>
-                {totals.fgts > 0 ? formatCurrency(totals.fgts) : '-'}
-              </Text>
-            </>
-          )}
+            );
+          })}
         </View>
       </View>
     </View>
@@ -164,6 +198,9 @@ const styles = StyleSheet.create({
   },
   cellRight: {
     textAlign: 'right',
+  },
+  cellLeft: {
+    textAlign: 'left',
   },
   cellExtra: {
     flex: 0.8,

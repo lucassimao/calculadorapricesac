@@ -3,7 +3,7 @@
 ## Project Overview
 - Expo 54 mobile app (iOS + Android only) for a SAC/Price loan calculator.
 - PT-BR only, offline-first; no backend or sign-in.
-- Freemium: ads for free users; one-time IAP (R$ 5,00) removes ads and unlocks exports (PDF/XLSX/CSV).
+- Freemium: ads for free users; one-time IAP (R$ 10,00) removes ads and unlocks exports (PDF/XLSX/CSV).
 - Ignore automated content/social pipeline and any server/database persistence.
 
 ## Product Scope Highlights
@@ -15,6 +15,7 @@
 - Outputs: tabela de amortização, resumo (total pago/juros, 1ª/última parcela), gráficos (saldo, parcelas, composição).
 - Prepayments: amortizações extras com estratégia reduzir prazo/parcela.
 - Comparação SAC vs Price com cards lado a lado.
+- Tabs: Calculadora, Comparar, Premium, Feedback (abre email padrão).
 
 ## Structure
 - `calculadora-price-sac/` — Expo app source
@@ -48,6 +49,9 @@
 - Use local storage for scenarios, settings, and premium state.
 - Keep UI clear and simple with large touch targets.
 - IAP SKU: `remove_ads` (iOS + Android).
+- IAP fallback price label: `IAP_FALLBACK_PRICE` em `src/lib/iap.ts`.
+- IAP não funciona no Expo Go (Store Client); só em builds de desenvolvimento/produção.
 - AdMob IDs ficam em `app.json` e o banner usa `src/components/AdBanner.tsx`.
 - Exportadores em `src/lib/exports/` (CSV/XLSX/PDF) e usam `expo-sharing`.
 - EAS build: `eas.json` presente, `expo-constants` instalado, `react-native-worklets` fixado na versão do SDK.
+- Sentry: inicializado em `src/lib/sentry.ts`, ativo só em produção quando `extra.sentryDsn` estiver definido.
