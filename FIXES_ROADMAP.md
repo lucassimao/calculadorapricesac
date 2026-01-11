@@ -354,7 +354,7 @@ if (scenario.rate < 0) {
 
 ---
 
-### 5.3 🟢 Environment-based AdMob IDs
+### 5.3 ✅ Environment-based AdMob IDs (COMPLETED)
 **File:** `app.json`
 
 **Problem:** Test AdMob IDs are hardcoded. Need different IDs for production.
