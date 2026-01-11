@@ -6,7 +6,7 @@ export type TimeUnit = 'months' | 'years';
 
 export type PrepaymentStrategy = 'reduce_term' | 'reduce_payment';
 
-export type PrepaymentType = 'fixed_amount' | 'percentage' | 'available_monthly' | 'one_time';
+export type PrepaymentType = 'fixed_amount' | 'percentage';
 
 export type FgtsUsage = 'down_payment' | 'amortization' | 'installment';
 
