@@ -238,6 +238,24 @@ export default function CalculatorScreen() {
     setRegistryFeeText(target.registryFee ? String(target.registryFee) : '0');
   };
 
+  const handleDeleteScenario = (id: string, name: string) => {
+    Alert.alert(
+      'Excluir cenário',
+      `Tem certeza que deseja excluir "${name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            const nextList = scenarios.filter((s) => s.id !== id);
+            await persistScenarios(nextList);
+          },
+        },
+      ]
+    );
+  };
+
   const handleAddPrepayment = () => {
     if (!newPrepayment.amount || !newPrepayment.date) {
       Alert.alert('Amortização incompleta', 'Informe data e valor.');
@@ -358,18 +376,27 @@ export default function CalculatorScreen() {
         {scenarios.length > 0 && (
           <View style={styles.list}>
             {scenarios.map((item) => (
-              <Pressable
-                key={item.id}
-                style={styles.listItem}
-                onPress={() => handleLoadScenario(item)}
-                accessibilityRole="button"
-                accessibilityLabel={`Carregar cenário ${item.name}`}
-              >
-                <Text style={styles.listTitle}>{item.name}</Text>
-                <Text style={styles.listSubtitle}>
-                  {item.system} • {formatCurrency(item.principal)}
-                </Text>
-              </Pressable>
+              <View key={item.id} style={styles.listItemRow}>
+                <Pressable
+                  style={styles.listItemContent}
+                  onPress={() => handleLoadScenario(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Carregar cenário ${item.name}`}
+                >
+                  <Text style={styles.listTitle}>{item.name}</Text>
+                  <Text style={styles.listSubtitle}>
+                    {item.system} • {formatCurrency(item.principal)}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteScenario(item.id, item.name)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Excluir cenário ${item.name}`}
+                >
+                  <Text style={styles.deleteButtonText}>X</Text>
+                </Pressable>
+              </View>
             ))}
           </View>
         )}
@@ -1272,6 +1299,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  listItemContent: {
+    flex: 1,
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginLeft: 8,
+  },
+  deleteButtonText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 14,
   },
   listTitle: {
     fontSize: 13,
