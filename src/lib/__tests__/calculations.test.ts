@@ -208,3 +208,46 @@ describe('rate conversions and payment edge cases', () => {
     expect(payment).toBeCloseTo(1000, 2);
   });
 });
+
+describe('date handling edge cases', () => {
+  it('handles end-of-month dates without overflow (Jan 31 + 1 month stays in Feb)', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      startDate: new Date(2026, 0, 31), // Jan 31, 2026
+      dueDay: 31, // Use day 31 to test clamping
+      term: 3,
+    });
+
+    // Row 0 is initial, row 1 is first payment
+    expect(schedule[1].date.getMonth()).toBe(0); // January
+    expect(schedule[1].date.getDate()).toBe(31); // Jan 31
+    expect(schedule[2].date.getMonth()).toBe(1); // February (not March!)
+    expect(schedule[2].date.getDate()).toBe(28); // Clamped to Feb 28
+    expect(schedule[3].date.getMonth()).toBe(2); // March
+    expect(schedule[3].date.getDate()).toBe(31); // Mar 31
+  });
+
+  it('handles leap year correctly (Jan 31 + 1 month in 2024 = Feb 29)', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      startDate: new Date(2024, 0, 31), // Jan 31, 2024 (leap year)
+      dueDay: 31,
+      term: 2,
+    });
+
+    expect(schedule[2].date.getMonth()).toBe(1); // February
+    expect(schedule[2].date.getDate()).toBe(29); // Leap year has 29 days
+  });
+
+  it('handles Mar 31 + 1 month = Apr 30', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      startDate: new Date(2026, 2, 31), // Mar 31, 2026
+      dueDay: 31,
+      term: 2,
+    });
+
+    expect(schedule[2].date.getMonth()).toBe(3); // April
+    expect(schedule[2].date.getDate()).toBe(30); // April has 30 days
+  });
+});

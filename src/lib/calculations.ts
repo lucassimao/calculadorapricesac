@@ -114,10 +114,29 @@ export function calculateSacAmortization(principal: number, termMonths: number):
 }
 
 function addMonths(date: Date, months: number): Date {
+  const dayOfMonth = date.getDate();
+
+  // Calculate target year and month
+  const totalMonths = date.getMonth() + months;
+  const targetYear = date.getFullYear() + Math.floor(totalMonths / 12);
+  const targetMonth = ((totalMonths % 12) + 12) % 12;
+
+  // Get last day of target month
+  const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+
+  // Create new date, setting day to 1 first to avoid intermediate overflow
   const next = new Date(date);
-  const targetMonth = next.getMonth() + months;
+  next.setDate(1);
+  next.setFullYear(targetYear);
   next.setMonth(targetMonth);
+  next.setDate(Math.min(dayOfMonth, lastDayOfTargetMonth));
+
   return next;
+}
+
+function setDayClamped(date: Date, day: number): void {
+  const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(day, lastDayOfMonth));
 }
 
 export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] {
@@ -170,7 +189,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(balance, scenario);
 
       const installmentDate = new Date(currentDate);
-      installmentDate.setDate(scenario.dueDay);
+      setDayClamped(installmentDate, scenario.dueDay);
 
       const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
       let fgtsAmortization = 0;
@@ -252,7 +271,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(balance, scenario);
 
       const installmentDate = new Date(currentDate);
-      installmentDate.setDate(scenario.dueDay);
+      setDayClamped(installmentDate, scenario.dueDay);
 
       const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
       let fgtsAmortization = 0;
