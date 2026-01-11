@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useIAP } from 'expo-iap';
+import { useTheme } from '../../src/lib/theme';
 import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
@@ -12,6 +13,7 @@ export default function PremiumScreen() {
 }
 
 function PremiumIapScreen() {
+  const { colors } = useTheme();
   const { isPremium, markPremium } = usePremium();
   const [modalVisible, setModalVisible] = useState(false);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
@@ -213,30 +215,34 @@ function PremiumIapScreen() {
       </View>
 
       <Modal
-        animationType="slide"
+        animationType={Platform.OS === 'ios' ? 'fade' : 'slide'}
         transparent
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Desbloqueie o Premium</Text>
-            <Text style={styles.modalText}>
+        <View style={[styles.modalBackdrop, Platform.OS === 'ios' && styles.modalBackdropIOS]}>
+          <View style={[
+            styles.modalCard,
+            { backgroundColor: colors.background },
+            Platform.OS === 'ios' && styles.modalCardIOS
+          ]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Desbloqueie o Premium</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary }]}>
               Remova anúncios e exporte sua análise para compartilhar ou guardar.
             </Text>
             <View style={styles.modalList}>
-              <Text style={styles.modalItem}>• PDF com resumo e tabela</Text>
-              <Text style={styles.modalItem}>• XLSX para editar planilhas</Text>
-              <Text style={styles.modalItem}>• CSV para integrar com outros apps</Text>
+              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>• PDF com resumo e tabela</Text>
+              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>• XLSX para editar planilhas</Text>
+              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>• CSV para integrar com outros apps</Text>
             </View>
             <View style={styles.modalRow}>
               <Pressable
-                style={styles.secondaryButton}
+                style={[styles.secondaryButton, { borderColor: colors.border }]}
                 onPress={() => setModalVisible(false)}
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar compra"
               >
-                <Text style={styles.secondaryButtonText}>Agora não</Text>
+                <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Agora não</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -368,12 +374,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17, 24, 39, 0.45)',
     justifyContent: 'flex-end',
   },
+  modalBackdropIOS: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
   modalCard: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 20,
     gap: 12,
+  },
+  modalCardIOS: {
+    borderRadius: 16,
+    maxWidth: 400,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: 18,
