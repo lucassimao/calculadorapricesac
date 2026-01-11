@@ -44,6 +44,7 @@ function PremiumSectionIap({
 }) {
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
+  const [purchasesValidated, setPurchasesValidated] = useState(false);
   const {
     connected,
     products,
@@ -83,14 +84,21 @@ function PremiumSectionIap({
   useEffect(() => {
     if (!connected) return;
     fetchProducts({ skus: [IAP_PRODUCT_ID], type: 'in-app' }).catch(() => {});
-    getAvailablePurchases().catch(() => {});
+    getAvailablePurchases()
+      .then(() => setPurchasesValidated(true))
+      .catch(() => setPurchasesValidated(true));
   }, [connected, fetchProducts, getAvailablePurchases]);
 
   useEffect(() => {
     if (hasEntitlement && !isPremium) {
+      // Grant premium if platform says we have entitlement
       markPremium(true).catch(() => {});
+    } else if (purchasesValidated && isPremium && !hasEntitlement) {
+      // Revoke premium if local state says premium but platform has no entitlement
+      // (e.g., user got a refund or purchase was revoked)
+      markPremium(false).catch(() => {});
     }
-  }, [hasEntitlement, isPremium, markPremium]);
+  }, [hasEntitlement, isPremium, markPremium, purchasesValidated]);
 
   useEffect(() => {
     if (restoreRequestedAt === null) return;

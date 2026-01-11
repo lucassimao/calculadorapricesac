@@ -19,15 +19,15 @@ export async function generateImage(config: GeminiConfig, req: GeminiRequest) {
 
   const parts = [{ text: req.prompt }] as (
     | { text: string }
-    | { inlineData: { data: string; mimeType: string } }
+    | { inline_data: { data: string; mime_type: string } }
   )[];
 
   for (const img of req.images) {
     const data = await fs.readFile(img.path);
     parts.push({
-      inlineData: {
+      inline_data: {
         data: data.toString('base64'),
-        mimeType: img.mime,
+        mime_type: img.mime,
       },
     });
   }
@@ -39,10 +39,12 @@ export async function generateImage(config: GeminiConfig, req: GeminiRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts }],
-        responseModalities: ['TEXT', 'IMAGE'],
-        imageConfig: {
-          imageSize: config.imageSize,
-          aspectRatio: config.aspectRatio,
+        generationConfig: {
+          responseModalities: ['IMAGE'],
+          imageConfig: {
+            imageSize: config.imageSize,
+            aspectRatio: config.aspectRatio,
+          },
         },
       }),
     }
