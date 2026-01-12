@@ -19,6 +19,10 @@ export default {
     },
     ios: {
       supportsTablet: true,
+      bundleIdentifier: 'com.lsimaocosta.calculadorapricesac',
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
@@ -33,6 +37,7 @@ export default {
       favicon: './assets/favicon.png',
     },
     plugins: [
+      '@sentry/react-native/expo',
       'expo-router',
       [
         'react-native-google-mobile-ads',
@@ -46,6 +51,8 @@ export default {
     ],
     extra: {
       router: {},
+      admobBannerUnitIdAndroid: process.env.ADMOB_BANNER_UNIT_ID_ANDROID ?? '',
+      admobBannerUnitIdIos: process.env.ADMOB_BANNER_UNIT_ID_IOS ?? '',
       eas: {
         projectId: '6d83845b-fcdd-4771-9479-8bbf3030c1a6',
       },

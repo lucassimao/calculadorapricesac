@@ -20,9 +20,24 @@
 ## Structure
 - `calculadora-price-sac/` — Expo app source
 - `EXPO_ROADMAP.md` — roadmap for mobile development
+- `FIXES_ROADMAP.md` — bug fixes and improvements roadmap (all completed)
 - `Tabela Price e SAC.xlsx` — original reference model
 - `RELEASE_CHECKLIST.md` — passos de release (ads, IAP, stores)
 - `maestro/` — testes de UI (flows principais)
+
+## Architecture
+- **Theme System**: `src/lib/theme.ts` provides light/dark mode via `useTheme()` hook. Colors are WCAG AA compliant.
+- **Calculator Components**: `src/components/calculator/` contains extracted components:
+  - `ScenarioSection.tsx` - Save/load/delete scenarios
+  - `SystemSelector.tsx` - Price/SAC and loan mode toggles
+  - `SummarySection.tsx` - Calculation results
+  - `ExportSection.tsx` - PDF/XLSX/CSV export
+  - `ValidationSection.tsx` - Error/warning banners
+- **Utility Functions**: `src/lib/utils.ts` contains:
+  - `formatDateBR()` - Brazilian date format (DD/MM/YYYY)
+  - `parseLocalDate()` - Accepts both YYYY-MM-DD and DD/MM/YYYY
+  - `parseCurrencyInput()` - Brazilian currency parsing
+  - `parseNumberInput()` - Brazilian number format (comma decimal)
 
 ## Tech Stack
 - Expo 54, TypeScript, ESLint (flat config)
@@ -55,3 +70,19 @@
 - Exportadores em `src/lib/exports/` (CSV/XLSX/PDF) e usam `expo-sharing`.
 - EAS build: `eas.json` presente, `expo-constants` instalado, `react-native-worklets` fixado na versão do SDK.
 - Sentry: inicializado em `src/lib/sentry.ts`, ativo só em produção quando `extra.sentryDsn` estiver definido.
+
+## IAP Implementation
+- Self-contained: no external API for subscription validation
+- Uses `expo-iap` for store integration
+- Premium state stored locally in AsyncStorage
+- Receipt validation on app launch via `getAvailablePurchases()`
+- Revokes premium if no valid entitlement found (handles refunds)
+- Platform-specific modal styling (iOS: centered, Android: bottom sheet)
+
+## Recent Improvements (FIXES_ROADMAP.md - All Completed)
+- **Date handling**: Fixed timezone issues, proper month overflow, Brazilian format
+- **CET calculation**: Uses actual dates for accurate IRR/NPV
+- **Dark mode**: Full theme support across all screens
+- **Component extraction**: Calculator split into reusable components
+- **Accessibility**: Proper labels and roles for screen readers
+- **Ad placement**: Reduced from 9 to 4 strategic placements

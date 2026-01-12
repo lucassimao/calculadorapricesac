@@ -384,13 +384,30 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
   const netDisbursement = financedPrincipal - totalUpfrontCosts - fgtsDownPayment;
   let cetAnnualRate = 0;
   if (netDisbursement > 0 && installments.length > 0) {
+    // Use actual dates for more accurate CET calculation (Brazilian standard uses 365-day year)
+    const startDate = scenario.startDate;
+    const startTime = startDate.getTime();
+
+    // Calculate year fractions based on actual dates
+    const yearFractions = installments.map((row) => {
+      const daysDiff = (row.date.getTime() - startTime) / (1000 * 60 * 60 * 24);
+      return daysDiff / 365;
+    });
+
     const cashFlows = installments.map((row) => row.payment + (row.extraCosts ?? 0));
-    const npv = (rate: number) => {
+
+    // NPV function using actual year fractions
+    const npv = (annualRate: number) => {
       return (
         netDisbursement -
-        cashFlows.reduce((sum, value, index) => sum + value / Math.pow(1 + rate, index + 1), 0)
+        cashFlows.reduce((sum, value, index) => {
+          const yearFrac = yearFractions[index];
+          return sum + value / Math.pow(1 + annualRate, yearFrac);
+        }, 0)
       );
     };
+
+    // Binary search for annual IRR (CET)
     if (npv(0) < 0) {
       let low = 0;
       let high = 1;
@@ -405,8 +422,7 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
           low = mid;
         }
       }
-      const monthlyRate = (low + high) / 2;
-      cetAnnualRate = Math.pow(1 + monthlyRate, 12) - 1;
+      cetAnnualRate = (low + high) / 2;
     }
   }
 

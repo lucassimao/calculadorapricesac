@@ -1,0 +1,9 @@
+tools/
+maestro/
+.maestro_home/
+.expo/
+.venv/
+node_modules/
+build-*.apk
+Tabela Price e SAC.xlsx
+**/.local/

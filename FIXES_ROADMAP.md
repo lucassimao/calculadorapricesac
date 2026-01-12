@@ -175,25 +175,19 @@ export function parseLocalDate(text: string): Date | null {
 
 ---
 
-### 3.2 🟡 Split calculator.tsx into smaller components
-**File:** `app/(tabs)/calculator.tsx` (1335 lines)
+### 3.2 ✅ Split calculator.tsx into smaller components (COMPLETED)
+**File:** `app/(tabs)/calculator.tsx`
 
-**Problem:** Single file is too large, hard to maintain.
+**Problem:** Single file was too large, hard to maintain.
 
-**Solution:** Extract into components:
-```
-src/components/
-├── calculator/
-│   ├── ScenarioManager.tsx      (~80 lines)
-│   ├── SystemSelector.tsx       (~70 lines)
-│   ├── LoanParameters.tsx       (~150 lines)
-│   ├── CostsSection.tsx         (~100 lines)
-│   ├── PrepaymentSection.tsx    (~120 lines)
-│   ├── FgtsSection.tsx          (~130 lines)
-│   ├── SummarySection.tsx       (~80 lines)
-│   ├── ExportSection.tsx        (~50 lines)
-│   └── PremiumSection.tsx       (~80 lines)
-```
+**Solution:** Extracted components to `src/components/calculator/`:
+- `ScenarioSection.tsx` - Scenario save/load/delete
+- `SystemSelector.tsx` - Price/SAC and loan mode toggles
+- `SummarySection.tsx` - Calculation results display
+- `ExportSection.tsx` - PDF/XLSX/CSV export buttons
+- `ValidationSection.tsx` - Error/warning banners
+
+All components use the theme system with `useTheme()` hook for dark mode support.
 
 **Estimate:** 3-4 hours
 
@@ -286,15 +280,16 @@ const handleDeleteScenario = async (id: string) => {
 
 ---
 
-### 4.4 🟢 Improve date input UX
-**File:** `app/(tabs)/calculator.tsx:587`
+### 4.4 ✅ Improve date input UX (COMPLETED)
+**File:** `app/(tabs)/calculator.tsx`, `src/lib/utils.ts`
 
-**Problem:** Date format YYYY-MM-DD is unfamiliar to Brazilian users (DD/MM/YYYY).
+**Problem:** Date format YYYY-MM-DD was unfamiliar to Brazilian users (DD/MM/YYYY).
 
-**Options:**
-1. Use a date picker component (e.g., `@react-native-community/datetimepicker`)
-2. Accept both formats and auto-detect
-3. Use masked input with DD/MM/YYYY format
+**Solution:**
+- Added `formatDateBR()` function to display dates in DD/MM/YYYY format
+- Updated `parseLocalDate()` to accept both YYYY-MM-DD and DD/MM/YYYY formats
+- All date displays now use Brazilian format throughout the app
+- Date picker remains the primary input method with proper localized display
 
 **Estimate:** 1-2 hours (depending on approach)
 
@@ -313,12 +308,16 @@ const handleDeleteScenario = async (id: string) => {
 
 ## Sprint 5: Advanced Improvements
 
-### 5.1 🟢 Improve CET calculation accuracy
-**File:** `src/lib/calculations.ts:366-392`
+### 5.1 ✅ Improve CET calculation accuracy (COMPLETED)
+**File:** `src/lib/calculations.ts`
 
-**Problem:** CET calculation assumes regular monthly periods; edge cases with early termination may be slightly inaccurate.
+**Problem:** CET calculation assumed regular monthly periods; edge cases with early termination were slightly inaccurate.
 
-**Solution:** Use actual dates for period calculations in IRR/NPV.
+**Solution:**
+- Updated CET calculation to use actual payment dates instead of period indices
+- Calculate year fractions based on actual days between disbursement and each payment
+- Uses 365-day year convention (Brazilian standard)
+- Binary search now finds annual IRR directly instead of converting from monthly
 
 **Estimate:** 2-3 hours
 

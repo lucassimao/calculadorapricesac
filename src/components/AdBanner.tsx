@@ -1,5 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import Constants from 'expo-constants';
 
 interface AdBannerProps {
   enabled: boolean;
@@ -9,9 +10,18 @@ interface AdBannerProps {
 export function AdBanner({ enabled, adUnitId }: AdBannerProps) {
   if (!enabled) return null;
 
+  const fallbackUnitId =
+    Platform.OS === 'ios'
+      ? 'ca-app-pub-3940256099942544/2934735716'
+      : 'ca-app-pub-3940256099942544/6300978111';
+  const extra = Constants.expoConfig?.extra ?? {};
+  const envUnitId =
+    Platform.OS === 'ios' ? extra.admobBannerUnitIdIos : extra.admobBannerUnitIdAndroid;
+  const resolvedUnitId = adUnitId ?? envUnitId ?? fallbackUnitId;
+
   return (
     <View style={styles.container}>
-      <BannerAd unitId={adUnitId ?? 'ca-app-pub-3940256099942544/6300978111'} size={BannerAdSize.BANNER} />
+      <BannerAd unitId={resolvedUnitId} size={BannerAdSize.BANNER} />
     </View>
   );
 }

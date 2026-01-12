@@ -37,7 +37,15 @@
           "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "price-sac",
+          "organization": "lucas-apps"
+        }
+      ]
     ],
     "extra": {
       "router": {},

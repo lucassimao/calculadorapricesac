@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
+import { useTheme } from '../../src/lib/theme';
 
 const FEEDBACK_EMAIL = 'lucas@lucassimao.com';
 const FEEDBACK_SUBJECT = 'Feedback - Calculadora Price & SAC';
@@ -9,7 +10,17 @@ const getMailtoUrl = () =>
   `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(FEEDBACK_SUBJECT)}`;
 
 export default function FeedbackScreen() {
+  const { colors } = useTheme();
   const [attempted, setAttempted] = useState(false);
+
+  const themedStyles = useMemo(() => ({
+    container: { backgroundColor: colors.background },
+    title: { color: colors.text },
+    subtitle: { color: colors.textSecondary },
+    card: { backgroundColor: colors.backgroundSecondary },
+    label: { color: colors.textTertiary },
+    value: { color: colors.text },
+  }), [colors]);
 
   const openEmail = async () => {
     const url = getMailtoUrl();
@@ -27,14 +38,14 @@ export default function FeedbackScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Feedback</Text>
-      <Text style={styles.subtitle}>
+    <ScrollView contentContainerStyle={[styles.container, themedStyles.container]} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.title, themedStyles.title]}>Feedback</Text>
+      <Text style={[styles.subtitle, themedStyles.subtitle]}>
         Escreva sua sugestão, dúvida ou problema direto pelo seu app de e-mail.
       </Text>
-      <View style={styles.card}>
-        <Text style={styles.label}>E-mail</Text>
-        <Text style={styles.value}>{FEEDBACK_EMAIL}</Text>
+      <View style={[styles.card, themedStyles.card]}>
+        <Text style={[styles.label, themedStyles.label]}>E-mail</Text>
+        <Text style={[styles.value, themedStyles.value]}>{FEEDBACK_EMAIL}</Text>
         <Pressable
           style={styles.primaryButton}
           onPress={openEmail}

@@ -5,6 +5,7 @@ import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule } fr
 import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
+import { useTheme } from '../../src/lib/theme';
 
 const BASE_SCENARIO: Scenario = {
   id: 'base',
@@ -22,6 +23,7 @@ const BASE_SCENARIO: Scenario = {
 };
 
 export default function ComparisonScreen() {
+  const { colors } = useTheme();
   const [base, setBase] = useState<Scenario>(BASE_SCENARIO);
   const [quickCases, setQuickCases] = useState<Scenario[]>([
     { ...BASE_SCENARIO, id: 'c1', name: 'Condição A' },
@@ -33,6 +35,26 @@ export default function ComparisonScreen() {
   const [termText, setTermText] = useState('360');
   const { isPremium, loading: premiumLoading } = usePremium();
   const showAds = !premiumLoading && !isPremium;
+
+  const themedStyles = useMemo(() => ({
+    container: { backgroundColor: colors.background },
+    section: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+    title: { color: colors.text },
+    sectionTitle: { color: colors.text },
+    label: { color: colors.textSecondary },
+    input: { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+    card: { borderColor: colors.border },
+    cardTitle: { color: colors.primary },
+    cardValue: { color: colors.text },
+    cardLabel: { color: colors.textTertiary },
+    highlight: { backgroundColor: colors.primaryLight },
+    highlightText: { color: colors.primary },
+    helperText: { color: colors.textTertiary },
+    quickCard: { borderColor: colors.border },
+    quickTitle: { color: colors.text },
+    quickLabel: { color: colors.textTertiary },
+    quickValue: { color: colors.text },
+  }), [colors]);
 
   const priceSchedule = useMemo(
     () => generateAmortizationSchedule({ ...base, system: 'PRICE' }),
@@ -63,13 +85,13 @@ export default function ComparisonScreen() {
   }, [base.principal]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Comparar SAC vs Price</Text>
+    <ScrollView contentContainerStyle={[styles.container, themedStyles.container]} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.title, themedStyles.title]}>Comparar SAC vs Price</Text>
       <AdBanner enabled={showAds} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Parâmetros</Text>
-        <Text style={styles.label}>Valor do Financiamento (R$)</Text>
+      <View style={[styles.section, themedStyles.section]}>
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Parâmetros</Text>
+        <Text style={[styles.label, themedStyles.label]}>Valor do Financiamento (R$)</Text>
         <TextInput
           value={principalText}
           onChangeText={(text) => {
@@ -77,10 +99,11 @@ export default function ComparisonScreen() {
             setBase((prev) => ({ ...prev, principal: parseCurrencyInput(text) }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Valor do financiamento"
         />
-        <Text style={styles.label}>Taxa de Juros (% ao mês)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Taxa de Juros (% ao mês)</Text>
         <TextInput
           value={rateText}
           onChangeText={(text) => {
@@ -88,10 +111,11 @@ export default function ComparisonScreen() {
             setBase((prev) => ({ ...prev, rate: parseNumberInput(text), rateType: 'monthly' }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Taxa de juros ao mês"
         />
-        <Text style={styles.label}>Prazo (meses)</Text>
+        <Text style={[styles.label, themedStyles.label]}>Prazo (meses)</Text>
         <TextInput
           value={termText}
           onChangeText={(text) => {
@@ -100,64 +124,65 @@ export default function ComparisonScreen() {
             setBase((prev) => ({ ...prev, term: Number.isNaN(parsed) ? 0 : parsed, termUnit: 'months' }));
           }}
           keyboardType="numeric"
-          style={styles.input}
+          style={[styles.input, themedStyles.input]}
+          placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Prazo em meses"
         />
       </View>
 
       <AdBanner enabled={showAds} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resumo Comparativo</Text>
+      <View style={[styles.section, themedStyles.section]}>
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Resumo Comparativo</Text>
 
         <View style={styles.cardRow}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Price</Text>
-            <Text style={styles.cardValue}>{formatCurrency(priceSummary.totalPayment)}</Text>
-            <Text style={styles.cardLabel}>Total Pago</Text>
+          <View style={[styles.card, themedStyles.card]}>
+            <Text style={[styles.cardTitle, themedStyles.cardTitle]}>Price</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(priceSummary.totalPayment)}</Text>
+            <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Pago</Text>
           </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>SAC</Text>
-            <Text style={styles.cardValue}>{formatCurrency(sacSummary.totalPayment)}</Text>
-            <Text style={styles.cardLabel}>Total Pago</Text>
+          <View style={[styles.card, themedStyles.card]}>
+            <Text style={[styles.cardTitle, themedStyles.cardTitle]}>SAC</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(sacSummary.totalPayment)}</Text>
+            <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Pago</Text>
           </View>
         </View>
 
         {(priceSummary.totalPaymentWithCosts > priceSummary.totalPayment ||
           sacSummary.totalPaymentWithCosts > sacSummary.totalPayment) && (
           <View style={styles.cardRow}>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Price</Text>
-              <Text style={styles.cardValue}>
+            <View style={[styles.card, themedStyles.card]}>
+              <Text style={[styles.cardTitle, themedStyles.cardTitle]}>Price</Text>
+              <Text style={[styles.cardValue, themedStyles.cardValue]}>
                 {formatCurrency(priceSummary.totalPaymentWithCosts)}
               </Text>
-              <Text style={styles.cardLabel}>Total c/ Custos</Text>
+              <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total c/ Custos</Text>
             </View>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>SAC</Text>
-              <Text style={styles.cardValue}>
+            <View style={[styles.card, themedStyles.card]}>
+              <Text style={[styles.cardTitle, themedStyles.cardTitle]}>SAC</Text>
+              <Text style={[styles.cardValue, themedStyles.cardValue]}>
                 {formatCurrency(sacSummary.totalPaymentWithCosts)}
               </Text>
-              <Text style={styles.cardLabel}>Total c/ Custos</Text>
+              <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total c/ Custos</Text>
             </View>
           </View>
         )}
 
         <View style={styles.cardRow}>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Price</Text>
-            <Text style={styles.cardValue}>{formatCurrency(priceSummary.totalInterest)}</Text>
-            <Text style={styles.cardLabel}>Total Juros</Text>
+          <View style={[styles.card, themedStyles.card]}>
+            <Text style={[styles.cardTitle, themedStyles.cardTitle]}>Price</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(priceSummary.totalInterest)}</Text>
+            <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Juros</Text>
           </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>SAC</Text>
-            <Text style={styles.cardValue}>{formatCurrency(sacSummary.totalInterest)}</Text>
-            <Text style={styles.cardLabel}>Total Juros</Text>
+          <View style={[styles.card, themedStyles.card]}>
+            <Text style={[styles.cardTitle, themedStyles.cardTitle]}>SAC</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(sacSummary.totalInterest)}</Text>
+            <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Juros</Text>
           </View>
         </View>
 
-        <View style={styles.highlight}>
-          <Text style={styles.highlightText}>
+        <View style={[styles.highlight, themedStyles.highlight]}>
+          <Text style={[styles.highlightText, themedStyles.highlightText]}>
             Diferença de juros: {formatCurrency(Math.abs(interestDiff))} {' '}
             ({interestDiff > 0 ? 'SAC economiza' : 'Price economiza'})
           </Text>
@@ -165,8 +190,8 @@ export default function ComparisonScreen() {
 
         {(priceSummary.totalPaymentWithCosts > priceSummary.totalPayment ||
           sacSummary.totalPaymentWithCosts > sacSummary.totalPayment) && (
-          <View style={styles.highlightAlt}>
-            <Text style={styles.highlightText}>
+          <View style={[styles.highlightAlt, { backgroundColor: colors.successLight }]}>
+            <Text style={[styles.highlightText, { color: colors.success }]}>
               Diferença total c/ custos: {formatCurrency(Math.abs(totalDiff))} {' '}
               ({totalDiff > 0 ? 'SAC economiza' : 'Price economiza'})
             </Text>
@@ -176,15 +201,15 @@ export default function ComparisonScreen() {
 
       <AdBanner enabled={showAds} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle} testID="section-quick-compare">Comparador Rápido</Text>
-        <Text style={styles.helperText}>
+      <View style={[styles.section, themedStyles.section]}>
+        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]} testID="section-quick-compare">Comparador Rápido</Text>
+        <Text style={[styles.helperText, themedStyles.helperText]}>
           Compare até 3 condições diferentes (juros, prazo e entrada). O ranking
           usa o total pago com custos.
         </Text>
         {quickCases.map((item, index) => (
-          <View key={item.id} style={styles.quickCard}>
-            <Text style={styles.quickTitle}>{item.name}</Text>
+          <View key={item.id} style={[styles.quickCard, themedStyles.quickCard]}>
+            <Text style={[styles.quickTitle, themedStyles.quickTitle]}>{item.name}</Text>
             <View style={styles.quickRow}>
               <TextInput
                 value={String(item.rate).replace('.', ',')}
@@ -195,8 +220,9 @@ export default function ComparisonScreen() {
                   );
                 }}
                 keyboardType="numeric"
-                style={[styles.input, styles.inputSmall]}
+                style={[styles.input, styles.inputSmall, themedStyles.input]}
                 placeholder="Juros (%) a.m."
+                placeholderTextColor={colors.textTertiary}
                 accessibilityLabel={`Juros condição ${item.name}`}
                 testID={`quick-rate-${index}`}
                 nativeID={`quick-rate-${index}`}
@@ -210,8 +236,9 @@ export default function ComparisonScreen() {
                   );
                 }}
                 keyboardType="numeric"
-                style={[styles.input, styles.inputSmall]}
+                style={[styles.input, styles.inputSmall, themedStyles.input]}
                 placeholder="Prazo (meses)"
+                placeholderTextColor={colors.textTertiary}
                 accessibilityLabel={`Prazo condição ${item.name}`}
                 testID={`quick-term-${index}`}
                 nativeID={`quick-term-${index}`}
@@ -225,16 +252,17 @@ export default function ComparisonScreen() {
                   );
                 }}
                 keyboardType="numeric"
-                style={[styles.input, styles.inputSmall]}
+                style={[styles.input, styles.inputSmall, themedStyles.input]}
                 placeholder="Entrada (R$)"
+                placeholderTextColor={colors.textTertiary}
                 accessibilityLabel={`Entrada condição ${item.name}`}
                 testID={`quick-down-${index}`}
                 nativeID={`quick-down-${index}`}
               />
             </View>
             <View style={styles.quickRow}>
-              <Text style={styles.quickLabel}>Total c/ custos</Text>
-              <Text style={styles.quickValue}>
+              <Text style={[styles.quickLabel, themedStyles.quickLabel]}>Total c/ custos</Text>
+              <Text style={[styles.quickValue, themedStyles.quickValue]}>
                 {formatCurrency(
                   calculateLoanSummary(generateAmortizationSchedule(item), item).totalPaymentWithCosts
                 )}

@@ -17,8 +17,9 @@ Este documento reúne os passos necessários antes de publicar a Calculadora Pri
 ## 2) IDs e configurações no projeto
 ### AdMob (obrigatório para release)
 Trocar IDs de teste em:
-- `app.json`:
+- `app.config.js`:
   - `plugins -> react-native-google-mobile-ads -> iosAppId / androidAppId`
+  - Usa `process.env.ADMOB_*` com fallback para IDs de teste.
 - `src/components/AdBanner.tsx`:
   - Substituir o `unitId` de teste por um **Ad Unit ID** real (banner).
 
@@ -30,18 +31,20 @@ SKU já usado no app:
 Confirme que o SKU publicado nas lojas corresponde a esse identificador.
 
 ## 3) Variáveis de ambiente
-Atualmente **não há variáveis de ambiente obrigatórias**; os IDs estão hardcoded.
+Obrigatórias para produção:
+- `ADMOB_ANDROID_APP_ID`
+- `ADMOB_IOS_APP_ID`
+- `ADMOB_BANNER_UNIT_ID_ANDROID`
+- `ADMOB_BANNER_UNIT_ID_IOS`
+- `SENTRY_DSN`
+- `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` (para upload de sourcemaps no EAS)
 
-Se quiser parametrizar:
-- Criar `app.config.js` e usar `process.env.EXPO_PUBLIC_*`.
-Exemplo de nomes sugeridos:
-- `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID`
-- `EXPO_PUBLIC_ADMOB_IOS_APP_ID`
-- `EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID`
-- `EXPO_PUBLIC_SENTRY_DSN`
+Onde são lidas:
+- `app.config.js`: `ADMOB_ANDROID_APP_ID`, `ADMOB_IOS_APP_ID`, `ADMOB_BANNER_UNIT_ID_ANDROID`, `ADMOB_BANNER_UNIT_ID_IOS`, `SENTRY_DSN`
+- `src/components/AdBanner.tsx`: seleciona o banner unit ID correto por plataforma
 
-Depois, ler essas variáveis no `app.config.js` e no `AdBanner.tsx`.
-Para Sentry, ler em `app.config.js` e expor como `extra.sentryDsn`.
+No EAS:
+- Definir como secrets (`eas secret:create`) e/ou por perfil no `eas.json`.
 
 ## 4) Versão, ícones e assets
 - Atualizar `expo.version` (semver) em `app.json`.

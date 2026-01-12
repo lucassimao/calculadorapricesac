@@ -15,10 +15,10 @@
     "build:android:local:internal": "eas build -p android --local --profile internal"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "^8.6.0",
-    "@sentry/react-native": "^5.12.0",
-    "@expo/vector-icons": "^14.1.0",
+    "@sentry/react-native": "^6.22.0",
     "expo": "~54.0.30",
     "expo-constants": "~18.0.12",
     "expo-dev-client": "~6.0.20",
@@ -49,9 +49,6 @@
     "eslint-config-expo": "^10.0.0",
     "typescript": "~5.9.2",
     "vitest": "^4.0.16"
-  },
-  "overrides": {
-    "@sentry/react": "^8.6.0"
   },
   "private": true
 }

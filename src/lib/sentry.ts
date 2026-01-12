@@ -8,8 +8,8 @@ if (sentryInitialized) {
   Sentry.init({
     dsn,
     enabled: true,
-    debug: false,
-    environment: 'production',
+    debug: __DEV__,
+    environment: __DEV__ ? 'development' : 'production',
   });
 }
 

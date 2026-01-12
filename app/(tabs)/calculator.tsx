@@ -5,7 +5,7 @@ import { useIAP } from 'expo-iap';
 import { useRouter } from 'expo-router';
 import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
 import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, validateScenario } from '../../src/lib/calculations';
-import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
+import { formatDateBR, parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import {
@@ -261,7 +261,7 @@ export default function CalculatorScreen() {
   const [downPaymentText, setDownPaymentText] = useState('');
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
-  const [startDateText, setStartDateText] = useState(new Date().toISOString().slice(0, 10));
+  const [startDateText, setStartDateText] = useState(formatDateBR(new Date()));
   const [dueDayText, setDueDayText] = useState('5');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [insuranceRateText, setInsuranceRateText] = useState('0');
@@ -380,7 +380,7 @@ export default function CalculatorScreen() {
     setDownPaymentText(target.downPayment ? String(target.downPayment) : '');
     setRateText(String(target.rate).replace('.', ','));
     setTermText(String(target.term));
-    setStartDateText(target.startDate.toISOString().slice(0, 10));
+    setStartDateText(formatDateBR(target.startDate));
     setDueDayText(String(target.dueDay));
     setInsuranceRateText(target.insuranceRate ? String(target.insuranceRate).replace('.', ',') : '0');
     setAdminFeeRateText(target.adminFeeRate ? String(target.adminFeeRate).replace('.', ',') : '0');
@@ -478,7 +478,7 @@ export default function CalculatorScreen() {
     }
     if (event.type === 'dismissed' || !selectedDate) return;
     setScenario((prev) => ({ ...prev, startDate: selectedDate }));
-    setStartDateText(selectedDate.toISOString().slice(0, 10));
+    setStartDateText(formatDateBR(selectedDate));
   };
 
   const handlePrepaymentDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -823,7 +823,7 @@ export default function CalculatorScreen() {
           nativeID="input-prepayment-date"
         >
           <Text style={[styles.inputText, { color: colors.text }]}>
-            {newPrepayment.date?.toISOString().slice(0, 10)}
+            {newPrepayment.date ? formatDateBR(newPrepayment.date) : ''}
           </Text>
         </Pressable>
         {showPrepaymentDatePicker ? (
@@ -948,7 +948,7 @@ export default function CalculatorScreen() {
           nativeID="input-fgts-date"
         >
           <Text style={[styles.inputText, { color: colors.text }]}>
-            {newFgts.date?.toISOString().slice(0, 10)}
+            {newFgts.date ? formatDateBR(newFgts.date) : ''}
           </Text>
         </Pressable>
         {showFgtsDatePicker ? (
