@@ -10,6 +10,9 @@ export interface StoreConfig {
   width: number;
   height: number;
   format: 'png' | 'jpg' | 'jpeg';
+  baseWidth?: number;
+  baseHeight?: number;
+  aspectRatio?: string;
 }
 
 export interface LayoutConfig {

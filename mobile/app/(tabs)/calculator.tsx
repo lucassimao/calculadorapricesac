@@ -281,6 +281,7 @@ export default function CalculatorScreen() {
   const showAds = !premiumLoading && !isPremium;
   const iapAvailability = useIapAvailability();
   const [exporting, setExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [newPrepayment, setNewPrepayment] = useState<Partial<PrepaymentEvent>>({
     amount: 0,
@@ -505,6 +506,7 @@ export default function CalculatorScreen() {
     }
     if (exporting) return;
     setExporting(true);
+    setExportingFormat(format);
     try {
       if (format === 'pdf') {
         await exportPdf(scenario, summary, schedule);
@@ -517,6 +519,7 @@ export default function CalculatorScreen() {
       Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
     } finally {
       setExporting(false);
+      setExportingFormat(null);
     }
   };
 
@@ -777,28 +780,55 @@ export default function CalculatorScreen() {
         <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            style={[styles.primaryButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
             onPress={() => handleExport('pdf')}
+            disabled={exporting}
             accessibilityRole="button"
+            accessibilityState={{ disabled: exporting }}
             accessibilityLabel="Gerar tabela completa em PDF"
           >
-            <Text style={styles.primaryButtonText}>PDF</Text>
+            <View style={styles.buttonContent}>
+              {exporting && exportingFormat === 'pdf' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : null}
+              <Text style={styles.primaryButtonText}>
+                {exporting && exportingFormat === 'pdf' ? 'Gerando...' : 'PDF'}
+              </Text>
+            </View>
           </Pressable>
           <Pressable
-            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            style={[styles.primaryButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
             onPress={() => handleExport('xlsx')}
+            disabled={exporting}
             accessibilityRole="button"
+            accessibilityState={{ disabled: exporting }}
             accessibilityLabel="Gerar tabela completa em XLSX"
           >
-            <Text style={styles.primaryButtonText}>XLSX</Text>
+            <View style={styles.buttonContent}>
+              {exporting && exportingFormat === 'xlsx' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : null}
+              <Text style={styles.primaryButtonText}>
+                {exporting && exportingFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
+              </Text>
+            </View>
           </Pressable>
           <Pressable
-            style={[styles.primaryButton, !isPremium && styles.primaryButtonDisabled]}
+            style={[styles.primaryButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
             onPress={() => handleExport('csv')}
+            disabled={exporting}
             accessibilityRole="button"
+            accessibilityState={{ disabled: exporting }}
             accessibilityLabel="Gerar tabela completa em CSV"
           >
-            <Text style={styles.primaryButtonText}>CSV</Text>
+            <View style={styles.buttonContent}>
+              {exporting && exportingFormat === 'csv' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : null}
+              <Text style={styles.primaryButtonText}>
+                {exporting && exportingFormat === 'csv' ? 'Gerando...' : 'CSV'}
+              </Text>
+            </View>
           </Pressable>
         </View>
         {exporting ? (
@@ -1181,6 +1211,7 @@ export default function CalculatorScreen() {
       <ExportSection
         isPremium={isPremium}
         exporting={exporting}
+        exportingFormat={exportingFormat}
         onExport={handleExport}
       />
 
@@ -1343,6 +1374,11 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   secondaryButton: {
     borderWidth: 1,

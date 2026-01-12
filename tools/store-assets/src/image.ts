@@ -5,9 +5,12 @@ import type { Config } from './types.js';
 import { screenshotArea } from './guide.js';
 import { ensureDir } from './io.js';
 
-export async function prepareScreenshotCanvas(cfg: Config, screenshotPath: string) {
-  const baseWidth = cfg.defaults.baseWidth;
-  const baseHeight = cfg.defaults.baseHeight;
+export async function prepareScreenshotCanvas(
+  cfg: Config,
+  screenshotPath: string,
+  baseWidth: number,
+  baseHeight: number
+) {
   const area = screenshotArea(baseWidth, baseHeight, cfg.layout);
 
   const resized = await sharp(screenshotPath)
@@ -37,6 +40,16 @@ export async function prepareScreenshotCanvas(cfg: Config, screenshotPath: strin
 
 export async function resizeExact(input: Buffer, width: number, height: number) {
   return sharp(input).resize(width, height, { fit: 'fill' }).png().toBuffer();
+}
+
+export async function fitWithinWithBackground(input: Buffer, width: number, height: number) {
+  const img = sharp(input);
+  const stats = await img.stats();
+  const [r, g, b] = stats.channels.map((c) => Math.round(c.mean));
+  return sharp(input)
+    .resize(width, height, { fit: 'contain', background: { r, g, b, alpha: 1 } })
+    .png()
+    .toBuffer();
 }
 
 export async function resizeTo(inputPath: string, width: number, height: number, format: string) {

@@ -1,0 +1,70 @@
+.page {
+  padding: 60px 0 80px;
+  display: grid;
+  gap: 24px;
+}
+
+.title {
+  font-family: var(--font-heading), "Fraunces", serif;
+  font-size: clamp(28px, 3vw, 40px);
+}
+
+.lead {
+  color: var(--muted);
+  max-width: 760px;
+  line-height: 1.7;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(215, 210, 198, 0.8);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  box-shadow: 0 16px 36px rgba(30, 30, 30, 0.06);
+}
+
+.section h2 {
+  font-size: 18px;
+  font-family: var(--font-heading), "Fraunces", serif;
+}
+
+.section p,
+.section li {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.list {
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--highlight);
+  border: 1px solid rgba(215, 210, 198, 0.7);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.link {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 40px 0 60px;
+  }
+}

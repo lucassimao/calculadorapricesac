@@ -2,15 +2,22 @@ import path from 'path';
 import crypto from 'crypto';
 import sharp from 'sharp';
 import { promises as fs } from 'fs';
-import type { Config, LayoutConfig } from './types.js';
+import type { Config, LayoutConfig, StoreKey } from './types.js';
 import { ensureDir, resolvePath } from './io.js';
 
-export async function ensureGuideAndMask(cfg: Config, invertMask: boolean, overwrite: boolean) {
+export async function ensureGuideAndMask(
+  cfg: Config,
+  store: StoreKey,
+  baseWidth: number,
+  baseHeight: number,
+  invertMask: boolean,
+  overwrite: boolean
+) {
   const guideDir = resolvePath(cfg.defaults.guideDir);
   const maskDir = resolvePath(cfg.defaults.maskDir);
-  const guidePath = path.join(guideDir, 'layout-guide.png');
-  const maskPath = path.join(maskDir, 'layout-mask.png');
-  const hashPath = path.join(guideDir, 'layout.hash');
+  const guidePath = path.join(guideDir, `layout-guide-${store}.png`);
+  const maskPath = path.join(maskDir, `layout-mask-${store}.png`);
+  const hashPath = path.join(guideDir, `layout-${store}.hash`);
 
   const cfgHash = hashConfig(cfg);
   if (!overwrite && (await exists(guidePath)) && (await exists(maskPath)) && (await hashMatches(hashPath, cfgHash))) {
@@ -20,8 +27,8 @@ export async function ensureGuideAndMask(cfg: Config, invertMask: boolean, overw
   await ensureDir(guideDir);
   await ensureDir(maskDir);
 
-  const guideSvg = buildGuideSvg(cfg.defaults.baseWidth, cfg.defaults.baseHeight, cfg.layout);
-  const maskSvg = buildMaskSvg(cfg.defaults.baseWidth, cfg.defaults.baseHeight, cfg.layout, invertMask);
+  const guideSvg = buildGuideSvg(baseWidth, baseHeight, cfg.layout);
+  const maskSvg = buildMaskSvg(baseWidth, baseHeight, cfg.layout, invertMask);
 
   await sharp(Buffer.from(guideSvg)).png().toFile(guidePath);
   await sharp(Buffer.from(maskSvg)).png().toFile(maskPath);

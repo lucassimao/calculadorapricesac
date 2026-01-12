@@ -8,13 +8,13 @@ interface AdBannerProps {
 }
 
 export function AdBanner({ enabled, adUnitId }: AdBannerProps) {
-  if (!enabled) return null;
+  const extra = Constants.expoConfig?.extra ?? {};
+  if (!enabled || extra.adsDisabled) return null;
 
   const fallbackUnitId =
     Platform.OS === 'ios'
       ? 'ca-app-pub-3940256099942544/2934735716'
       : 'ca-app-pub-3940256099942544/6300978111';
-  const extra = Constants.expoConfig?.extra ?? {};
   const envUnitId =
     Platform.OS === 'ios' ? extra.admobBannerUnitIdIos : extra.admobBannerUnitIdAndroid;
   const resolvedUnitId = adUnitId ?? envUnitId ?? fallbackUnitId;

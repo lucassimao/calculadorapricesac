@@ -6,12 +6,14 @@ export function buildCoverPrompt(
   store: string,
   storeCfg: StoreConfig,
   slot: SlotConfig,
-  copy: CopyEntry
+  copy: CopyEntry,
+  baseWidth: number,
+  baseHeight: number
 ) {
   const keywords = slot.keywords?.join(', ') ?? '';
   const textSide = Math.round(cfg.layout.textSidePct * 100);
   const textHeight = Math.round(cfg.layout.textBackdropHeightPct * 100);
-  const textBounds = calcTextBounds(cfg);
+  const textBounds = calcTextBounds(cfg, baseWidth, baseHeight);
   const creativeBlock = creativeGuidance(creative);
   const storeSafe =
     store === 'appstore'
@@ -23,7 +25,7 @@ export function buildCoverPrompt(
       : '- Enquadre a captura dentro de um frame de Android (estilo Pixel), com bordas finas e cantos arredondados.';
 
   return `
-Crie um banner vertical para ${store} com 1024x1536.
+Crie um banner vertical para ${store} com ${baseWidth}x${baseHeight}.
 - Use a captura de tela enviada como UI do app e mantenha-a intacta.
 - Use a segunda imagem apenas como guia de layout.
 
@@ -34,7 +36,7 @@ Subtítulo: "${copy.subhead}"
 Tipografia:
 - Título grande e bold; subtítulo menor e legível.
 - Texto dentro do topo ${textHeight}% do canvas, com margem lateral ${textSide}%.
-- Caixa de texto (1024x1536): left=${textBounds.left}, right=${textBounds.right}, top=${textBounds.top}, bottom=${textBounds.bottom}.
+- Caixa de texto (${baseWidth}x${baseHeight}): left=${textBounds.left}, right=${textBounds.right}, top=${textBounds.top}, bottom=${textBounds.bottom}.
 - Sem logos ou textos extras.
 ${storeSafe}
 
@@ -53,7 +55,7 @@ Saída final será redimensionada para ${storeCfg.width}x${storeCfg.height}.
 
 export function buildBannerPrompt() {
   return `
-Crie um banner horizontal promocional (1280x720).
+Crie um banner horizontal promocional (1024x500).
 - Gere o texto livremente (headline + subhead) em PT-BR.
 - Texto deve destacar: calculadora de financiamento Price e SAC, comparativo, clareza, exportação.
 - Tom moderno, direto e confiável.
@@ -111,9 +113,7 @@ function creativeGuidance(level: number) {
   }
 }
 
-function calcTextBounds(cfg: Config) {
-  const width = cfg.defaults.baseWidth;
-  const height = cfg.defaults.baseHeight;
+function calcTextBounds(cfg: Config, width: number, height: number) {
   const left = Math.round(width * cfg.layout.textSidePct);
   const right = Math.round(width * (1 - cfg.layout.textSidePct));
   const top = Math.round(height * cfg.layout.textTopPct);

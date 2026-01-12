@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadConfig } from './io.js';
+import type { StoreKey } from './types.js';
 import { ensureGuideAndMask } from './guide.js';
 import { renderBanner, renderCovers, renderIcons } from './render.js';
 
@@ -36,7 +37,17 @@ const main = async () => {
       await renderCovers(cfg, opts.store, opts.slot, attempts, creative, opts.overwrite);
       break;
     case 'guide':
-      await ensureGuideAndMask(cfg, false, opts.overwrite);
+      {
+        const stores = opts.store === 'all'
+          ? (Object.keys(cfg.stores) as StoreKey[])
+          : [opts.store as StoreKey];
+        for (const store of stores) {
+          const storeCfg = cfg.stores[store];
+          const baseWidth = storeCfg.baseWidth ?? cfg.defaults.baseWidth;
+          const baseHeight = storeCfg.baseHeight ?? cfg.defaults.baseHeight;
+          await ensureGuideAndMask(cfg, store, baseWidth, baseHeight, false, opts.overwrite);
+        }
+      }
       break;
     case 'banner':
       await renderBanner(cfg, opts.store, opts.overwrite, attempts);

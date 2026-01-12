@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f4f0;
+  --bg-elevated: #fbfaf7;
+  --ink: #1a1d1b;
+  --muted: #5b615d;
+  --line: #d7d2c6;
+  --accent: #3b6a5e;
+  --accent-strong: #2c544a;
+  --accent-soft: #d6e3df;
+  --highlight: #f3eee2;
+  --shadow: 0 20px 60px rgba(25, 25, 25, 0.12);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: radial-gradient(1200px 600px at 80% -10%, #e8efe9 0%, rgba(232, 239, 233, 0) 60%),
+    radial-gradient(900px 500px at 10% 0%, #f0e7da 0%, rgba(240, 231, 218, 0) 55%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), "Manrope", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+main {
+  width: min(1120px, 92vw);
+  margin: 0 auto;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

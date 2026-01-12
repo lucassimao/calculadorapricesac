@@ -6,17 +6,20 @@ import { buildBannerPrompt, buildCoverPrompt, buildIconPrompt } from './prompt.j
 import { ensureGuideAndMask } from './guide.js';
 import { generateImage } from './gemini.js';
 import { ensureDir, fileExists, findScreenshot, bannerOutputPath, loadCopyFile, outputPath, resolvePath } from './io.js';
-import { prepareScreenshotCanvas, resizeExact } from './image.js';
+import { fitWithinWithBackground, prepareScreenshotCanvas, resizeExact } from './image.js';
 
 export async function renderCovers(cfg: Config, storeFilter: string, slotFilter: string, attempts: number, creative: number, overwrite: boolean) {
   const stores = selectStores(cfg, storeFilter);
   const slots = selectSlots(cfg, slotFilter);
-  const { guidePath } = await ensureGuideAndMask(cfg, false, overwrite);
   const copyFile = await loadCopyFile(cfg, 'pt-BR');
   const outputs: string[] = [];
 
   for (const store of stores) {
     const storeCfg = cfg.stores[store];
+    const baseWidth = storeCfg.baseWidth ?? cfg.defaults.baseWidth;
+    const baseHeight = storeCfg.baseHeight ?? cfg.defaults.baseHeight;
+    const aspectRatio = storeCfg.aspectRatio ?? cfg.models.aspectRatio;
+    const { guidePath } = await ensureGuideAndMask(cfg, store, baseWidth, baseHeight, false, overwrite);
     for (const slot of slots) {
       const copyEntry = copyFile[slot.key];
       if (!copyEntry) {
@@ -27,8 +30,8 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
         throw new Error(`Screenshot not found: ${screenshotPath}`);
       }
 
-      const prompt = buildCoverPrompt(cfg, creative, store, storeCfg, slot, copyEntry);
-      const prepared = await prepareScreenshotCanvas(cfg, screenshotPath);
+      const prompt = buildCoverPrompt(cfg, creative, store, storeCfg, slot, copyEntry, baseWidth, baseHeight);
+      const prepared = await prepareScreenshotCanvas(cfg, screenshotPath, baseWidth, baseHeight);
       const images = [
         { path: prepared, mime: 'image/png' },
         { path: guidePath, mime: 'image/png' },
@@ -41,10 +44,15 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
         }
 
         const buffer = await generateImage(
-          { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio: cfg.models.aspectRatio },
+          { model: cfg.models.image, imageSize: cfg.models.imageSize, aspectRatio },
           { prompt, images }
         );
-        const resized = await resizeExact(buffer, storeCfg.width, storeCfg.height);
+        let resized = store === 'appstore'
+          ? await fitWithinWithBackground(buffer, storeCfg.width, storeCfg.height)
+          : await resizeExact(buffer, storeCfg.width, storeCfg.height);
+        if (store === 'play') {
+          resized = await sharp(resized).flatten({ background: '#ffffff' }).png().toBuffer();
+        }
         await ensureDir(path.dirname(outPath));
         await sharp(resized).toFile(outPath);
         outputs.push(outPath);

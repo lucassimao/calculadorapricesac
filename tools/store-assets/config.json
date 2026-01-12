@@ -45,20 +45,26 @@
   ],
   "stores": {
     "appstore": {
-      "width": 1290,
-      "height": 2796,
-      "format": "png"
+      "width": 1284,
+      "height": 2778,
+      "format": "png",
+      "baseWidth": 1080,
+      "baseHeight": 1920,
+      "aspectRatio": "9:16"
     },
     "play": {
       "width": 1080,
       "height": 1920,
-      "format": "png"
+      "format": "png",
+      "baseWidth": 1080,
+      "baseHeight": 1920,
+      "aspectRatio": "9:16"
     }
   },
   "banners": {
     "play": {
-      "width": 1280,
-      "height": 720,
+      "width": 1024,
+      "height": 500,
       "format": "png"
     }
   },

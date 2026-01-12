@@ -6,11 +6,13 @@ type ExportFormat = 'pdf' | 'xlsx' | 'csv';
 interface ExportSectionProps {
   isPremium: boolean;
   exporting: boolean;
+  exportingFormat?: ExportFormat | null;
   onExport: (format: ExportFormat) => void;
 }
 
-export function ExportSection({ isPremium, exporting, onExport }: ExportSectionProps) {
+export function ExportSection({ isPremium, exporting, exportingFormat, onExport }: ExportSectionProps) {
   const { colors } = useTheme();
+  const isLoading = (format: ExportFormat) => exporting && exportingFormat === format;
 
   return (
     <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
@@ -24,41 +26,68 @@ export function ExportSection({ isPremium, exporting, onExport }: ExportSectionP
         <Pressable
           style={[
             styles.primaryButton,
-            !isPremium && styles.primaryButtonDisabled,
+            (!isPremium || exporting) && styles.primaryButtonDisabled,
           ]}
           onPress={() => onExport('pdf')}
+          disabled={exporting}
           accessibilityRole="button"
+          accessibilityState={{ disabled: exporting }}
           accessibilityLabel="Exportar PDF"
           testID="btn-export-pdf"
           nativeID="btn-export-pdf"
         >
-          <Text style={styles.primaryButtonText}>PDF</Text>
+          <View style={styles.buttonContent}>
+            {isLoading('pdf') ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : null}
+            <Text style={styles.primaryButtonText}>
+              {isLoading('pdf') ? 'Gerando...' : 'PDF'}
+            </Text>
+          </View>
         </Pressable>
         <Pressable
           style={[
             styles.primaryButton,
-            !isPremium && styles.primaryButtonDisabled,
+            (!isPremium || exporting) && styles.primaryButtonDisabled,
           ]}
           onPress={() => onExport('xlsx')}
+          disabled={exporting}
           accessibilityRole="button"
+          accessibilityState={{ disabled: exporting }}
           accessibilityLabel="Exportar XLSX"
           testID="btn-export-xlsx"
           nativeID="btn-export-xlsx"
         >
-          <Text style={styles.primaryButtonText}>XLSX</Text>
+          <View style={styles.buttonContent}>
+            {isLoading('xlsx') ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : null}
+            <Text style={styles.primaryButtonText}>
+              {isLoading('xlsx') ? 'Gerando...' : 'XLSX'}
+            </Text>
+          </View>
         </Pressable>
         <Pressable
           style={[
             styles.primaryButton,
-            !isPremium && styles.primaryButtonDisabled,
+            (!isPremium || exporting) && styles.primaryButtonDisabled,
           ]}
           onPress={() => onExport('csv')}
+          disabled={exporting}
           accessibilityRole="button"
+          accessibilityState={{ disabled: exporting }}
           accessibilityLabel="Exportar CSV"
           testID="btn-export-csv"
           nativeID="btn-export-csv"
         >
-          <Text style={styles.primaryButtonText}>CSV</Text>
+          <View style={styles.buttonContent}>
+            {isLoading('csv') ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : null}
+            <Text style={styles.primaryButtonText}>
+              {isLoading('csv') ? 'Gerando...' : 'CSV'}
+            </Text>
+          </View>
         </Pressable>
       </View>
       {exporting && (
@@ -109,6 +138,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 14,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   exportingRow: {
     flexDirection: 'row',

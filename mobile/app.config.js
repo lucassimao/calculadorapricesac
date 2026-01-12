@@ -51,6 +51,7 @@ export default {
     ],
     extra: {
       router: {},
+      adsDisabled: true,
       admobBannerUnitIdAndroid: process.env.ADMOB_BANNER_UNIT_ID_ANDROID ?? '',
       admobBannerUnitIdIos: process.env.ADMOB_BANNER_UNIT_ID_IOS ?? '',
       eas: {
