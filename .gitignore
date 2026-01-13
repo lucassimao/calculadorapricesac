@@ -42,3 +42,6 @@ yarn-error.*
 .venv/
 
 .env.local
+
+# build artifacts
+*.apk
