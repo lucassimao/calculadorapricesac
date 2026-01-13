@@ -1,10 +1,77 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com";
+const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL ?? "#";
+const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? "#";
+
+export const metadata: Metadata = {
+  title: "Simulador SAC e Price",
+  description:
+    "Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Simulador SAC e Price",
+    description:
+      "Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.",
+    url: siteUrl,
+    images: [
+      {
+        url: `${siteUrl}/opengraph-image`,
+        width: 1200,
+        height: 630,
+        alt: "Calculadora Price & SAC — simulador SAC e Price",
+        type: "image/png",
+      },
+      {
+        url: `${siteUrl}/og-square`,
+        width: 1200,
+        height: 1200,
+        alt: "Calculadora Price & SAC — ícone do app",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    title: "Simulador SAC e Price",
+    description:
+      "Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.",
+    images: [`${siteUrl}/twitter-image`],
+  },
+};
+
 export default function Home() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "MobileApplication",
+    name: "Calculadora Price & SAC",
+    operatingSystem: "iOS, Android",
+    applicationCategory: "FinanceApplication",
+    description:
+      "Simulador de financiamento imobiliário com SAC e Price. Funciona offline, com tabela completa, FGTS e exportações Premium.",
+    image: [
+      `${siteUrl}/opengraph-image`,
+      `${siteUrl}/og-square`,
+    ],
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "BRL",
+      category: "Free",
+    },
+    url: "https://calculadorapricesac.com/",
+  };
+
   return (
     <main className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <section className={styles.hero}>
         <div>
           <span className={`${styles.heroBadge} ${styles.fadeUp}`}>
@@ -257,7 +324,7 @@ export default function Home() {
             Baixe agora e descubra o cenário ideal para o seu financiamento imobiliário. Tudo offline.
           </p>
           <div className={styles.ctaActions}>
-            <a className={styles.primaryButton} href="#">
+            <a className={styles.primaryButton} href={appStoreUrl}>
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
@@ -272,7 +339,7 @@ export default function Home() {
               </span>
               App Store
             </a>
-            <a className={styles.secondaryButton} href="#">
+            <a className={styles.secondaryButton} href={playStoreUrl}>
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path

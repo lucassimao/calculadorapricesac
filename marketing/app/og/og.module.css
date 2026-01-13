@@ -1,0 +1,58 @@
+.page {
+  padding: 60px 0 80px;
+  display: grid;
+  gap: 24px;
+}
+
+.title {
+  font-family: var(--font-heading), "Fraunces", serif;
+  font-size: clamp(26px, 3vw, 36px);
+}
+
+.lead {
+  color: var(--muted);
+  max-width: 720px;
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background: var(--bg-elevated);
+  border-radius: 18px;
+  border: 1px solid rgba(215, 210, 198, 0.7);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 16px 30px rgba(30, 30, 30, 0.06);
+}
+
+.card img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(215, 210, 198, 0.7);
+  background: #fff;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.code {
+  font-family: "Courier New", monospace;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 40px 0 60px;
+  }
+}

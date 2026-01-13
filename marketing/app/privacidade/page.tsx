@@ -4,6 +4,14 @@ import styles from "../legal.module.css";
 export const metadata: Metadata = {
   title: "Privacidade",
   description: "Política de privacidade da Calculadora Price & SAC.",
+  alternates: {
+    canonical: "/privacidade",
+  },
+  openGraph: {
+    title: "Privacidade",
+    description: "Política de privacidade da Calculadora Price & SAC.",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com"}/privacidade`,
+  },
 };
 
 export default function PrivacyPage() {

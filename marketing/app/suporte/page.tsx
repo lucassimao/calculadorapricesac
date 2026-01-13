@@ -4,6 +4,14 @@ import styles from "../legal.module.css";
 export const metadata: Metadata = {
   title: "Suporte",
   description: "Suporte e contato da Calculadora Price & SAC.",
+  alternates: {
+    canonical: "/suporte",
+  },
+  openGraph: {
+    title: "Suporte",
+    description: "Suporte e contato da Calculadora Price & SAC.",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com"}/suporte`,
+  },
 };
 
 export default function SupportPage() {

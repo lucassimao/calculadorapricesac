@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import Image from "next/image";
 import Link from "next/link";
 import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import styles from "./site.module.css";
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com";
+const appStoreId = process.env.NEXT_PUBLIC_APP_STORE_ID;
+const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL;
+const playStoreId = process.env.NEXT_PUBLIC_PLAY_STORE_ID;
+const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL;
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -18,13 +25,89 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://calculadorapricesac.com"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Calculadora Price & SAC",
     template: "%s · Calculadora Price & SAC",
   },
   description:
     "Simulador de financiamento imobiliário SAC e Price. 100% offline, com tabela completa, FGTS, custos e comparativo.",
+  keywords: [
+    "calculadora",
+    "financiamento",
+    "imobiliário",
+    "SAC",
+    "Price",
+    "simulador",
+    "amortização",
+    "juros",
+    "CET",
+    "FGTS",
+  ],
+  authors: [{ name: "Lucas Simão Costa", url: "https://calculadorapricesac.com" }],
+  creator: "Lucas Simão Costa",
+  publisher: "Calculadora Price & SAC",
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: "Calculadora Price & SAC",
+    description:
+      "Simulador de financiamento imobiliário SAC e Price. 100% offline, com tabela completa, FGTS, custos e comparativo.",
+    url: siteUrl,
+    siteName: "Calculadora Price & SAC",
+    locale: "pt_BR",
+    type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Calculadora Price & SAC — simulador SAC e Price",
+        type: "image/png",
+      },
+      {
+        url: "/og-square",
+        width: 1200,
+        height: 1200,
+        alt: "Calculadora Price & SAC — ícone do app",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Calculadora Price & SAC",
+    description:
+      "Simulador de financiamento imobiliário SAC e Price. 100% offline, com tabela completa, FGTS, custos e comparativo.",
+    images: [
+      {
+        url: "/twitter-image",
+        alt: "Calculadora Price & SAC — simulador SAC e Price",
+      },
+    ],
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
+  other: {
+    ...(appStoreId
+      ? {
+          "twitter:app:id:iphone": appStoreId,
+          "twitter:app:name:iphone": "Calculadora Price & SAC",
+        }
+      : {}),
+    ...(appStoreUrl ? { "twitter:app:url:iphone": appStoreUrl } : {}),
+    ...(playStoreId
+      ? {
+          "twitter:app:id:googleplay": playStoreId,
+          "twitter:app:name:googleplay": "Calculadora Price & SAC",
+        }
+      : {}),
+    ...(playStoreUrl ? { "twitter:app:url:googleplay": playStoreUrl } : {}),
+  },
 };
 
 export default function RootLayout({
@@ -63,6 +146,7 @@ export default function RootLayout({
             </div>
           </footer>
         </div>
+        <Analytics />
       </body>
     </html>
   );
