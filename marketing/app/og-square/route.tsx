@@ -7,7 +7,7 @@ export const size = {
 
 export const contentType = "image/png";
 
-export default function OgSquare() {
+export function GET() {
   return new ImageResponse(
     (
       <div
@@ -41,7 +41,9 @@ export default function OgSquare() {
           SAC
         </div>
         <div style={{ fontSize: 44, fontWeight: 700 }}>Calculadora Price & SAC</div>
-        <div style={{ fontSize: 24, color: "#4a4f4b" }}>Simulador de financiamento imobiliário</div>
+        <div style={{ fontSize: 24, color: "#4a4f4b" }}>
+          Simulador de financiamento imobiliário
+        </div>
       </div>
     ),
     size
