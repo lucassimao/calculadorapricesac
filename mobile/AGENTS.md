@@ -38,6 +38,7 @@
   - `parseLocalDate()` - Accepts both YYYY-MM-DD and DD/MM/YYYY
   - `parseCurrencyInput()` - Brazilian currency parsing
   - `parseNumberInput()` - Brazilian number format (comma decimal)
+  - `maskCurrencyInput()` - Live currency formatting with R$ prefix (e.g., "R$ 300.000")
 
 ## Tech Stack
 - Expo 54, TypeScript, ESLint (flat config)
@@ -79,10 +80,21 @@
 - Revokes premium if no valid entitlement found (handles refunds)
 - Platform-specific modal styling (iOS: centered, Android: bottom sheet)
 
+## Responsive Design
+- **Breakpoint**: 768px (iPad Mini/iPad portrait)
+- **Tablet Layout**: Two-column layout with inputs on left, results on right
+- **Mobile Layout**: Single column, optimized for phones
+- **Amortization Table**: 4 columns on mobile, 6 columns on tablet (adds Juros + Amort.)
+- **Charts**: Side-by-side on tablet, stacked on mobile
+- **Container**: Max-width 1400px with increased padding on tablets
+
 ## Recent Improvements (FIXES_ROADMAP.md - All Completed)
 - **Date handling**: Fixed timezone issues, proper month overflow, Brazilian format
 - **CET calculation**: Uses actual dates for accurate IRR/NPV
 - **Dark mode**: Full theme support across all screens
 - **Component extraction**: Calculator split into reusable components
 - **Accessibility**: Proper labels and roles for screen readers
-- **Ad placement**: Reduced from 9 to 4 strategic placements
+- **Ad placement**: Reduced from 9 to 4 strategic placements (top + bottom only)
+- **iOS Date Picker**: Auto-closes after selection (matches Android behavior)
+- **Currency Input Masking**: Live formatting with R$ prefix and thousands separators
+- **Enhanced Charts**: Summary stats row, gradient fills, grid lines, value labels

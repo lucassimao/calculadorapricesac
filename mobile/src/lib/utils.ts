@@ -58,3 +58,42 @@ export function parseNumberInput(value: string): number {
   const parsed = Number.parseFloat(value.replace(',', '.'));
   return Number.isNaN(parsed) ? 0 : parsed;
 }
+
+/**
+ * Format currency input as user types (live masking).
+ * User-friendly: just adds thousands separators, no forced decimals.
+ * Example: typing "300000" displays "R$ 300.000"
+ */
+export function maskCurrencyInput(text: string): { display: string; value: number } {
+  // Remove everything except digits and comma (decimal separator)
+  let cleaned = text.replace(/[^\d,]/g, '');
+
+  if (!cleaned) {
+    return { display: '', value: 0 };
+  }
+
+  // Handle decimal part: only allow one comma, max 2 decimal places
+  const parts = cleaned.split(',');
+  let integerPart = parts[0];
+  let decimalPart = parts.length > 1 ? parts[1].slice(0, 2) : null;
+
+  // Remove leading zeros from integer part (but keep at least one digit)
+  integerPart = integerPart.replace(/^0+/, '') || '0';
+
+  // Add thousands separators to integer part
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  // Build display string with R$ prefix
+  let display = `R$ ${formattedInteger}`;
+  if (decimalPart !== null) {
+    display += `,${decimalPart}`;
+  }
+
+  // Calculate numeric value
+  const numericString = decimalPart !== null
+    ? `${integerPart}.${decimalPart}`
+    : integerPart;
+  const value = parseFloat(numericString) || 0;
+
+  return { display, value };
+}
