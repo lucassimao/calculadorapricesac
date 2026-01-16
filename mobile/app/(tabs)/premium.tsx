@@ -1,11 +1,62 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useIAP } from 'expo-iap';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
 import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
+
+interface BenefitItemProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  description: string;
+  color?: string;
+}
+
+function BenefitItem({ icon, title, description, color = '#2563EB' }: BenefitItemProps) {
+  return (
+    <View style={benefitStyles.item}>
+      <View style={[benefitStyles.iconWrapper, { backgroundColor: color + '15' }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <View style={benefitStyles.textWrapper}>
+        <Text style={benefitStyles.title}>{title}</Text>
+        <Text style={benefitStyles.description}>{description}</Text>
+      </View>
+    </View>
+  );
+}
+
+const benefitStyles = StyleSheet.create({
+  item: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  iconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textWrapper: {
+    flex: 1,
+    gap: 2,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  description: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+});
 
 export default function PremiumScreen() {
   const iapAvailability = useIapAvailability();
@@ -21,6 +72,8 @@ function PremiumIapScreen() {
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
   const [purchasesValidated, setPurchasesValidated] = useState(false);
+  // Track when we've just completed a purchase to prevent race condition with entitlement check
+  const [recentPurchaseAt, setRecentPurchaseAt] = useState<number | null>(null);
   const {
     connected,
     products,
@@ -33,6 +86,8 @@ function PremiumIapScreen() {
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       if (purchase.productId !== IAP_PRODUCT_ID) return;
+      // Mark that we just purchased to prevent revocation race condition
+      setRecentPurchaseAt(Date.now());
       try {
         await finishTransaction({ purchase, isConsumable: false });
       } catch {
@@ -58,6 +113,8 @@ function PremiumIapScreen() {
   const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
   const isStoreReady = connected && !!product;
   const restoreInProgress = restoreRequestedAt !== null;
+  // Consider recently purchased (within 10 seconds) to avoid race condition
+  const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
 
   useEffect(() => {
     if (!connected) return;
@@ -71,12 +128,20 @@ function PremiumIapScreen() {
     if (hasEntitlement && !isPremium) {
       // Grant premium if platform says we have entitlement
       markPremium(true).catch(() => {});
-    } else if (purchasesValidated && isPremium && !hasEntitlement) {
+    } else if (purchasesValidated && isPremium && !hasEntitlement && !recentlyPurchased) {
       // Revoke premium if local state says premium but platform has no entitlement
       // (e.g., user got a refund or purchase was revoked)
+      // Skip if we just made a purchase (entitlement may not have propagated yet)
       markPremium(false).catch(() => {});
     }
-  }, [hasEntitlement, isPremium, markPremium, purchasesValidated]);
+  }, [hasEntitlement, isPremium, markPremium, purchasesValidated, recentlyPurchased]);
+
+  // Clear the recent purchase flag after entitlement is confirmed
+  useEffect(() => {
+    if (recentPurchaseAt !== null && hasEntitlement) {
+      setRecentPurchaseAt(null);
+    }
+  }, [recentPurchaseAt, hasEntitlement]);
 
   useEffect(() => {
     if (restoreRequestedAt === null) return;
@@ -152,12 +217,31 @@ function PremiumIapScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>O que você ganha</Text>
-        <View style={styles.list}>
-          <Text style={styles.listItem}>• Remover anúncios</Text>
-          <Text style={styles.listItem}>• Exportar PDF</Text>
-          <Text style={styles.listItem}>• Exportar XLSX</Text>
-          <Text style={styles.listItem}>• Exportar CSV</Text>
-          <Text style={styles.listItem}>• Exportar tabela completa de parcelas</Text>
+        <View style={styles.benefitsList}>
+          <BenefitItem
+            icon="ban-outline"
+            title="Sem anúncios"
+            description="Navegue sem interrupções publicitárias"
+            color="#EF4444"
+          />
+          <BenefitItem
+            icon="share-outline"
+            title="Exportar simulação"
+            description="Gere arquivos PDF, XLSX e CSV com tabela completa, resumo e todos os dados do cenário"
+            color="#2563EB"
+          />
+          <BenefitItem
+            icon="logo-whatsapp"
+            title="Suporte prioritário"
+            description="Atendimento direto via WhatsApp para dúvidas e sugestões"
+            color="#25D366"
+          />
+          <BenefitItem
+            icon="infinite-outline"
+            title="Cenários ilimitados"
+            description="Salve e compare quantos cenários precisar"
+            color="#8B5CF6"
+          />
         </View>
       </View>
 
@@ -324,12 +408,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
-  list: {
-    gap: 6,
-  },
-  listItem: {
-    fontSize: 14,
-    color: '#374151',
+  benefitsList: {
+    gap: 16,
   },
   priceLabel: {
     fontSize: 12,

@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../lib/theme';
+import { PremiumPill } from '../PremiumPill';
 
 type ExportFormat = 'pdf' | 'xlsx' | 'csv';
 
@@ -16,9 +17,12 @@ export function ExportSection({ isPremium, exporting, exportingFormat, onExport 
 
   return (
     <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]} testID="section-export">
-        Exportar
-      </Text>
+      <View style={styles.titleRow}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]} testID="section-export">
+          Exportar
+        </Text>
+        <PremiumPill hidden={isPremium} />
+      </View>
       <Text style={[styles.helperText, { color: colors.textTertiary }]}>
         Inclui tabela completa com juros, amortização, custos, FGTS e resumo do cenário.
       </Text>
@@ -109,6 +113,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     gap: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sectionTitle: {
     fontSize: 16,

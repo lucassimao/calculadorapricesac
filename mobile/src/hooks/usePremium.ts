@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { loadPremiumStatus, savePremiumStatus, subscribePremiumStatus } from '../lib/storage/premium';
 
 export function usePremium() {
@@ -19,10 +19,10 @@ export function usePremium() {
     };
   }, []);
 
-  const markPremium = async (value: boolean) => {
+  const markPremium = useCallback(async (value: boolean) => {
     setIsPremium(value);
     await savePremiumStatus(value);
-  };
+  }, []);
 
   return { isPremium, loading, markPremium };
 }
