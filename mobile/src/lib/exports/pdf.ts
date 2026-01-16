@@ -3,7 +3,11 @@ import * as Sharing from 'expo-sharing';
 import type { LoanSummary, Scenario, ScheduleRow } from '../../types/loan';
 import { formatCurrency } from '../calculations';
 
-const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleRow[]) => {
+interface PdfOptions {
+  tableOnly?: boolean;
+}
+
+const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleRow[], options?: PdfOptions) => {
   const rows = schedule.filter((row) => row.installmentNumber > 0);
   const tableRows = rows
     .map(
@@ -23,20 +27,7 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
     )
     .join('');
 
-  return `
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
-          h1 { font-size: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-          th, td { border: 1px solid #E5E7EB; padding: 6px; font-size: 11px; text-align: right; }
-          th { background: #F3F4F6; }
-          td:first-child, th:first-child { text-align: left; }
-        </style>
-      </head>
-      <body>
-        <h1>Relatório de Financiamento</h1>
+  const summarySection = options?.tableOnly ? '' : `
         <p><strong>Sistema:</strong> ${scenario.system}</p>
         <p><strong>Valor:</strong> ${formatCurrency(scenario.principal)}</p>
         <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
@@ -52,7 +43,25 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
         <p>Total Pago Líquido: ${formatCurrency(summary.totalPaymentNet)}</p>
         <p>1ª Parcela: ${formatCurrency(summary.firstPayment)}</p>
         <p>Última Parcela: ${formatCurrency(summary.lastPayment)}</p>
-        <h2>Tabela de Amortização</h2>
+        <h2>Tabela de Amortização</h2>`;
+
+  const title = options?.tableOnly ? 'Tabela de Amortização' : 'Relatório de Financiamento';
+
+  return `
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
+          h1 { font-size: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th, td { border: 1px solid #E5E7EB; padding: 6px; font-size: 11px; text-align: right; }
+          th { background: #F3F4F6; }
+          td:first-child, th:first-child { text-align: left; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        ${summarySection}
         <table>
           <thead>
             <tr>
@@ -76,8 +85,8 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
   `;
 };
 
-export async function exportPdf(scenario: Scenario, summary: LoanSummary, schedule: ScheduleRow[]) {
-  const html = buildHtml(scenario, summary, schedule);
+export async function exportPdf(scenario: Scenario, summary: LoanSummary, schedule: ScheduleRow[], options?: PdfOptions) {
+  const html = buildHtml(scenario, summary, schedule, options);
   const { uri } = await Print.printToFileAsync({ html });
   await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Exportar PDF' });
 }

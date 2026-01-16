@@ -2,7 +2,11 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { LoanSummary, ScheduleRow, Scenario } from '../../types/loan';
 
-const buildCsv = (schedule: ScheduleRow[], scenario: Scenario, summary: LoanSummary) => {
+interface CsvOptions {
+  tableOnly?: boolean;
+}
+
+const buildCsv = (schedule: ScheduleRow[], scenario: Scenario, summary: LoanSummary, options?: CsvOptions) => {
   const rows = schedule.filter((row) => row.installmentNumber > 0);
   const header = ['Parcela', 'Data', 'Parcela', 'Juros', 'Amortização', 'Saldo', 'Custos', 'FGTS', 'Líquido'];
   const lines = [
@@ -20,22 +24,24 @@ const buildCsv = (schedule: ScheduleRow[], scenario: Scenario, summary: LoanSumm
     ].join(',')),
   ];
 
-  lines.push('');
-  lines.push(`Sistema,${scenario.system}`);
-  lines.push(`Taxa,${scenario.rate}%`);
-  lines.push(`Prazo,${scenario.term} ${scenario.termUnit}`);
-  lines.push(`CET (a.a.),${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%`);
-  lines.push(`Custos Iniciais,${summary.totalUpfrontCosts.toFixed(2).replace('.', ',')}`);
-  lines.push(`Custos Mensais,${summary.totalMonthlyCosts.toFixed(2).replace('.', ',')}`);
-  lines.push(`Total com Custos,${summary.totalPaymentWithCosts.toFixed(2).replace('.', ',')}`);
-  lines.push(`FGTS Usado,${summary.totalFgtsUsed.toFixed(2).replace('.', ',')}`);
-  lines.push(`Total Pago Líquido,${summary.totalPaymentNet.toFixed(2).replace('.', ',')}`);
+  if (!options?.tableOnly) {
+    lines.push('');
+    lines.push(`Sistema,${scenario.system}`);
+    lines.push(`Taxa,${scenario.rate}%`);
+    lines.push(`Prazo,${scenario.term} ${scenario.termUnit}`);
+    lines.push(`CET (a.a.),${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%`);
+    lines.push(`Custos Iniciais,${summary.totalUpfrontCosts.toFixed(2).replace('.', ',')}`);
+    lines.push(`Custos Mensais,${summary.totalMonthlyCosts.toFixed(2).replace('.', ',')}`);
+    lines.push(`Total com Custos,${summary.totalPaymentWithCosts.toFixed(2).replace('.', ',')}`);
+    lines.push(`FGTS Usado,${summary.totalFgtsUsed.toFixed(2).replace('.', ',')}`);
+    lines.push(`Total Pago Líquido,${summary.totalPaymentNet.toFixed(2).replace('.', ',')}`);
+  }
 
   return lines.join('\n');
 };
 
-export async function exportCsv(schedule: ScheduleRow[], scenario: Scenario, summary: LoanSummary) {
-  const csv = buildCsv(schedule, scenario, summary);
+export async function exportCsv(schedule: ScheduleRow[], scenario: Scenario, summary: LoanSummary, options?: CsvOptions) {
+  const csv = buildCsv(schedule, scenario, summary, options);
   const file = new File(Paths.cache, 'tabela_amortizacao.csv');
   file.create({ overwrite: true });
   file.write(csv);
