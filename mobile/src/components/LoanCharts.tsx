@@ -157,25 +157,25 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
       {/* Summary Stats Row */}
       {summaryStats && (
         <View style={[styles.statsRow, isTablet && styles.statsRowTablet]}>
-          <View style={[styles.statCard, themedStyles.chartBlock]}>
+          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
             <Text style={[styles.statValue, themedStyles.statValue]}>
               {formatCurrency(summaryStats.totalPaid)}
             </Text>
             <Text style={[styles.statLabel, themedStyles.statLabel]}>Total Pago</Text>
           </View>
-          <View style={[styles.statCard, themedStyles.chartBlock]}>
+          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
             <Text style={[styles.statValue, themedStyles.statValue, { color: colors.chartBar1 }]}>
               {formatCurrency(summaryStats.totalInterest)}
             </Text>
             <Text style={[styles.statLabel, themedStyles.statLabel]}>Total Juros ({summaryStats.interestPercent.toFixed(1)}%)</Text>
           </View>
-          <View style={[styles.statCard, themedStyles.chartBlock]}>
+          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
             <Text style={[styles.statValue, themedStyles.statValue]}>
               {formatCurrency(summaryStats.firstPayment)}
             </Text>
             <Text style={[styles.statLabel, themedStyles.statLabel]}>1ª Parcela</Text>
           </View>
-          <View style={[styles.statCard, themedStyles.chartBlock]}>
+          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
             <Text style={[styles.statValue, themedStyles.statValue]}>
               {formatCurrency(summaryStats.lastPayment)}
             </Text>
@@ -385,14 +385,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statsRowTablet: {
-    flexWrap: 'nowrap',
+    // On tablet, use a 2x2 grid layout to prevent overflow
+    flexWrap: 'wrap',
   },
   statCard: {
-    flex: 1,
-    minWidth: '45%',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
+  },
+  statCardMobile: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  statCardTablet: {
+    width: '48%',
+    flexGrow: 1,
   },
   statValue: {
     fontSize: 15,

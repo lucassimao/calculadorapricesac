@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform, useWindowDimensions } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useIAP } from 'expo-iap';
@@ -9,7 +9,6 @@ import { formatDateBR, maskCurrencyInput, parseNumberInput } from '../../src/lib
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import {
-  ExportSection,
   ScenarioSection,
   SummarySection,
   SystemSelector,
@@ -17,6 +16,7 @@ import {
 } from '../../src/components/calculator';
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
 import { AdBanner } from '../../src/components/AdBanner';
+import { PremiumPill } from '../../src/components/PremiumPill';
 import { usePremium } from '../../src/hooks/usePremium';
 import { exportCsv } from '../../src/lib/exports/csv';
 import { exportPdf } from '../../src/lib/exports/pdf';
@@ -24,6 +24,8 @@ import { exportXlsx } from '../../src/lib/exports/xlsx';
 import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { useTheme } from '../../src/lib/theme';
+import { useExport } from '../../src/contexts/ExportContext';
+import { useStoreReview } from '../../src/hooks/useStoreReview';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -53,6 +55,8 @@ function PremiumSectionIap({
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
   const [purchasesValidated, setPurchasesValidated] = useState(false);
+  // Track when we've just completed a purchase to prevent race condition with entitlement check
+  const [recentPurchaseAt, setRecentPurchaseAt] = useState<number | null>(null);
   const {
     connected,
     products,
@@ -65,6 +69,8 @@ function PremiumSectionIap({
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       if (purchase.productId !== IAP_PRODUCT_ID) return;
+      // Mark that we just purchased to prevent revocation race condition
+      setRecentPurchaseAt(Date.now());
       try {
         await finishTransaction({ purchase, isConsumable: false });
       } catch {
@@ -88,6 +94,8 @@ function PremiumSectionIap({
   );
   const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
   const restoreInProgress = restoreRequestedAt !== null;
+  // Consider recently purchased (within 10 seconds) to avoid race condition
+  const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
 
   useEffect(() => {
     if (!connected) return;
@@ -101,12 +109,20 @@ function PremiumSectionIap({
     if (hasEntitlement && !isPremium) {
       // Grant premium if platform says we have entitlement
       markPremium(true).catch(() => {});
-    } else if (purchasesValidated && isPremium && !hasEntitlement) {
+    } else if (purchasesValidated && isPremium && !hasEntitlement && !recentlyPurchased) {
       // Revoke premium if local state says premium but platform has no entitlement
       // (e.g., user got a refund or purchase was revoked)
+      // Skip if we just made a purchase (entitlement may not have propagated yet)
       markPremium(false).catch(() => {});
     }
-  }, [hasEntitlement, isPremium, markPremium, purchasesValidated]);
+  }, [hasEntitlement, isPremium, markPremium, purchasesValidated, recentlyPurchased]);
+
+  // Clear the recent purchase flag after entitlement is confirmed
+  useEffect(() => {
+    if (recentPurchaseAt !== null && hasEntitlement) {
+      setRecentPurchaseAt(null);
+    }
+  }, [recentPurchaseAt, hasEntitlement]);
 
   useEffect(() => {
     if (restoreRequestedAt === null) return;
@@ -283,6 +299,8 @@ export default function CalculatorScreen() {
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
   const showAds = !premiumLoading && !isPremium;
   const iapAvailability = useIapAvailability();
+  const { registerExportHandler, unregisterExportHandler, setIsExporting } = useExport();
+  const { requestReviewIfAppropriate } = useStoreReview();
   const [exporting, setExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -512,7 +530,7 @@ export default function CalculatorScreen() {
   };
 
 
-  const handleExport = async (format: 'pdf' | 'xlsx' | 'csv') => {
+  const handleExportTableOnly = async (format: 'pdf' | 'xlsx' | 'csv') => {
     if (!isPremium) {
       Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
       return;
@@ -522,12 +540,14 @@ export default function CalculatorScreen() {
     setExportingFormat(format);
     try {
       if (format === 'pdf') {
-        await exportPdf(scenario, summary, schedule);
+        await exportPdf(scenario, summary, schedule, { tableOnly: true });
       } else if (format === 'xlsx') {
-        await exportXlsx(schedule, scenario, summary);
+        await exportXlsx(schedule, scenario, summary, { tableOnly: true });
       } else {
-        await exportCsv(schedule, scenario, summary);
+        await exportCsv(schedule, scenario, summary, { tableOnly: true });
       }
+      // Request store review after successful export (non-blocking)
+      requestReviewIfAppropriate().catch(() => {});
     } catch {
       Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
     } finally {
@@ -535,6 +555,42 @@ export default function CalculatorScreen() {
       setExportingFormat(null);
     }
   };
+
+  // Callback for the export context (used by tab bar action sheet)
+  const handleExportFromContext = useCallback(async (format: 'pdf' | 'xlsx' | 'csv') => {
+    if (!isPremium) {
+      Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
+      router.push('/(tabs)/premium');
+      return;
+    }
+    if (exporting) return;
+    setExporting(true);
+    setExportingFormat(format);
+    setIsExporting(true);
+    try {
+      if (format === 'pdf') {
+        await exportPdf(scenario, summary, schedule);
+      } else if (format === 'xlsx') {
+        await exportXlsx(schedule, scenario, summary);
+      } else {
+        await exportCsv(schedule, scenario, summary);
+      }
+      // Request store review after successful export (non-blocking)
+      requestReviewIfAppropriate().catch(() => {});
+    } catch {
+      Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
+    } finally {
+      setExporting(false);
+      setExportingFormat(null);
+      setIsExporting(false);
+    }
+  }, [isPremium, exporting, scenario, summary, schedule, router, setIsExporting, requestReviewIfAppropriate]);
+
+  // Register the export handler with the context so the tab bar can trigger exports
+  useEffect(() => {
+    registerExportHandler(handleExportFromContext, isPremium);
+    return () => unregisterExportHandler();
+  }, [registerExportHandler, unregisterExportHandler, handleExportFromContext, isPremium]);
 
   return (
     <ScrollView contentContainerStyle={[styles.container, themedStyles.container, isTablet && styles.containerTablet]} keyboardShouldPersistTaps="handled">
@@ -881,89 +937,94 @@ export default function CalculatorScreen() {
             isCalculating={isCalculating}
           />
 
-          <View style={[styles.section, themedStyles.section]}>
-            <LoanCharts schedule={schedule} />
-          </View>
+          {/* On mobile, show charts and table here; on tablet, they go below columns */}
+          {!isTablet && (
+            <>
+              <View style={[styles.section, themedStyles.section]}>
+                <LoanCharts schedule={schedule} />
+              </View>
 
-          <View style={[styles.section, themedStyles.section]}>
-            <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tabela de Amortização</Text>
-            {totalInstallments > 0 && (
-              <View style={styles.tableMetaRow}>
-                <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
-                  Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
-                </Text>
+              <View style={[styles.section, themedStyles.section]}>
+                <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tabela de Amortização</Text>
+                {totalInstallments > 0 && (
+                  <View style={styles.tableMetaRow}>
+                    <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
+                      Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
+                    </Text>
+                  </View>
+                )}
+                <AmortizationTable
+                  schedule={scheduleForTable}
+                  totalSchedule={schedule}
+                  showExtras
+                  columns={['installment', 'date', 'payment', 'balance']}
+                />
+                <View style={styles.subsectionTitleRow}>
+                  <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
+                  <PremiumPill hidden={isPremium} />
+                </View>
+                <View style={styles.row}>
+                  <Pressable
+                    style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                    onPress={() => handleExportTableOnly('pdf')}
+                    disabled={exporting}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: exporting }}
+                    accessibilityLabel="Gerar tabela completa em PDF"
+                  >
+                    <View style={styles.buttonContent}>
+                      {exporting && exportingFormat === 'pdf' ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : null}
+                      <Text style={styles.primaryButtonText}>
+                        {exporting && exportingFormat === 'pdf' ? 'Gerando...' : 'PDF'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                    onPress={() => handleExportTableOnly('xlsx')}
+                    disabled={exporting}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: exporting }}
+                    accessibilityLabel="Gerar tabela completa em XLSX"
+                  >
+                    <View style={styles.buttonContent}>
+                      {exporting && exportingFormat === 'xlsx' ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : null}
+                      <Text style={styles.primaryButtonText}>
+                        {exporting && exportingFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                    onPress={() => handleExportTableOnly('csv')}
+                    disabled={exporting}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: exporting }}
+                    accessibilityLabel="Gerar tabela completa em CSV"
+                  >
+                    <View style={styles.buttonContent}>
+                      {exporting && exportingFormat === 'csv' ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : null}
+                      <Text style={styles.primaryButtonText}>
+                        {exporting && exportingFormat === 'csv' ? 'Gerando...' : 'CSV'}
+                      </Text>
+                    </View>
+                  </Pressable>
+                </View>
+                {exporting ? (
+                  <View style={styles.exportingRow} accessibilityLiveRegion="polite">
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.exportingText, { color: colors.textTertiary }]}>Gerando arquivo...</Text>
+                  </View>
+                ) : null}
               </View>
-            )}
-            <AmortizationTable
-              schedule={scheduleForTable}
-              totalSchedule={schedule}
-              showExtras
-              columns={isTablet
-                ? ['installment', 'date', 'payment', 'interest', 'amortization', 'balance']
-                : ['installment', 'date', 'payment', 'balance']
-              }
-            />
-            <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
-            <View style={styles.row}>
-              <Pressable
-                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
-                onPress={() => handleExport('pdf')}
-                disabled={exporting}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: exporting }}
-                accessibilityLabel="Gerar tabela completa em PDF"
-              >
-                <View style={styles.buttonContent}>
-                  {exporting && exportingFormat === 'pdf' ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : null}
-                  <Text style={styles.primaryButtonText}>
-                    {exporting && exportingFormat === 'pdf' ? 'Gerando...' : 'PDF'}
-                  </Text>
-                </View>
-              </Pressable>
-              <Pressable
-                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
-                onPress={() => handleExport('xlsx')}
-                disabled={exporting}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: exporting }}
-                accessibilityLabel="Gerar tabela completa em XLSX"
-              >
-                <View style={styles.buttonContent}>
-                  {exporting && exportingFormat === 'xlsx' ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : null}
-                  <Text style={styles.primaryButtonText}>
-                    {exporting && exportingFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
-                  </Text>
-                </View>
-              </Pressable>
-              <Pressable
-                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
-                onPress={() => handleExport('csv')}
-                disabled={exporting}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: exporting }}
-                accessibilityLabel="Gerar tabela completa em CSV"
-              >
-                <View style={styles.buttonContent}>
-                  {exporting && exportingFormat === 'csv' ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : null}
-                  <Text style={styles.primaryButtonText}>
-                    {exporting && exportingFormat === 'csv' ? 'Gerando...' : 'CSV'}
-                  </Text>
-                </View>
-              </Pressable>
-            </View>
-            {exporting ? (
-              <View style={styles.exportingRow} accessibilityLiveRegion="polite">
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.exportingText, { color: colors.textTertiary }]}>Gerando arquivo...</Text>
-              </View>
-            ) : null}
-          </View>
+            </>
+          )}
 
           <View style={[styles.section, themedStyles.section]}>
             <Text style={[styles.sectionTitle, themedStyles.sectionTitle]} testID="section-prepayments">Amortizações Extras</Text>
@@ -1232,14 +1293,98 @@ export default function CalculatorScreen() {
             )}
           </View>
 
-          <ExportSection
-            isPremium={isPremium}
-            exporting={exporting}
-            exportingFormat={exportingFormat}
-            onExport={handleExport}
-          />
         </View>
       </View>
+
+      {/* Full-width sections for tablet (spanning both columns) */}
+      {isTablet && (
+        <>
+          <View style={[styles.section, themedStyles.section]}>
+            <LoanCharts schedule={schedule} />
+          </View>
+
+          <View style={[styles.section, themedStyles.section]}>
+            <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tabela de Amortização</Text>
+            {totalInstallments > 0 && (
+              <View style={styles.tableMetaRow}>
+                <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
+                  Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
+                </Text>
+              </View>
+            )}
+            <AmortizationTable
+              schedule={scheduleForTable}
+              totalSchedule={schedule}
+              showExtras
+              columns={['installment', 'date', 'payment', 'interest', 'amortization', 'balance']}
+            />
+            <View style={styles.subsectionTitleRow}>
+                  <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
+                  <PremiumPill hidden={isPremium} />
+                </View>
+            <View style={styles.row}>
+              <Pressable
+                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                onPress={() => handleExportTableOnly('pdf')}
+                disabled={exporting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: exporting }}
+                accessibilityLabel="Gerar tabela completa em PDF"
+              >
+                <View style={styles.buttonContent}>
+                  {exporting && exportingFormat === 'pdf' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.primaryButtonText}>
+                    {exporting && exportingFormat === 'pdf' ? 'Gerando...' : 'PDF'}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                onPress={() => handleExportTableOnly('xlsx')}
+                disabled={exporting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: exporting }}
+                accessibilityLabel="Gerar tabela completa em XLSX"
+              >
+                <View style={styles.buttonContent}>
+                  {exporting && exportingFormat === 'xlsx' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.primaryButtonText}>
+                    {exporting && exportingFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                onPress={() => handleExportTableOnly('csv')}
+                disabled={exporting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: exporting }}
+                accessibilityLabel="Gerar tabela completa em CSV"
+              >
+                <View style={styles.buttonContent}>
+                  {exporting && exportingFormat === 'csv' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.primaryButtonText}>
+                    {exporting && exportingFormat === 'csv' ? 'Gerando...' : 'CSV'}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+            {exporting ? (
+              <View style={styles.exportingRow} accessibilityLiveRegion="polite">
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.exportingText, { color: colors.textTertiary }]}>Gerando arquivo...</Text>
+              </View>
+            ) : null}
+          </View>
+
+        </>
+      )}
 
       <AdBanner enabled={showAds} />
     </ScrollView>
@@ -1306,6 +1451,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#374151',
+  },
+  subsectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   label: {
     fontSize: 14,
