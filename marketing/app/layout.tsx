@@ -130,6 +130,7 @@ export default function RootLayout({
               <nav className={styles.nav}>
                 <Link href="/">Início</Link>
                 <Link href="/privacidade">Privacidade</Link>
+                <Link href="/termos">Termos</Link>
                 <Link href="/suporte">Suporte</Link>
               </nav>
             </div>
@@ -139,7 +140,8 @@ export default function RootLayout({
             <div className={styles.footerInner}>
               <div>© 2026 Calculadora Price &amp; SAC. Todos os direitos reservados.</div>
               <div className={styles.footerLinks}>
-                <Link href="/privacidade">Política de Privacidade</Link>
+                <Link href="/privacidade">Privacidade</Link>
+                <Link href="/termos">Termos de Uso</Link>
                 <Link href="/suporte">Suporte</Link>
                 <a href="mailto:lucas@lucassimao.com">lucas@lucassimao.com</a>
               </div>

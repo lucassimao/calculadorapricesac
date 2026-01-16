@@ -15,8 +15,51 @@ export const metadata: Metadata = {
 };
 
 export default function SupportPage() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Preciso de login para usar o app?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Não. O app funciona offline e sem cadastro.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Como funciona o Premium?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "É uma compra única que remove anúncios e libera exportações em PDF, XLSX e CSV.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Consigo restaurar a compra em outro dispositivo?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Sim. Há um botão de restaurar na aba Premium do aplicativo.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Onde ficam meus dados salvos?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Salvos localmente no dispositivo. O app não envia dados para servidores externos.",
+        },
+      },
+    ],
+  };
+
   return (
     <main className={styles.page}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <div>
         <h1 className={styles.title}>Suporte</h1>
         <p className={styles.lead}>
@@ -57,8 +100,8 @@ export default function SupportPage() {
       <section className={styles.section}>
         <h2>Relatar problemas</h2>
         <p>
-          Para agilizar, informe o modelo do aparelho, a versão do iOS e o que estava fazendo no
-          momento do erro.
+          Para agilizar, informe o modelo do aparelho, a versão do sistema (iOS ou Android) e o
+          que estava fazendo no momento do erro.
         </p>
       </section>
     </main>
