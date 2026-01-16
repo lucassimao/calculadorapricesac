@@ -59,6 +59,28 @@
       "baseWidth": 1080,
       "baseHeight": 1920,
       "aspectRatio": "9:16"
+    },
+    "appstore-tablet": {
+      "width": 2064,
+      "height": 2752,
+      "format": "png",
+      "baseWidth": 2064,
+      "baseHeight": 2752,
+      "aspectRatio": "3:4",
+      "deviceKind": "tablet",
+      "deviceFrame": "iPad Pro 13-inch",
+      "screenshotDir": "ipad-13"
+    },
+    "play-tablet": {
+      "width": 1440,
+      "height": 2560,
+      "format": "png",
+      "baseWidth": 1440,
+      "baseHeight": 2560,
+      "aspectRatio": "9:16",
+      "deviceKind": "tablet",
+      "deviceFrame": "Android tablet (Pixel Tablet)",
+      "screenshotDir": "android-tablet"
     }
   },
   "banners": {

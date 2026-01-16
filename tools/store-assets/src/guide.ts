@@ -10,6 +10,7 @@ export async function ensureGuideAndMask(
   store: StoreKey,
   baseWidth: number,
   baseHeight: number,
+  layout: LayoutConfig,
   invertMask: boolean,
   overwrite: boolean
 ) {
@@ -21,14 +22,16 @@ export async function ensureGuideAndMask(
 
   const cfgHash = hashConfig(cfg);
   if (!overwrite && (await exists(guidePath)) && (await exists(maskPath)) && (await hashMatches(hashPath, cfgHash))) {
+    console.log(`[store-assets] guide/mask cache hit store=${store} guide=${guidePath} mask=${maskPath}`);
     return { guidePath, maskPath };
   }
 
+  console.log(`[store-assets] guide/mask generate store=${store} size=${baseWidth}x${baseHeight} overwrite=${overwrite}`);
   await ensureDir(guideDir);
   await ensureDir(maskDir);
 
-  const guideSvg = buildGuideSvg(baseWidth, baseHeight, cfg.layout);
-  const maskSvg = buildMaskSvg(baseWidth, baseHeight, cfg.layout, invertMask);
+  const guideSvg = buildGuideSvg(baseWidth, baseHeight, layout);
+  const maskSvg = buildMaskSvg(baseWidth, baseHeight, layout, invertMask);
 
   await sharp(Buffer.from(guideSvg)).png().toFile(guidePath);
   await sharp(Buffer.from(maskSvg)).png().toFile(maskPath);

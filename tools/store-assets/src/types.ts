@@ -1,4 +1,4 @@
-export type StoreKey = 'appstore' | 'play';
+export type StoreKey = 'appstore' | 'play' | 'appstore-tablet' | 'play-tablet';
 
 export interface SlotConfig {
   id: number;
@@ -13,6 +13,10 @@ export interface StoreConfig {
   baseWidth?: number;
   baseHeight?: number;
   aspectRatio?: string;
+  deviceKind?: 'phone' | 'tablet';
+  deviceFrame?: string;
+  screenshotDir?: string;
+  layout?: Partial<LayoutConfig>;
 }
 
 export interface LayoutConfig {

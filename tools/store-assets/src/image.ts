@@ -9,9 +9,10 @@ export async function prepareScreenshotCanvas(
   cfg: Config,
   screenshotPath: string,
   baseWidth: number,
-  baseHeight: number
+  baseHeight: number,
+  layout = cfg.layout
 ) {
-  const area = screenshotArea(baseWidth, baseHeight, cfg.layout);
+  const area = screenshotArea(baseWidth, baseHeight, layout);
 
   const resized = await sharp(screenshotPath)
     .resize(area.width, area.height, { fit: 'contain' })

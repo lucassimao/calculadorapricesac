@@ -23,6 +23,9 @@ export GEMINI_API_KEY="..."
 3) Coloque os arquivos:
 - Capturas (uma por slot, sem pasta de device):
   - `tools/store-assets/screenshots/pt-BR/{slot}.png`
+- Capturas para tablet (uma por slot, com subpasta por store):
+  - `tools/store-assets/screenshots/pt-BR/ipad-13/{slot}.png`
+  - `tools/store-assets/screenshots/pt-BR/android-tablet/{slot}.png`
 - Frames (opcional):
   - `tools/store-assets/frames/iphone11.png`
   - `tools/store-assets/frames/pixel8pro.png`
@@ -34,6 +37,12 @@ Edite o copy em `tools/store-assets/store-copy/pt-BR.json` (capas). O banner ger
 Gerar capas (App Store + Play):
 ```bash
 npm run start -- --action render --store all --slot all --attempts 2 --creative 2
+```
+
+Gerar capas de tablet:
+```bash
+npm run start -- --action render --store appstore-tablet --slot all --attempts 2 --creative 2
+npm run start -- --action render --store play-tablet --slot all --attempts 2 --creative 2
 ```
 
 Gerar guide/mask:
@@ -62,6 +71,8 @@ Play Feature Graphic sai em `tools/store-assets/.local/store-assets/play/pt-BR/b
 
 Arquivo `tools/store-assets/config.json`:
 - `stores`: tamanhos finais de App Store/Play (capas).
+- `stores.*.deviceKind` e `stores.*.deviceFrame`: controla o tipo de frame no prompt (ex.: iPad/Android tablet).
+- `stores.*.screenshotDir`: subpasta de screenshots por loja/dispositivo.
 - `banners`: tamanhos do banner por loja.
 - `icons`: tamanhos do ícone por loja.
 - `layout`: área de texto e screenshot na capa.

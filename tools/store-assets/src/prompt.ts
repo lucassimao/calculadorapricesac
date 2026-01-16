@@ -1,4 +1,4 @@
-import type { Config, CopyEntry, SlotConfig, StoreConfig } from './types.js';
+import type { Config, CopyEntry, LayoutConfig, SlotConfig, StoreConfig } from './types.js';
 
 export function buildCoverPrompt(
   cfg: Config,
@@ -8,24 +8,33 @@ export function buildCoverPrompt(
   slot: SlotConfig,
   copy: CopyEntry,
   baseWidth: number,
-  baseHeight: number
+  baseHeight: number,
+  layout: LayoutConfig
 ) {
   const keywords = slot.keywords?.join(', ') ?? '';
-  const textSide = Math.round(cfg.layout.textSidePct * 100);
-  const textHeight = Math.round(cfg.layout.textBackdropHeightPct * 100);
-  const textBounds = calcTextBounds(cfg, baseWidth, baseHeight);
+  const isAppStore = store.startsWith('appstore');
+  const storeLabel = isAppStore ? 'App Store' : 'Google Play';
+  const textSide = Math.round(layout.textSidePct * 100);
+  const textHeight = Math.round(layout.textBackdropHeightPct * 100);
+  const textBounds = calcTextBounds(layout, baseWidth, baseHeight);
   const creativeBlock = creativeGuidance(creative);
   const storeSafe =
-    store === 'appstore'
+    isAppStore && storeCfg.deviceKind !== 'tablet'
       ? '- Área segura App Store: deixe espaço livre acima do título; topo do título abaixo de 200px.'
       : '';
-  const frameGuidance =
-    store === 'appstore'
-      ? '- Enquadre a captura dentro de um frame de iPhone (estilo iOS), com bordas finas e cantos arredondados.'
-      : '- Enquadre a captura dentro de um frame de Android (estilo Pixel), com bordas finas e cantos arredondados.';
+  const deviceFrame = storeCfg.deviceFrame
+    ?? (isAppStore
+      ? 'iPhone'
+      : 'Android (estilo Pixel)');
+  const deviceKind = storeCfg.deviceKind ?? 'phone';
+  const deviceLine =
+    deviceKind === 'tablet'
+      ? '- Trata-se de uma tela de tablet; não use frame de celular.'
+      : '';
+  const frameGuidance = `- Enquadre a captura dentro de um frame de ${deviceFrame}, com bordas finas e cantos arredondados.`;
 
   return `
-Crie um banner vertical para ${store} com ${baseWidth}x${baseHeight}.
+Crie um banner vertical para ${storeLabel} com ${baseWidth}x${baseHeight}.
 - Use a captura de tela enviada como UI do app e mantenha-a intacta.
 - Use a segunda imagem apenas como guia de layout.
 
@@ -48,6 +57,7 @@ Layout:
 ${keywords ? `- Temas: ${keywords}.` : ''}
 ${creativeBlock}
 ${frameGuidance}
+${deviceLine}
 
 Saída final será redimensionada para ${storeCfg.width}x${storeCfg.height}.
   `.trim();
@@ -113,10 +123,10 @@ function creativeGuidance(level: number) {
   }
 }
 
-function calcTextBounds(cfg: Config, width: number, height: number) {
-  const left = Math.round(width * cfg.layout.textSidePct);
-  const right = Math.round(width * (1 - cfg.layout.textSidePct));
-  const top = Math.round(height * cfg.layout.textTopPct);
-  const bottom = Math.min(height, Math.round(height * (cfg.layout.textTopPct + cfg.layout.textBackdropHeightPct)));
+function calcTextBounds(layout: LayoutConfig, width: number, height: number) {
+  const left = Math.round(width * layout.textSidePct);
+  const right = Math.round(width * (1 - layout.textSidePct));
+  const top = Math.round(height * layout.textTopPct);
+  const bottom = Math.min(height, Math.round(height * (layout.textTopPct + layout.textBackdropHeightPct)));
   return { left, right, top, bottom };
 }

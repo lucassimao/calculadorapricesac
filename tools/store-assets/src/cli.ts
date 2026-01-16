@@ -17,7 +17,7 @@ const program = new Command();
 program
   .option('-c, --config <path>', 'config path', 'config.json')
   .option('-a, --action <action>', 'action: render, guide, banner, icon', 'render')
-  .option('-s, --store <store>', 'store: appstore, play, all', 'all')
+  .option('-s, --store <store>', 'store: appstore, play, appstore-tablet, play-tablet, all', 'all')
   .option('-l, --slot <slot>', 'slot key or all', 'all')
   .option('--attempts <number>', 'attempts per slot', '2')
   .option('--creative <number>', 'creativity level 0-5', '2')
@@ -45,7 +45,8 @@ const main = async () => {
           const storeCfg = cfg.stores[store];
           const baseWidth = storeCfg.baseWidth ?? cfg.defaults.baseWidth;
           const baseHeight = storeCfg.baseHeight ?? cfg.defaults.baseHeight;
-          await ensureGuideAndMask(cfg, store, baseWidth, baseHeight, false, opts.overwrite);
+          const layout = { ...cfg.layout, ...(storeCfg.layout ?? {}) };
+          await ensureGuideAndMask(cfg, store, baseWidth, baseHeight, layout, false, opts.overwrite);
         }
       }
       break;
