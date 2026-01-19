@@ -9,8 +9,9 @@ import { AdBanner } from '../../src/components/AdBanner';
 
 const FEEDBACK_EMAIL = 'lucas@lucassimao.com';
 const FEEDBACK_SUBJECT = 'Feedback - Calculadora Price & SAC';
-const WHATSAPP_NUMBER = '5511999999999'; // Replace with actual number
-const WHATSAPP_MESSAGE = 'Olá! Tenho uma dúvida sobre o app Calculadora Price & SAC.';
+const WHATSAPP_NUMBER = '5586998182840';
+const WHATSAPP_MESSAGE =
+  'Olá! Sou usuário do app Calculadora Price & SAC e estou entrando em contato pelo app.';
 
 const getMailtoUrl = () =>
   `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(FEEDBACK_SUBJECT)}`;

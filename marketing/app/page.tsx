@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com.br";
 const appStoreUrl = "https://apps.apple.com/us/app/calculadora-sac-price/id6757717537";
 
 export const metadata: Metadata = {
@@ -62,7 +62,7 @@ export default function Home() {
       priceCurrency: "BRL",
       category: "Free",
     },
-    url: "https://calculadorapricesac.com/",
+    url: siteUrl,
   };
 
   return (
