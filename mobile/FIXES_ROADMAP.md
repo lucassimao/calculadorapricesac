@@ -17,6 +17,7 @@ Organized by priority and grouped into sprints for systematic implementation.
 ## Sprint 1: Critical Bug Fixes
 
 ### 1.1 ✅ Fix `addMonths` date overflow bug (COMPLETED)
+
 **File:** `src/lib/calculations.ts:116-121`
 
 **Problem:** When adding months to dates at end of month (e.g., Jan 31 + 1 month), JavaScript's `setMonth` overflows to March 3rd instead of Feb 28/29.
@@ -24,6 +25,7 @@ Organized by priority and grouped into sprints for systematic implementation.
 **Impact:** Payment schedule dates can be wrong for loans starting on 29th, 30th, or 31st.
 
 **Solution:**
+
 ```typescript
 function addMonths(date: Date, months: number): Date {
   const next = new Date(date);
@@ -44,6 +46,7 @@ function addMonths(date: Date, months: number): Date {
 ```
 
 **Tests to add:**
+
 - Jan 31 + 1 month = Feb 28 (or 29 in leap year)
 - Jan 31 + 2 months = Mar 31
 - Mar 31 + 1 month = Apr 30
@@ -53,6 +56,7 @@ function addMonths(date: Date, months: number): Date {
 ---
 
 ### 1.2 ✅ Fix timezone date parsing issue (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx:591-595`
 
 **Problem:** `new Date('2026-01-05')` parses as UTC midnight, which in negative UTC timezones becomes the previous day.
@@ -60,6 +64,7 @@ function addMonths(date: Date, months: number): Date {
 **Impact:** Start dates may be off by one day for users in certain timezones.
 
 **Solution:**
+
 ```typescript
 // Option A: Parse as local date
 function parseLocalDate(text: string): Date | null {
@@ -80,6 +85,7 @@ const parsed = new Date(text + 'T00:00:00');
 ## Sprint 2: UX Critical Issues
 
 ### 2.1 ✅ Reduce excessive ad placements (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** 9 AdBanner components on a single screen is excessive and may violate AdMob policies.
@@ -87,9 +93,11 @@ const parsed = new Date(text + 'T00:00:00');
 **Impact:** Poor UX, potential policy violations, accidental clicks.
 
 **Current placements (9):**
+
 - Line 333, 384, 454, 621, 645, 713, 719, 755, 873, 1006, 1104, 1142
 
 **Solution:** Reduce to 3-4 strategic placements:
+
 1. After summary section
 2. After amortization table
 3. After FGTS section
@@ -100,19 +108,23 @@ const parsed = new Date(text + 'T00:00:00');
 ---
 
 ### 2.2 ✅ Sync quick comparison with base parameters (COMPLETED)
+
 **File:** `app/(tabs)/comparison.tsx:41-45`
 
 **Problem:** Quick comparison scenarios use hardcoded defaults, don't update when user changes base principal/rate/term.
 
 **Solution:**
+
 ```typescript
 // Update quickCases when base changes
 useEffect(() => {
-  setQuickCases(prev => prev.map(c => ({
-    ...c,
-    principal: base.principal,
-    // Keep individual rate/term/downPayment customizations
-  })));
+  setQuickCases((prev) =>
+    prev.map((c) => ({
+      ...c,
+      principal: base.principal,
+      // Keep individual rate/term/downPayment customizations
+    })),
+  );
 }, [base.principal]);
 ```
 
@@ -121,11 +133,13 @@ useEffect(() => {
 ---
 
 ### 2.3 ✅ Fix property mode principal display (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx:474-502`
 
 **Problem:** When in property mode, changing propertyValue or downPayment doesn't update the displayed principalText field.
 
 **Solution:** Add computed display or auto-update principalText:
+
 ```typescript
 const displayedPrincipal = isPropertyMode
   ? (scenario.propertyValue ?? 0) - (scenario.downPayment ?? 0)
@@ -141,19 +155,17 @@ const displayedPrincipal = isPropertyMode
 ## Sprint 3: Code Quality
 
 ### 3.1 ✅ Extract duplicated utility functions (COMPLETED)
+
 **Files:** `calculator.tsx:33-47`, `comparison.tsx:23-37`
 
 **Problem:** `parseCurrencyInput` and `parseNumberInput` are duplicated.
 
 **Solution:** Create `src/lib/utils.ts`:
+
 ```typescript
 export function parseCurrencyInput(value: string): number {
   if (!value.trim()) return 0;
-  const cleaned = value
-    .replace(/\s/g, '')
-    .replace(/R\$/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
+  const cleaned = value.replace(/\s/g, '').replace(/R\$/g, '').replace(/\./g, '').replace(',', '.');
   const parsed = Number.parseFloat(cleaned);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
@@ -176,11 +188,13 @@ export function parseLocalDate(text: string): Date | null {
 ---
 
 ### 3.2 ✅ Split calculator.tsx into smaller components (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** Single file was too large, hard to maintain.
 
 **Solution:** Extracted components to `src/components/calculator/`:
+
 - `ScenarioSection.tsx` - Scenario save/load/delete
 - `SystemSelector.tsx` - Price/SAC and loan mode toggles
 - `SummarySection.tsx` - Calculation results display
@@ -194,20 +208,20 @@ All components use the theme system with `useTheme()` hook for dark mode support
 ---
 
 ### 3.3 ✅ Remove unused PrepaymentType values (COMPLETED)
+
 **File:** `src/types/loan.ts:9`
 
 **Problem:** `available_monthly` and `one_time` are defined but never used.
 
 **Solution:** Either remove them or implement them:
+
 ```typescript
 // Option A: Remove unused
 export type PrepaymentType = 'fixed_amount' | 'percentage';
 
 // Option B: Document as future features
-export type PrepaymentType =
-  | 'fixed_amount'
-  | 'percentage'
-  // Future: | 'available_monthly' | 'one_time';
+export type PrepaymentType = 'fixed_amount' | 'percentage';
+// Future: | 'available_monthly' | 'one_time';
 ```
 
 **Estimate:** 15 minutes
@@ -217,11 +231,13 @@ export type PrepaymentType =
 ## Sprint 4: UX Enhancements
 
 ### 4.1 ✅ Add chart legend (COMPLETED)
+
 **File:** `src/components/LoanCharts.tsx`
 
 **Problem:** "Juros vs Amortização" chart has no legend explaining colors.
 
 **Solution:**
+
 ```typescript
 <View style={styles.legend}>
   <View style={styles.legendItem}>
@@ -240,6 +256,7 @@ export type PrepaymentType =
 ---
 
 ### 4.2 ✅ Show prepayment/FGTS details in table (COMPLETED)
+
 **File:** `src/components/AmortizationTable.tsx`
 
 **Problem:** Table doesn't display prepaymentAmount, fgtsAmortization, or fgtsSubsidy even though they're calculated.
@@ -251,28 +268,26 @@ export type PrepaymentType =
 ---
 
 ### 4.3 ✅ Add scenario deletion (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** Users can save scenarios but cannot delete them.
 
 **Solution:** Add delete button to scenario list items with confirmation:
+
 ```typescript
 const handleDeleteScenario = async (id: string) => {
-  Alert.alert(
-    'Excluir cenário',
-    'Tem certeza que deseja excluir este cenário?',
-    [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: async () => {
-          const nextList = scenarios.filter(s => s.id !== id);
-          await persistScenarios(nextList);
-        }
+  Alert.alert('Excluir cenário', 'Tem certeza que deseja excluir este cenário?', [
+    { text: 'Cancelar', style: 'cancel' },
+    {
+      text: 'Excluir',
+      style: 'destructive',
+      onPress: async () => {
+        const nextList = scenarios.filter((s) => s.id !== id);
+        await persistScenarios(nextList);
       },
-    ]
-  );
+    },
+  ]);
 };
 ```
 
@@ -281,11 +296,13 @@ const handleDeleteScenario = async (id: string) => {
 ---
 
 ### 4.4 ✅ Improve date input UX (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx`, `src/lib/utils.ts`
 
 **Problem:** Date format YYYY-MM-DD was unfamiliar to Brazilian users (DD/MM/YYYY).
 
 **Solution:**
+
 - Added `formatDateBR()` function to display dates in DD/MM/YYYY format
 - Updated `parseLocalDate()` to accept both YYYY-MM-DD and DD/MM/YYYY formats
 - All date displays now use Brazilian format throughout the app
@@ -296,6 +313,7 @@ const handleDeleteScenario = async (id: string) => {
 ---
 
 ### 4.5 ✅ Add loading state for calculations (COMPLETED)
+
 **File:** `app/(tabs)/calculator.tsx`
 
 **Problem:** No loading indicator when recalculating large schedules.
@@ -309,11 +327,13 @@ const handleDeleteScenario = async (id: string) => {
 ## Sprint 5: Advanced Improvements
 
 ### 5.1 ✅ Improve CET calculation accuracy (COMPLETED)
+
 **File:** `src/lib/calculations.ts`
 
 **Problem:** CET calculation assumed regular monthly periods; edge cases with early termination were slightly inaccurate.
 
 **Solution:**
+
 - Updated CET calculation to use actual payment dates instead of period indices
 - Calculate year fractions based on actual days between disbursement and each payment
 - Uses 365-day year convention (Brazilian standard)
@@ -324,11 +344,13 @@ const handleDeleteScenario = async (id: string) => {
 ---
 
 ### 5.2 ✅ Allow zero-rate (interest-free) loans (COMPLETED)
+
 **File:** `src/lib/calculations.ts:427-429`
 
 **Problem:** Validation rejects rate <= 0, but `calculatePricePayment` handles rate = 0 correctly.
 
 **Solution:** Allow rate = 0 for interest-free financing simulation:
+
 ```typescript
 if (scenario.rate < 0) {
   errors.push('Taxa de juros não pode ser negativa.');
@@ -341,11 +363,13 @@ if (scenario.rate < 0) {
 ---
 
 ### 5.3 ✅ Environment-based AdMob IDs (COMPLETED)
+
 **File:** `app.json`
 
 **Problem:** Test AdMob IDs are hardcoded. Need different IDs for production.
 
 **Solution:** Use EAS environment variables or app.config.js:
+
 ```javascript
 // app.config.js
 export default {
@@ -368,13 +392,13 @@ export default {
 
 ## Implementation Schedule
 
-| Sprint | Focus | Items | Estimated Time |
-|--------|-------|-------|----------------|
-| **Sprint 1** | Critical Bugs | 1.1, 1.2 | 1.5 hours |
-| **Sprint 2** | UX Critical | 2.1, 2.2, 2.3 | 2 hours |
-| **Sprint 3** | Code Quality | 3.1, 3.2, 3.3 | 4-5 hours |
-| **Sprint 4** | UX Enhancements | 4.1-4.5 | 4-5 hours |
-| **Sprint 5** | Advanced | 5.1-5.3 | 3-4 hours |
+| Sprint       | Focus           | Items         | Estimated Time |
+| ------------ | --------------- | ------------- | -------------- |
+| **Sprint 1** | Critical Bugs   | 1.1, 1.2      | 1.5 hours      |
+| **Sprint 2** | UX Critical     | 2.1, 2.2, 2.3 | 2 hours        |
+| **Sprint 3** | Code Quality    | 3.1, 3.2, 3.3 | 4-5 hours      |
+| **Sprint 4** | UX Enhancements | 4.1-4.5       | 4-5 hours      |
+| **Sprint 5** | Advanced        | 5.1-5.3       | 3-4 hours      |
 
 **Total Estimated Time:** 15-18 hours
 
@@ -395,6 +419,7 @@ After each sprint, verify:
 ## Verification Tests to Add
 
 ### For Sprint 1 (Date fixes):
+
 ```typescript
 describe('addMonths edge cases', () => {
   it('handles end-of-month overflow', () => {
@@ -413,6 +438,7 @@ describe('addMonths edge cases', () => {
 ```
 
 ### For Sprint 2 (Quick comparison):
+
 ```typescript
 describe('quick comparison sync', () => {
   it('updates scenarios when base principal changes', () => {

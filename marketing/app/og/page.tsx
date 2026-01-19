@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import styles from "./og.module.css";
+import type { Metadata } from 'next';
+import Image from 'next/image';
+import styles from './og.module.css';
 
 export const metadata: Metadata = {
-  title: "Prévia de OG",
-  description: "Prévia dos assets de Open Graph e Twitter Cards.",
+  title: 'Prévia de OG',
+  description: 'Prévia dos assets de Open Graph e Twitter Cards.',
   robots: {
     index: false,
     follow: false,
@@ -17,8 +17,8 @@ export default function OgPreviewPage() {
       <div>
         <h1 className={styles.title}>Prévia de Open Graph</h1>
         <p className={styles.lead}>
-          Esta página ajuda a validar os assets de compartilhamento. Use os links abaixo para
-          checar OG/Twitter em validadores externos.
+          Esta página ajuda a validar os assets de compartilhamento. Use os links abaixo para checar
+          OG/Twitter em validadores externos.
         </p>
       </div>
 

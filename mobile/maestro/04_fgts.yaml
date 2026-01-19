@@ -1,20 +1,20 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
-- tapOn: "Calculadora"
+- tapOn: 'Calculadora'
 - scrollUntilVisible:
     element:
-      text: "FGTS"
+      text: 'FGTS'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Data do FGTS"
+- tapOn: 'Data do FGTS'
 - eraseText
-- inputText: "2026-01-10"
-- tapOn: "Valor do FGTS"
+- inputText: '2026-01-10'
+- tapOn: 'Valor do FGTS'
 - eraseText
-- inputText: "800"
-- tapOn: "FGTS para parcela"
+- inputText: '800'
+- tapOn: 'FGTS para parcela'
 - pressKey: Back
-- tapOn: "Adicionar FGTS"
-- assertVisible: "Parcela"
-- tapOn: "Remover"
+- tapOn: 'Adicionar FGTS'
+- assertVisible: 'Parcela'
+- tapOn: 'Remover'

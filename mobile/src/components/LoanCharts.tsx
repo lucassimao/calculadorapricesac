@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Svg, { Defs, G, Line, LinearGradient, Path, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, {
+  Defs,
+  G,
+  Line,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
 import type { ScheduleRow } from '../types/loan';
 import { useTheme } from '../lib/theme';
 import { formatCurrency } from '../lib/calculations';
@@ -20,7 +29,7 @@ const createLinePath = (
   width: number,
   height: number,
   padding: number,
-  minZero = false
+  minZero = false,
 ) => {
   if (values.length === 0) return '';
   const min = minZero ? 0 : Math.min(...values);
@@ -44,7 +53,7 @@ const createAreaPath = (
   width: number,
   height: number,
   padding: number,
-  minZero = false
+  minZero = false,
 ) => {
   if (values.length === 0) return '';
   const linePath = createLinePath(values, width, height, padding, minZero);
@@ -87,26 +96,29 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
 
   const balancePath = useMemo(
     () => createLinePath(balanceValues, chartWidthHalf, chartHeight, padding, true),
-    [balanceValues, chartWidthHalf, chartHeight]
+    [balanceValues, chartWidthHalf, chartHeight],
   );
 
   const balanceAreaPath = useMemo(
     () => createAreaPath(balanceValues, chartWidthHalf, chartHeight, padding, true),
-    [balanceValues, chartWidthHalf, chartHeight]
+    [balanceValues, chartWidthHalf, chartHeight],
   );
 
   const paymentPath = useMemo(
     () => createLinePath(paymentValues, chartWidthHalf, chartHeight, padding, true),
-    [paymentValues, chartWidthHalf, chartHeight]
+    [paymentValues, chartWidthHalf, chartHeight],
   );
 
   const paymentAreaPath = useMemo(
     () => createAreaPath(paymentValues, chartWidthHalf, chartHeight, padding, true),
-    [paymentValues, chartWidthHalf, chartHeight]
+    [paymentValues, chartWidthHalf, chartHeight],
   );
 
   const barData = useMemo(() => {
-    const rows = sampleData(schedule.filter((row) => row.installmentNumber > 0), 20);
+    const rows = sampleData(
+      schedule.filter((row) => row.installmentNumber > 0),
+      20,
+    );
     const totals = rows.map((row) => row.interest + row.amortization);
     const maxTotal = Math.max(...totals, 1);
     return rows.map((row, index) => ({
@@ -128,21 +140,31 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
     const firstPayment = rows[0]?.payment ?? 0;
     const lastPayment = rows[rows.length - 1]?.payment ?? 0;
     const interestPercent = totalPaid > 0 ? (totalInterest / totalPaid) * 100 : 0;
-    return { totalInterest, totalAmortization, totalPaid, firstPayment, lastPayment, interestPercent };
+    return {
+      totalInterest,
+      totalAmortization,
+      totalPaid,
+      firstPayment,
+      lastPayment,
+      interestPercent,
+    };
   }, [schedule]);
 
   const barWidth = Math.max((chartWidthFull - padding * 2) / Math.max(barData.length, 1), 8);
 
   // Dynamic themed styles
-  const themedStyles = useMemo(() => ({
-    title: { color: colors.text },
-    chartBlock: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-    chartLabel: { color: colors.text },
-    chartSubtitle: { color: colors.textTertiary },
-    legendText: { color: colors.textSecondary },
-    statValue: { color: colors.text },
-    statLabel: { color: colors.textTertiary },
-  }), [colors]);
+  const themedStyles = useMemo(
+    () => ({
+      title: { color: colors.text },
+      chartBlock: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      chartLabel: { color: colors.text },
+      chartSubtitle: { color: colors.textTertiary },
+      legendText: { color: colors.textSecondary },
+      statValue: { color: colors.text },
+      statLabel: { color: colors.textTertiary },
+    }),
+    [colors],
+  );
 
   const gridLineColor = colors.border;
   const gridLines = [0, 0.25, 0.5, 0.75, 1];
@@ -157,25 +179,51 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
       {/* Summary Stats Row */}
       {summaryStats && (
         <View style={[styles.statsRow, isTablet && styles.statsRowTablet]}>
-          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
+          <View
+            style={[
+              styles.statCard,
+              isTablet ? styles.statCardTablet : styles.statCardMobile,
+              themedStyles.chartBlock,
+            ]}
+          >
             <Text style={[styles.statValue, themedStyles.statValue]}>
               {formatCurrency(summaryStats.totalPaid)}
             </Text>
             <Text style={[styles.statLabel, themedStyles.statLabel]}>Total Pago</Text>
           </View>
-          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
+          <View
+            style={[
+              styles.statCard,
+              isTablet ? styles.statCardTablet : styles.statCardMobile,
+              themedStyles.chartBlock,
+            ]}
+          >
             <Text style={[styles.statValue, themedStyles.statValue, { color: colors.chartBar1 }]}>
               {formatCurrency(summaryStats.totalInterest)}
             </Text>
-            <Text style={[styles.statLabel, themedStyles.statLabel]}>Total Juros ({summaryStats.interestPercent.toFixed(1)}%)</Text>
+            <Text style={[styles.statLabel, themedStyles.statLabel]}>
+              Total Juros ({summaryStats.interestPercent.toFixed(1)}%)
+            </Text>
           </View>
-          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
+          <View
+            style={[
+              styles.statCard,
+              isTablet ? styles.statCardTablet : styles.statCardMobile,
+              themedStyles.chartBlock,
+            ]}
+          >
             <Text style={[styles.statValue, themedStyles.statValue]}>
               {formatCurrency(summaryStats.firstPayment)}
             </Text>
             <Text style={[styles.statLabel, themedStyles.statLabel]}>1ª Parcela</Text>
           </View>
-          <View style={[styles.statCard, isTablet ? styles.statCardTablet : styles.statCardMobile, themedStyles.chartBlock]}>
+          <View
+            style={[
+              styles.statCard,
+              isTablet ? styles.statCardTablet : styles.statCardMobile,
+              themedStyles.chartBlock,
+            ]}
+          >
             <Text style={[styles.statValue, themedStyles.statValue]}>
               {formatCurrency(summaryStats.lastPayment)}
             </Text>
@@ -195,7 +243,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Saldo Devedor</Text>
             {balanceValues.length > 0 && (
               <Text style={[styles.chartValue, { color: colors.chartLine2 }]}>
-                {formatCompactCurrency(balanceValues[0])} → {formatCompactCurrency(balanceValues[balanceValues.length - 1])}
+                {formatCompactCurrency(balanceValues[0])} →{' '}
+                {formatCompactCurrency(balanceValues[balanceValues.length - 1])}
               </Text>
             )}
           </View>
@@ -222,14 +271,33 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {/* Area fill */}
             <Path d={balanceAreaPath} fill="url(#balanceGradient)" />
             {/* Line */}
-            <Path d={balancePath} stroke={colors.chartLine2} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path
+              d={balancePath}
+              stroke={colors.chartLine2}
+              strokeWidth={2.5}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             {/* Y-axis labels */}
             {balanceValues.length > 0 && (
               <>
-                <SvgText x={padding - 4} y={padding + 4} fontSize={9} fill={colors.textTertiary} textAnchor="end">
+                <SvgText
+                  x={padding - 4}
+                  y={padding + 4}
+                  fontSize={9}
+                  fill={colors.textTertiary}
+                  textAnchor="end"
+                >
                   {formatCompactCurrency(Math.max(...balanceValues))}
                 </SvgText>
-                <SvgText x={padding - 4} y={chartHeight - padding} fontSize={9} fill={colors.textTertiary} textAnchor="end">
+                <SvgText
+                  x={padding - 4}
+                  y={chartHeight - padding}
+                  fontSize={9}
+                  fill={colors.textTertiary}
+                  textAnchor="end"
+                >
                   R$ 0
                 </SvgText>
               </>
@@ -247,7 +315,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Parcelas</Text>
             {paymentValues.length > 0 && (
               <Text style={[styles.chartValue, { color: colors.chartLine1 }]}>
-                {formatCompactCurrency(paymentValues[0])} → {formatCompactCurrency(paymentValues[paymentValues.length - 1])}
+                {formatCompactCurrency(paymentValues[0])} →{' '}
+                {formatCompactCurrency(paymentValues[paymentValues.length - 1])}
               </Text>
             )}
           </View>
@@ -274,14 +343,33 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {/* Area fill */}
             <Path d={paymentAreaPath} fill="url(#paymentGradient)" />
             {/* Line */}
-            <Path d={paymentPath} stroke={colors.chartLine1} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path
+              d={paymentPath}
+              stroke={colors.chartLine1}
+              strokeWidth={2.5}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
             {/* Y-axis labels */}
             {paymentValues.length > 0 && (
               <>
-                <SvgText x={padding - 4} y={padding + 4} fontSize={9} fill={colors.textTertiary} textAnchor="end">
+                <SvgText
+                  x={padding - 4}
+                  y={padding + 4}
+                  fontSize={9}
+                  fill={colors.textTertiary}
+                  textAnchor="end"
+                >
                   {formatCompactCurrency(Math.max(...paymentValues))}
                 </SvgText>
-                <SvgText x={padding - 4} y={chartHeight - padding} fontSize={9} fill={colors.textTertiary} textAnchor="end">
+                <SvgText
+                  x={padding - 4}
+                  y={chartHeight - padding}
+                  fontSize={9}
+                  fill={colors.textTertiary}
+                  textAnchor="end"
+                >
                   {formatCompactCurrency(Math.min(...paymentValues))}
                 </SvgText>
               </>
@@ -296,7 +384,9 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
           accessibilityLabel="Gráfico de juros versus amortização"
         >
           <View style={styles.chartHeader}>
-            <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Composição das Parcelas</Text>
+            <Text style={[styles.chartLabel, themedStyles.chartLabel]}>
+              Composição das Parcelas
+            </Text>
           </View>
           <View style={styles.legend}>
             <View style={styles.legendItem}>
@@ -358,7 +448,13 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             <SvgText x={padding} y={chartHeight - 4} fontSize={9} fill={colors.textTertiary}>
               Início
             </SvgText>
-            <SvgText x={chartWidthFull - padding} y={chartHeight - 4} fontSize={9} fill={colors.textTertiary} textAnchor="end">
+            <SvgText
+              x={chartWidthFull - padding}
+              y={chartHeight - 4}
+              fontSize={9}
+              fill={colors.textTertiary}
+              textAnchor="end"
+            >
               Fim
             </SvgText>
           </Svg>

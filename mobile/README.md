@@ -17,19 +17,19 @@ SKU usado no app: `remove_ads` (one-time).
 
 ### App Store Connect (iOS)
 
-1) App Store Connect → In-App Purchases → Create.
-2) Type: **Non-Consumable** (remover ads + liberar exportacao).
-3) Reference Name: algo legivel (ex.: "Remover anuncios").
-4) Product ID: `remove_ads` (mesmo do app).
-5) Preco: R$ 10,00 (ou tier equivalente).
-6) Enviar para revisao com uma build que referencie o SKU.
+1. App Store Connect → In-App Purchases → Create.
+2. Type: **Non-Consumable** (remover ads + liberar exportacao).
+3. Reference Name: algo legivel (ex.: "Remover anuncios").
+4. Product ID: `remove_ads` (mesmo do app).
+5. Preco: R$ 10,00 (ou tier equivalente).
+6. Enviar para revisao com uma build que referencie o SKU.
 
 ### Google Play Console (Android)
 
-1) Play Console → Monetize → Products → In-app products.
-2) Create product → **Managed product** (one-time).
-3) Product ID: `remove_ads` (mesmo do app).
-4) Ativar e publicar junto com a release.
+1. Play Console → Monetize → Products → In-app products.
+2. Create product → **Managed product** (one-time).
+3. Product ID: `remove_ads` (mesmo do app).
+4. Ativar e publicar junto com a release.
 
 ## Store assets (capas/screenhots)
 

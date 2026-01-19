@@ -8,6 +8,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
+    "format": "prettier --write .",
     "test": "vitest run",
     "ui:maestro": "$HOME/.maestro/bin/maestro test maestro",
     "ui:maestro:android": "$HOME/.maestro/bin/maestro test maestro",
@@ -30,6 +31,7 @@
     "expo-sharing": "~14.0.8",
     "expo-status-bar": "~3.0.9",
     "expo-store-review": "~9.0.9",
+    "expo-updates": "~29.0.16",
     "react": "19.1.0",
     "react-dom": "^19.1.0",
     "react-native": "0.81.5",
@@ -48,6 +50,7 @@
     "babel-preset-expo": "^54.0.9",
     "eslint": "^9.39.2",
     "eslint-config-expo": "^10.0.0",
+    "prettier": "^3.8.0",
     "typescript": "~5.9.2",
     "vitest": "^4.0.16"
   },

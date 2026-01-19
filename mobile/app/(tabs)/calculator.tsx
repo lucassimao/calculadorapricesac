@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Platform, useWindowDimensions } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useIAP } from 'expo-iap';
 import { useRouter } from 'expo-router';
 import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
-import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule, validateScenario } from '../../src/lib/calculations';
+import {
+  calculateLoanSummary,
+  formatCurrency,
+  generateAmortizationSchedule,
+  validateScenario,
+} from '../../src/lib/calculations';
 import { formatDateBR, maskCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
@@ -84,13 +100,10 @@ function PremiumSectionIap({
     },
   });
 
-  const product = useMemo(
-    () => products.find((item) => item.id === IAP_PRODUCT_ID),
-    [products]
-  );
+  const product = useMemo(() => products.find((item) => item.id === IAP_PRODUCT_ID), [products]);
   const hasEntitlement = useMemo(
     () => availablePurchases.some((purchase) => purchase.productId === IAP_PRODUCT_ID),
-    [availablePurchases]
+    [availablePurchases],
   );
   const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
   const restoreInProgress = restoreRequestedAt !== null;
@@ -156,7 +169,10 @@ function PremiumSectionIap({
         return;
       }
       if (!product) {
-        Alert.alert('Produto indisponível', 'Não foi possível carregar o produto. Tente novamente.');
+        Alert.alert(
+          'Produto indisponível',
+          'Não foi possível carregar o produto. Tente novamente.',
+        );
         return;
       }
       setPurchaseInProgress(true);
@@ -195,19 +211,23 @@ function PremiumSectionIap({
         Desbloqueie recursos premium por {priceLabel} (pagamento único).
       </Text>
       <View style={styles.rowWrap}>
-          <Pressable
-            style={[
-              styles.primaryButton,
-              (isPremium || purchaseInProgress) && styles.primaryButtonDisabled,
-            ]}
-            onPress={handlePurchase}
-            accessibilityRole="button"
-            accessibilityLabel="Assinar Premium"
-          >
-            <Text style={styles.primaryButtonText}>
-              {isPremium ? 'Premium ativo' : purchaseInProgress ? 'Processando...' : 'Assinar premium'}
-            </Text>
-          </Pressable>
+        <Pressable
+          style={[
+            styles.primaryButton,
+            (isPremium || purchaseInProgress) && styles.primaryButtonDisabled,
+          ]}
+          onPress={handlePurchase}
+          accessibilityRole="button"
+          accessibilityLabel="Assinar Premium"
+        >
+          <Text style={styles.primaryButtonText}>
+            {isPremium
+              ? 'Premium ativo'
+              : purchaseInProgress
+                ? 'Processando...'
+                : 'Assinar premium'}
+          </Text>
+        </Pressable>
         <Pressable
           style={[
             styles.secondaryButton,
@@ -230,7 +250,7 @@ function PremiumSectionUnsupported() {
   const handleUnavailable = () => {
     Alert.alert(
       'Compras indisponíveis',
-      'As compras no app não estão disponíveis neste dispositivo. Use uma build instalada com loja compatível.'
+      'As compras no app não estão disponíveis neste dispositivo. Use uma build instalada com loja compatível.',
     );
   };
 
@@ -323,38 +343,41 @@ export default function CalculatorScreen() {
   useEffect(() => {
     if (isPropertyMode && scenario.propertyValue && scenario.downPayment !== undefined) {
       const computed = Math.max(scenario.propertyValue - (scenario.downPayment ?? 0), 0);
-      const formatted = computed > 0 ? `R$ ${computed.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '';
+      const formatted =
+        computed > 0
+          ? `R$ ${computed.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+          : '';
       setPrincipalText(formatted);
       setScenario((prev) => ({ ...prev, principal: computed }));
     }
   }, [isPropertyMode, scenario.propertyValue, scenario.downPayment]);
 
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
-  const scheduleForTable = useMemo(
-    () => schedule.slice(0, MAX_TABLE_ROWS + 1),
-    [schedule]
-  );
+  const scheduleForTable = useMemo(() => schedule.slice(0, MAX_TABLE_ROWS + 1), [schedule]);
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
 
   // Dynamic themed styles
-  const themedStyles = useMemo(() => ({
-    container: { backgroundColor: colors.background },
-    section: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-    title: { color: colors.text },
-    sectionTitle: { color: colors.text },
-    label: { color: colors.textSecondary },
-    input: { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
-    summaryRow: { borderBottomColor: colors.borderLight },
-    summaryLabel: { color: colors.textSecondary },
-    summaryValue: { color: colors.text },
-    chip: { backgroundColor: colors.backgroundTertiary, borderColor: colors.border },
-    chipText: { color: colors.textSecondary },
-    chipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-    chipActiveText: { color: colors.primary },
-    rowAlt: { backgroundColor: colors.rowAlt },
-  }), [colors]);
+  const themedStyles = useMemo(
+    () => ({
+      container: { backgroundColor: colors.background },
+      section: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      title: { color: colors.text },
+      sectionTitle: { color: colors.text },
+      label: { color: colors.textSecondary },
+      input: { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+      summaryRow: { borderBottomColor: colors.borderLight },
+      summaryLabel: { color: colors.textSecondary },
+      summaryValue: { color: colors.text },
+      chip: { backgroundColor: colors.backgroundTertiary, borderColor: colors.border },
+      chipText: { color: colors.textSecondary },
+      chipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+      chipActiveText: { color: colors.primary },
+      rowAlt: { backgroundColor: colors.rowAlt },
+    }),
+    [colors],
+  );
 
   // Brief loading indicator when scenario changes
   useEffect(() => {
@@ -381,7 +404,7 @@ export default function CalculatorScreen() {
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
-        ]
+        ],
       );
       return;
     }
@@ -398,7 +421,10 @@ export default function CalculatorScreen() {
 
   const formatCurrencyValue = (value: number | undefined): string => {
     if (!value) return '';
-    const formatted = value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const formatted = value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
     return `R$ ${formatted}`;
   };
 
@@ -411,7 +437,9 @@ export default function CalculatorScreen() {
     setTermText(String(target.term));
     setStartDateText(formatDateBR(target.startDate));
     setDueDayText(String(target.dueDay));
-    setInsuranceRateText(target.insuranceRate ? String(target.insuranceRate).replace('.', ',') : '0');
+    setInsuranceRateText(
+      target.insuranceRate ? String(target.insuranceRate).replace('.', ',') : '0',
+    );
     setAdminFeeRateText(target.adminFeeRate ? String(target.adminFeeRate).replace('.', ',') : '0');
     setIofRateText(target.iofRate ? String(target.iofRate).replace('.', ',') : '0');
     setOpeningFeeText(formatCurrencyValue(target.openingFee));
@@ -420,21 +448,17 @@ export default function CalculatorScreen() {
   };
 
   const handleDeleteScenario = (id: string, name: string) => {
-    Alert.alert(
-      'Excluir cenário',
-      `Tem certeza que deseja excluir "${name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            const nextList = scenarios.filter((s) => s.id !== id);
-            await persistScenarios(nextList);
-          },
+    Alert.alert('Excluir cenário', `Tem certeza que deseja excluir "${name}"?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          const nextList = scenarios.filter((s) => s.id !== id);
+          await persistScenarios(nextList);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleAddPrepayment = () => {
@@ -529,7 +553,6 @@ export default function CalculatorScreen() {
     setNewFgts((prev) => ({ ...prev, date: selectedDate }));
   };
 
-
   const handleExportTableOnly = async (format: 'pdf' | 'xlsx' | 'csv') => {
     if (!isPremium) {
       Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
@@ -557,34 +580,46 @@ export default function CalculatorScreen() {
   };
 
   // Callback for the export context (used by tab bar action sheet)
-  const handleExportFromContext = useCallback(async (format: 'pdf' | 'xlsx' | 'csv') => {
-    if (!isPremium) {
-      Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
-      router.push('/(tabs)/premium');
-      return;
-    }
-    if (exporting) return;
-    setExporting(true);
-    setExportingFormat(format);
-    setIsExporting(true);
-    try {
-      if (format === 'pdf') {
-        await exportPdf(scenario, summary, schedule);
-      } else if (format === 'xlsx') {
-        await exportXlsx(schedule, scenario, summary);
-      } else {
-        await exportCsv(schedule, scenario, summary);
+  const handleExportFromContext = useCallback(
+    async (format: 'pdf' | 'xlsx' | 'csv') => {
+      if (!isPremium) {
+        Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
+        router.push('/(tabs)/premium');
+        return;
       }
-      // Request store review after successful export (non-blocking)
-      requestReviewIfAppropriate().catch(() => {});
-    } catch {
-      Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
-    } finally {
-      setExporting(false);
-      setExportingFormat(null);
-      setIsExporting(false);
-    }
-  }, [isPremium, exporting, scenario, summary, schedule, router, setIsExporting, requestReviewIfAppropriate]);
+      if (exporting) return;
+      setExporting(true);
+      setExportingFormat(format);
+      setIsExporting(true);
+      try {
+        if (format === 'pdf') {
+          await exportPdf(scenario, summary, schedule);
+        } else if (format === 'xlsx') {
+          await exportXlsx(schedule, scenario, summary);
+        } else {
+          await exportCsv(schedule, scenario, summary);
+        }
+        // Request store review after successful export (non-blocking)
+        requestReviewIfAppropriate().catch(() => {});
+      } catch {
+        Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
+      } finally {
+        setExporting(false);
+        setExportingFormat(null);
+        setIsExporting(false);
+      }
+    },
+    [
+      isPremium,
+      exporting,
+      scenario,
+      summary,
+      schedule,
+      router,
+      setIsExporting,
+      requestReviewIfAppropriate,
+    ],
+  );
 
   // Register the export handler with the context so the tab bar can trigger exports
   useEffect(() => {
@@ -593,7 +628,14 @@ export default function CalculatorScreen() {
   }, [registerExportHandler, unregisterExportHandler, handleExportFromContext, isPremium]);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, themedStyles.container, isTablet && styles.containerTablet]} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        themedStyles.container,
+        isTablet && styles.containerTablet,
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
       <AdBanner enabled={showAds} />
 
       <View style={[styles.columns, isTablet && styles.columnsTablet]}>
@@ -816,14 +858,19 @@ export default function CalculatorScreen() {
           <View style={[styles.section, themedStyles.section]}>
             <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Custos e Taxas</Text>
             <Text style={[styles.helperText, { color: colors.textTertiary }]}>
-              Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados na assinatura.
+              Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados na
+              assinatura.
             </Text>
             <Text style={[styles.label, themedStyles.label]}>IOF (% do financiado)</Text>
             <TextInput
               value={iofRateText}
               onChangeText={(text) => {
                 setIofRateText(text);
-                setScenario((prev) => ({ ...prev, iofRate: parseNumberInput(text), includeIOF: parseNumberInput(text) > 0 }));
+                setScenario((prev) => ({
+                  ...prev,
+                  iofRate: parseNumberInput(text),
+                  includeIOF: parseNumberInput(text) > 0,
+                }));
               }}
               keyboardType="numeric"
               style={[styles.input, themedStyles.input]}
@@ -848,7 +895,9 @@ export default function CalculatorScreen() {
               accessibilityLabel="Taxa de seguro"
             />
 
-            <Text style={[styles.label, themedStyles.label]}>Tarifa administrativa (% do saldo ao mês)</Text>
+            <Text style={[styles.label, themedStyles.label]}>
+              Tarifa administrativa (% do saldo ao mês)
+            </Text>
             <TextInput
               value={adminFeeRateText}
               onChangeText={(text) => {
@@ -945,11 +994,14 @@ export default function CalculatorScreen() {
               </View>
 
               <View style={[styles.section, themedStyles.section]}>
-                <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tabela de Amortização</Text>
+                <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>
+                  Tabela de Amortização
+                </Text>
                 {totalInstallments > 0 && (
                   <View style={styles.tableMetaRow}>
                     <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
-                      Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
+                      Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments}{' '}
+                      parcelas
                     </Text>
                   </View>
                 )}
@@ -960,12 +1012,17 @@ export default function CalculatorScreen() {
                   columns={['installment', 'date', 'payment', 'balance']}
                 />
                 <View style={styles.subsectionTitleRow}>
-                  <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
+                  <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>
+                    Gerar tabela completa
+                  </Text>
                   <PremiumPill hidden={isPremium} />
                 </View>
                 <View style={styles.row}>
                   <Pressable
-                    style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                    style={[
+                      styles.exportButton,
+                      (!isPremium || exporting) && styles.primaryButtonDisabled,
+                    ]}
                     onPress={() => handleExportTableOnly('pdf')}
                     disabled={exporting}
                     accessibilityRole="button"
@@ -982,7 +1039,10 @@ export default function CalculatorScreen() {
                     </View>
                   </Pressable>
                   <Pressable
-                    style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                    style={[
+                      styles.exportButton,
+                      (!isPremium || exporting) && styles.primaryButtonDisabled,
+                    ]}
                     onPress={() => handleExportTableOnly('xlsx')}
                     disabled={exporting}
                     accessibilityRole="button"
@@ -999,7 +1059,10 @@ export default function CalculatorScreen() {
                     </View>
                   </Pressable>
                   <Pressable
-                    style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                    style={[
+                      styles.exportButton,
+                      (!isPremium || exporting) && styles.primaryButtonDisabled,
+                    ]}
                     onPress={() => handleExportTableOnly('csv')}
                     disabled={exporting}
                     accessibilityRole="button"
@@ -1019,7 +1082,9 @@ export default function CalculatorScreen() {
                 {exporting ? (
                   <View style={styles.exportingRow} accessibilityLiveRegion="polite">
                     <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={[styles.exportingText, { color: colors.textTertiary }]}>Gerando arquivo...</Text>
+                    <Text style={[styles.exportingText, { color: colors.textTertiary }]}>
+                      Gerando arquivo...
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -1027,7 +1092,12 @@ export default function CalculatorScreen() {
           )}
 
           <View style={[styles.section, themedStyles.section]}>
-            <Text style={[styles.sectionTitle, themedStyles.sectionTitle]} testID="section-prepayments">Amortizações Extras</Text>
+            <Text
+              style={[styles.sectionTitle, themedStyles.sectionTitle]}
+              testID="section-prepayments"
+            >
+              Amortizações Extras
+            </Text>
             <Text style={[styles.label, themedStyles.label]}>Data</Text>
             <Pressable
               style={[styles.input, styles.inputPressable, themedStyles.input]}
@@ -1051,7 +1121,11 @@ export default function CalculatorScreen() {
             ) : null}
             <Text style={[styles.label, themedStyles.label]}>Valor (R$)</Text>
             <TextInput
-              value={newPrepayment.amount ? `R$ ${newPrepayment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : ''}
+              value={
+                newPrepayment.amount
+                  ? `R$ ${newPrepayment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+                  : ''
+              }
               onChangeText={(text) => {
                 const { value } = maskCurrencyInput(text);
                 setNewPrepayment((prev) => ({ ...prev, amount: value }));
@@ -1066,42 +1140,92 @@ export default function CalculatorScreen() {
             />
             <View style={styles.row}>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newPrepayment.type === 'fixed_amount' && themedStyles.chipActive]}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newPrepayment.type === 'fixed_amount' && themedStyles.chipActive,
+                ]}
                 onPress={() => setNewPrepayment((prev) => ({ ...prev, type: 'fixed_amount' }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newPrepayment.type === 'fixed_amount' }}
                 accessibilityLabel="Amortização por valor fixo"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.type === 'fixed_amount' && themedStyles.chipActiveText]}>Valor fixo</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newPrepayment.type === 'fixed_amount' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  Valor fixo
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newPrepayment.type === 'percentage' && themedStyles.chipActive]}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newPrepayment.type === 'percentage' && themedStyles.chipActive,
+                ]}
                 onPress={() => setNewPrepayment((prev) => ({ ...prev, type: 'percentage' }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newPrepayment.type === 'percentage' }}
                 accessibilityLabel="Amortização por porcentagem do saldo"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.type === 'percentage' && themedStyles.chipActiveText]}>% do saldo</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newPrepayment.type === 'percentage' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  % do saldo
+                </Text>
               </Pressable>
             </View>
             <View style={styles.row}>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newPrepayment.strategy === 'reduce_term' && themedStyles.chipActive]}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newPrepayment.strategy === 'reduce_term' && themedStyles.chipActive,
+                ]}
                 onPress={() => setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_term' }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newPrepayment.strategy === 'reduce_term' }}
                 accessibilityLabel="Reduzir prazo"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.strategy === 'reduce_term' && themedStyles.chipActiveText]}>Reduzir prazo</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newPrepayment.strategy === 'reduce_term' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  Reduzir prazo
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newPrepayment.strategy === 'reduce_payment' && themedStyles.chipActive]}
-                onPress={() => setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_payment' }))}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newPrepayment.strategy === 'reduce_payment' && themedStyles.chipActive,
+                ]}
+                onPress={() =>
+                  setNewPrepayment((prev) => ({ ...prev, strategy: 'reduce_payment' }))
+                }
                 accessibilityRole="button"
                 accessibilityState={{ selected: newPrepayment.strategy === 'reduce_payment' }}
                 accessibilityLabel="Reduzir parcela"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newPrepayment.strategy === 'reduce_payment' && themedStyles.chipActiveText]}>Reduzir parcela</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newPrepayment.strategy === 'reduce_payment' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  Reduzir parcela
+                </Text>
               </Pressable>
             </View>
             <Text style={[styles.label, themedStyles.label]}>Descrição (opcional)</Text>
@@ -1129,10 +1253,14 @@ export default function CalculatorScreen() {
             {(scenario.prepayments ?? []).length > 0 && (
               <View style={styles.list}>
                 {(scenario.prepayments ?? []).map((payment) => (
-                  <View key={payment.id} style={[styles.listItemRow, { borderColor: colors.border }]}>
+                  <View
+                    key={payment.id}
+                    style={[styles.listItemRow, { borderColor: colors.border }]}
+                  >
                     <View>
                       <Text style={[styles.listTitle, { color: colors.text }]}>
-                        {payment.date.toLocaleDateString('pt-BR')} • {formatCurrency(payment.amount)}
+                        {payment.date.toLocaleDateString('pt-BR')} •{' '}
+                        {formatCurrency(payment.amount)}
                       </Text>
                       <Text style={[styles.listSubtitle, { color: colors.textTertiary }]}>
                         {payment.strategy === 'reduce_term' ? 'Reduzir prazo' : 'Reduzir parcela'}
@@ -1177,7 +1305,11 @@ export default function CalculatorScreen() {
             ) : null}
             <Text style={[styles.label, themedStyles.label]}>Valor (R$)</Text>
             <TextInput
-              value={newFgts.amount ? `R$ ${newFgts.amount.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : ''}
+              value={
+                newFgts.amount
+                  ? `R$ ${newFgts.amount.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+                  : ''
+              }
               onChangeText={(text) => {
                 const { value } = maskCurrencyInput(text);
                 setNewFgts((prev) => ({ ...prev, amount: value }));
@@ -1192,52 +1324,112 @@ export default function CalculatorScreen() {
             />
             <View style={styles.row}>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newFgts.usage === 'down_payment' && themedStyles.chipActive]}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newFgts.usage === 'down_payment' && themedStyles.chipActive,
+                ]}
                 onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'down_payment' }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'down_payment' }}
                 accessibilityLabel="FGTS como entrada"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newFgts.usage === 'down_payment' && themedStyles.chipActiveText]}>Entrada</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newFgts.usage === 'down_payment' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  Entrada
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newFgts.usage === 'amortization' && themedStyles.chipActive]}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newFgts.usage === 'amortization' && themedStyles.chipActive,
+                ]}
                 onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'amortization' }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'amortization' }}
                 accessibilityLabel="FGTS como amortização"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newFgts.usage === 'amortization' && themedStyles.chipActiveText]}>Amortização</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newFgts.usage === 'amortization' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  Amortização
+                </Text>
               </Pressable>
               <Pressable
-                style={[styles.chip, themedStyles.chip, newFgts.usage === 'installment' && themedStyles.chipActive]}
+                style={[
+                  styles.chip,
+                  themedStyles.chip,
+                  newFgts.usage === 'installment' && themedStyles.chipActive,
+                ]}
                 onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'installment' }))}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'installment' }}
                 accessibilityLabel="FGTS para parcela"
               >
-                <Text style={[styles.chipText, themedStyles.chipText, newFgts.usage === 'installment' && themedStyles.chipActiveText]}>Parcela</Text>
+                <Text
+                  style={[
+                    styles.chipText,
+                    themedStyles.chipText,
+                    newFgts.usage === 'installment' && themedStyles.chipActiveText,
+                  ]}
+                >
+                  Parcela
+                </Text>
               </Pressable>
             </View>
             {newFgts.usage === 'amortization' && (
               <View style={styles.row}>
                 <Pressable
-                  style={[styles.chip, themedStyles.chip, newFgts.strategy === 'reduce_term' && themedStyles.chipActive]}
+                  style={[
+                    styles.chip,
+                    themedStyles.chip,
+                    newFgts.strategy === 'reduce_term' && themedStyles.chipActive,
+                  ]}
                   onPress={() => setNewFgts((prev) => ({ ...prev, strategy: 'reduce_term' }))}
                   accessibilityRole="button"
                   accessibilityState={{ selected: newFgts.strategy === 'reduce_term' }}
                   accessibilityLabel="FGTS reduzindo prazo"
                 >
-                  <Text style={[styles.chipText, themedStyles.chipText, newFgts.strategy === 'reduce_term' && themedStyles.chipActiveText]}>Reduzir prazo</Text>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      themedStyles.chipText,
+                      newFgts.strategy === 'reduce_term' && themedStyles.chipActiveText,
+                    ]}
+                  >
+                    Reduzir prazo
+                  </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.chip, themedStyles.chip, newFgts.strategy === 'reduce_payment' && themedStyles.chipActive]}
+                  style={[
+                    styles.chip,
+                    themedStyles.chip,
+                    newFgts.strategy === 'reduce_payment' && themedStyles.chipActive,
+                  ]}
                   onPress={() => setNewFgts((prev) => ({ ...prev, strategy: 'reduce_payment' }))}
                   accessibilityRole="button"
                   accessibilityState={{ selected: newFgts.strategy === 'reduce_payment' }}
                   accessibilityLabel="FGTS reduzindo parcela"
                 >
-                  <Text style={[styles.chipText, themedStyles.chipText, newFgts.strategy === 'reduce_payment' && themedStyles.chipActiveText]}>Reduzir parcela</Text>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      themedStyles.chipText,
+                      newFgts.strategy === 'reduce_payment' && themedStyles.chipActiveText,
+                    ]}
+                  >
+                    Reduzir parcela
+                  </Text>
                 </Pressable>
               </View>
             )}
@@ -1292,7 +1484,6 @@ export default function CalculatorScreen() {
               </View>
             )}
           </View>
-
         </View>
       </View>
 
@@ -1304,11 +1495,14 @@ export default function CalculatorScreen() {
           </View>
 
           <View style={[styles.section, themedStyles.section]}>
-            <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Tabela de Amortização</Text>
+            <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>
+              Tabela de Amortização
+            </Text>
             {totalInstallments > 0 && (
               <View style={styles.tableMetaRow}>
                 <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
-                  Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments} parcelas
+                  Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments}{' '}
+                  parcelas
                 </Text>
               </View>
             )}
@@ -1319,12 +1513,17 @@ export default function CalculatorScreen() {
               columns={['installment', 'date', 'payment', 'interest', 'amortization', 'balance']}
             />
             <View style={styles.subsectionTitleRow}>
-                  <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>Gerar tabela completa</Text>
-                  <PremiumPill hidden={isPremium} />
-                </View>
+              <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>
+                Gerar tabela completa
+              </Text>
+              <PremiumPill hidden={isPremium} />
+            </View>
             <View style={styles.row}>
               <Pressable
-                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                style={[
+                  styles.exportButton,
+                  (!isPremium || exporting) && styles.primaryButtonDisabled,
+                ]}
                 onPress={() => handleExportTableOnly('pdf')}
                 disabled={exporting}
                 accessibilityRole="button"
@@ -1341,7 +1540,10 @@ export default function CalculatorScreen() {
                 </View>
               </Pressable>
               <Pressable
-                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                style={[
+                  styles.exportButton,
+                  (!isPremium || exporting) && styles.primaryButtonDisabled,
+                ]}
                 onPress={() => handleExportTableOnly('xlsx')}
                 disabled={exporting}
                 accessibilityRole="button"
@@ -1358,7 +1560,10 @@ export default function CalculatorScreen() {
                 </View>
               </Pressable>
               <Pressable
-                style={[styles.exportButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
+                style={[
+                  styles.exportButton,
+                  (!isPremium || exporting) && styles.primaryButtonDisabled,
+                ]}
                 onPress={() => handleExportTableOnly('csv')}
                 disabled={exporting}
                 accessibilityRole="button"
@@ -1378,11 +1583,12 @@ export default function CalculatorScreen() {
             {exporting ? (
               <View style={styles.exportingRow} accessibilityLiveRegion="polite">
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.exportingText, { color: colors.textTertiary }]}>Gerando arquivo...</Text>
+                <Text style={[styles.exportingText, { color: colors.textTertiary }]}>
+                  Gerando arquivo...
+                </Text>
               </View>
             ) : null}
           </View>
-
         </>
       )}
 

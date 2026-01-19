@@ -104,7 +104,7 @@ describe('exports', () => {
     expect(typeof createdFiles[0]?.writes[0]).toBe('string');
     expect(shareAsync).toHaveBeenCalledWith(
       expect.stringContaining('tabela_amortizacao.csv'),
-      expect.objectContaining({ mimeType: 'text/csv' })
+      expect.objectContaining({ mimeType: 'text/csv' }),
     );
   });
 
@@ -119,7 +119,7 @@ describe('exports', () => {
       expect.stringContaining('tabela_amortizacao.xlsx'),
       expect.objectContaining({
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      })
+      }),
     );
   });
 
@@ -129,11 +129,11 @@ describe('exports', () => {
     await exportPdf(scenario, summary, schedule);
 
     expect(printToFileAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ html: expect.stringContaining('Relatório de Financiamento') })
+      expect.objectContaining({ html: expect.stringContaining('Relatório de Financiamento') }),
     );
     expect(shareAsync).toHaveBeenCalledWith(
       'file:///cache/relatorio.pdf',
-      expect.objectContaining({ mimeType: 'application/pdf' })
+      expect.objectContaining({ mimeType: 'application/pdf' }),
     );
   });
 });

@@ -20,7 +20,12 @@ export function SystemSelector({
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.section,
+        { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      ]}
+    >
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Sistema</Text>
       <View style={styles.toggleRow}>
         {(['PRICE', 'SAC'] as const).map((s) => (
@@ -54,17 +59,22 @@ export function SystemSelector({
 
       <Text style={[styles.label, { color: colors.textSecondary }]}>Modo</Text>
       <View style={styles.toggleRow}>
-        {([
-          { value: 'standard', label: 'Padrão' },
-          { value: 'property', label: 'Imóvel' },
-        ] as const).map((mode) => (
+        {(
+          [
+            { value: 'standard', label: 'Padrão' },
+            { value: 'property', label: 'Imóvel' },
+          ] as const
+        ).map((mode) => (
           <Pressable
             key={mode.value}
             onPress={() => onLoanModeChange(mode.value)}
             style={[
               styles.toggleButton,
               { borderColor: colors.border },
-              loanMode === mode.value && { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+              loanMode === mode.value && {
+                backgroundColor: colors.primaryLight,
+                borderColor: colors.primary,
+              },
             ]}
             accessibilityRole="radio"
             accessibilityState={{ selected: loanMode === mode.value }}

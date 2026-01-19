@@ -25,13 +25,21 @@ export function ScenarioSection({
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.section,
+        { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      ]}
+    >
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Cenário</Text>
       <Text style={[styles.label, { color: colors.textSecondary }]}>Nome do cenário</Text>
       <TextInput
         value={scenario.name}
         onChangeText={onNameChange}
-        style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+        style={[
+          styles.input,
+          { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+        ]}
         placeholder="Cenário Principal"
         placeholderTextColor={colors.textTertiary}
         accessibilityLabel="Nome do cenário"
@@ -58,7 +66,10 @@ export function ScenarioSection({
       {scenarios.length > 0 && (
         <View style={styles.list}>
           {scenarios.map((item) => (
-            <View key={item.id} style={[styles.listItemRow, { borderBottomColor: colors.borderLight }]}>
+            <View
+              key={item.id}
+              style={[styles.listItemRow, { borderBottomColor: colors.borderLight }]}
+            >
               <Pressable
                 style={styles.listItemContent}
                 onPress={() => onLoad(item)}

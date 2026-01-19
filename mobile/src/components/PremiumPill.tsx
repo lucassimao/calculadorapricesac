@@ -21,14 +21,8 @@ export function PremiumPill({ hidden, label = 'Premium', size = 'small' }: Premi
 
   return (
     <View style={[styles.pill, isSmall ? styles.pillSmall : styles.pillMedium]}>
-      <Ionicons
-        name="star"
-        size={isSmall ? 10 : 12}
-        color="#B45309"
-      />
-      <Text style={[styles.text, isSmall ? styles.textSmall : styles.textMedium]}>
-        {label}
-      </Text>
+      <Ionicons name="star" size={isSmall ? 10 : 12} color="#B45309" />
+      <Text style={[styles.text, isSmall ? styles.textSmall : styles.textMedium]}>{label}</Text>
     </View>
   );
 }

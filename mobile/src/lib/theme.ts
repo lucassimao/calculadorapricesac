@@ -16,13 +16,13 @@ export const lightColors = {
   backgroundTertiary: '#F3F4F6',
 
   // Text - WCAG AA compliant on white background
-  text: '#111827',           // ~16:1 ratio
-  textSecondary: '#374151',  // ~8:1 ratio
-  textTertiary: '#4B5563',   // ~6:1 ratio (improved from #6B7280)
+  text: '#111827', // ~16:1 ratio
+  textSecondary: '#374151', // ~8:1 ratio
+  textTertiary: '#4B5563', // ~6:1 ratio (improved from #6B7280)
   textInverse: '#FFFFFF',
 
   // Borders
-  border: '#D1D5DB',         // Improved visibility
+  border: '#D1D5DB', // Improved visibility
   borderLight: '#E5E7EB',
 
   // Primary (blue) - 4.5:1 contrast on white
@@ -31,17 +31,17 @@ export const lightColors = {
   primaryDark: '#1D4ED8',
 
   // Success (green) - 3:1 contrast for UI
-  success: '#16A34A',        // Darker green for better contrast
+  success: '#16A34A', // Darker green for better contrast
   successLight: '#DCFCE7',
   successDark: '#059669',
 
   // Warning (orange) - 3:1 contrast for UI
-  warning: '#EA580C',        // Darker orange for better contrast
+  warning: '#EA580C', // Darker orange for better contrast
   warningLight: '#FEF3C7',
   warningDark: '#C2410C',
 
   // Error (red) - 4.5:1 contrast on white
-  error: '#DC2626',          // Darker red for text use
+  error: '#DC2626', // Darker red for text use
   errorLight: '#FEE2E2',
   errorDark: '#B91C1C',
 
@@ -49,26 +49,26 @@ export const lightColors = {
   rowAlt: '#F9FAFB',
 
   // Chart colors - sufficient contrast on light backgrounds
-  chartLine1: '#1D4ED8',     // Darker blue for visibility
-  chartLine2: '#DC2626',     // Darker red for visibility
-  chartBar1: '#EA580C',      // Darker orange
-  chartBar2: '#16A34A',      // Darker green
+  chartLine1: '#1D4ED8', // Darker blue for visibility
+  chartLine2: '#DC2626', // Darker red for visibility
+  chartBar1: '#EA580C', // Darker orange
+  chartBar2: '#16A34A', // Darker green
 
   // Tab bar
   tabActive: '#2563EB',
-  tabInactive: '#4B5563',    // Improved contrast
+  tabInactive: '#4B5563', // Improved contrast
 };
 
 export const darkColors: typeof lightColors = {
   // Backgrounds
-  background: '#0F172A',     // Slightly darker for better contrast
+  background: '#0F172A', // Slightly darker for better contrast
   backgroundSecondary: '#1E293B',
   backgroundTertiary: '#334155',
 
   // Text - WCAG AA compliant on dark background
-  text: '#F8FAFC',           // ~15:1 ratio
-  textSecondary: '#E2E8F0',  // ~12:1 ratio
-  textTertiary: '#94A3B8',   // ~7:1 ratio
+  text: '#F8FAFC', // ~15:1 ratio
+  textSecondary: '#E2E8F0', // ~12:1 ratio
+  textTertiary: '#94A3B8', // ~7:1 ratio
   textInverse: '#0F172A',
 
   // Borders

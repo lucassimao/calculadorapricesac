@@ -1,54 +1,54 @@
-import type { Metadata } from "next";
-import styles from "../legal.module.css";
+import type { Metadata } from 'next';
+import styles from '../legal.module.css';
 
 export const metadata: Metadata = {
-  title: "Suporte",
-  description: "Suporte e contato da Calculadora Price & SAC.",
+  title: 'Suporte',
+  description: 'Suporte e contato da Calculadora Price & SAC.',
   alternates: {
-    canonical: "/suporte",
+    canonical: '/suporte',
   },
   openGraph: {
-    title: "Suporte",
-    description: "Suporte e contato da Calculadora Price & SAC.",
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com"}/suporte`,
+    title: 'Suporte',
+    description: 'Suporte e contato da Calculadora Price & SAC.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com'}/suporte`,
   },
 };
 
 export default function SupportPage() {
   const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
     mainEntity: [
       {
-        "@type": "Question",
-        name: "Preciso de login para usar o app?",
+        '@type': 'Question',
+        name: 'Preciso de login para usar o app?',
         acceptedAnswer: {
-          "@type": "Answer",
-          text: "Não. O app funciona offline e sem cadastro.",
+          '@type': 'Answer',
+          text: 'Não. O app funciona offline e sem cadastro.',
         },
       },
       {
-        "@type": "Question",
-        name: "Como funciona o Premium?",
+        '@type': 'Question',
+        name: 'Como funciona o Premium?',
         acceptedAnswer: {
-          "@type": "Answer",
-          text: "É uma compra única que remove anúncios e libera exportações em PDF, XLSX e CSV.",
+          '@type': 'Answer',
+          text: 'É uma compra única que remove anúncios e libera exportações em PDF, XLSX e CSV.',
         },
       },
       {
-        "@type": "Question",
-        name: "Consigo restaurar a compra em outro dispositivo?",
+        '@type': 'Question',
+        name: 'Consigo restaurar a compra em outro dispositivo?',
         acceptedAnswer: {
-          "@type": "Answer",
-          text: "Sim. Há um botão de restaurar na aba Premium do aplicativo.",
+          '@type': 'Answer',
+          text: 'Sim. Há um botão de restaurar na aba Premium do aplicativo.',
         },
       },
       {
-        "@type": "Question",
-        name: "Onde ficam meus dados salvos?",
+        '@type': 'Question',
+        name: 'Onde ficam meus dados salvos?',
         acceptedAnswer: {
-          "@type": "Answer",
-          text: "Salvos localmente no dispositivo. O app não envia dados para servidores externos.",
+          '@type': 'Answer',
+          text: 'Salvos localmente no dispositivo. O app não envia dados para servidores externos.',
         },
       },
     ],
@@ -70,7 +70,7 @@ export default function SupportPage() {
       <section className={styles.section}>
         <h2>Contato</h2>
         <p>
-          E-mail:{" "}
+          E-mail:{' '}
           <a className={styles.link} href="mailto:lucas@lucassimao.com">
             lucas@lucassimao.com
           </a>
@@ -85,11 +85,12 @@ export default function SupportPage() {
             <strong>Preciso de login?</strong> Não. O app funciona offline e sem cadastro.
           </li>
           <li>
-            <strong>Como funciona o Premium?</strong> É uma compra única que remove anúncios e libera
-            exportações em PDF, XLSX e CSV.
+            <strong>Como funciona o Premium?</strong> É uma compra única que remove anúncios e
+            libera exportações em PDF, XLSX e CSV.
           </li>
           <li>
-            <strong>Consigo restaurar a compra?</strong> Sim. Há um botão de restaurar na aba Premium.
+            <strong>Consigo restaurar a compra?</strong> Sim. Há um botão de restaurar na aba
+            Premium.
           </li>
           <li>
             <strong>Onde ficam meus dados?</strong> Salvos localmente no dispositivo.
@@ -100,8 +101,8 @@ export default function SupportPage() {
       <section className={styles.section}>
         <h2>Relatar problemas</h2>
         <p>
-          Para agilizar, informe o modelo do aparelho, a versão do sistema (iOS ou Android) e o
-          que estava fazendo no momento do erro.
+          Para agilizar, informe o modelo do aparelho, a versão do sistema (iOS ou Android) e o que
+          estava fazendo no momento do erro.
         </p>
       </section>
     </main>

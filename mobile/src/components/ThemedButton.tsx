@@ -23,9 +23,7 @@ export function ThemedButton({
   const buttonStyles = useMemo(() => {
     const baseStyles = {
       primary: {
-        backgroundColor: isDisabled
-          ? isDark ? '#1E3A5F' : '#93C5FD'
-          : colors.primary,
+        backgroundColor: isDisabled ? (isDark ? '#1E3A5F' : '#93C5FD') : colors.primary,
         borderColor: 'transparent',
       },
       secondary: {
@@ -33,9 +31,7 @@ export function ThemedButton({
         borderColor: isDisabled ? colors.borderLight : colors.border,
       },
       destructive: {
-        backgroundColor: isDisabled
-          ? isDark ? '#7F1D1D' : '#FECACA'
-          : colors.error,
+        backgroundColor: isDisabled ? (isDark ? '#7F1D1D' : '#FECACA') : colors.error,
         borderColor: 'transparent',
       },
     };
@@ -45,17 +41,13 @@ export function ThemedButton({
   const textStyles = useMemo(() => {
     const baseStyles = {
       primary: {
-        color: isDisabled
-          ? isDark ? '#93C5FD' : '#1D4ED8'
-          : colors.textInverse,
+        color: isDisabled ? (isDark ? '#93C5FD' : '#1D4ED8') : colors.textInverse,
       },
       secondary: {
         color: isDisabled ? colors.textTertiary : colors.textSecondary,
       },
       destructive: {
-        color: isDisabled
-          ? isDark ? '#FCA5A5' : '#991B1B'
-          : colors.textInverse,
+        color: isDisabled ? (isDark ? '#FCA5A5' : '#991B1B') : colors.textInverse,
       },
     };
     return baseStyles[variant];
@@ -93,15 +85,9 @@ export function ThemedButton({
     >
       <View style={styles.content}>
         {loading && (
-          <ActivityIndicator
-            size="small"
-            color={textStyles.color}
-            style={styles.loader}
-          />
+          <ActivityIndicator size="small" color={textStyles.color} style={styles.loader} />
         )}
-        <Text style={[styles.text, textSizeStyles, textStyles]}>
-          {title}
-        </Text>
+        <Text style={[styles.text, textSizeStyles, textStyles]}>{title}</Text>
       </View>
     </Pressable>
   );

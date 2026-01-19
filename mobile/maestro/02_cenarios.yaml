@@ -1,18 +1,18 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
-- tapOn: "Calculadora"
+- tapOn: 'Calculadora'
 - scrollUntilVisible:
     element:
-      text: "Nome do cenário"
+      text: 'Nome do cenário'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Nome do cenário"
+- tapOn: 'Nome do cenário'
 - eraseText
-- inputText: "Cenário Teste"
+- inputText: 'Cenário Teste'
 - pressKey: Back
-- tapOn: "Salvar cenário"
-- assertVisible: "Cenário Teste"
-- tapOn: "Novo"
-- tapOn: "Cenário Teste"
-- assertVisible: "Cenário Teste"
+- tapOn: 'Salvar cenário'
+- assertVisible: 'Cenário Teste'
+- tapOn: 'Novo'
+- tapOn: 'Cenário Teste'
+- assertVisible: 'Cenário Teste'

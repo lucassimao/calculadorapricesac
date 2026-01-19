@@ -11,12 +11,22 @@ interface ExportSectionProps {
   onExport: (format: ExportFormat) => void;
 }
 
-export function ExportSection({ isPremium, exporting, exportingFormat, onExport }: ExportSectionProps) {
+export function ExportSection({
+  isPremium,
+  exporting,
+  exportingFormat,
+  onExport,
+}: ExportSectionProps) {
   const { colors } = useTheme();
   const isLoading = (format: ExportFormat) => exporting && exportingFormat === format;
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.section,
+        { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.titleRow}>
         <Text style={[styles.sectionTitle, { color: colors.text }]} testID="section-export">
           Exportar
@@ -28,10 +38,7 @@ export function ExportSection({ isPremium, exporting, exportingFormat, onExport 
       </Text>
       <View style={styles.row}>
         <Pressable
-          style={[
-            styles.primaryButton,
-            (!isPremium || exporting) && styles.primaryButtonDisabled,
-          ]}
+          style={[styles.primaryButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
           onPress={() => onExport('pdf')}
           disabled={exporting}
           accessibilityRole="button"
@@ -41,19 +48,12 @@ export function ExportSection({ isPremium, exporting, exportingFormat, onExport 
           nativeID="btn-export-pdf"
         >
           <View style={styles.buttonContent}>
-            {isLoading('pdf') ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : null}
-            <Text style={styles.primaryButtonText}>
-              {isLoading('pdf') ? 'Gerando...' : 'PDF'}
-            </Text>
+            {isLoading('pdf') ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+            <Text style={styles.primaryButtonText}>{isLoading('pdf') ? 'Gerando...' : 'PDF'}</Text>
           </View>
         </Pressable>
         <Pressable
-          style={[
-            styles.primaryButton,
-            (!isPremium || exporting) && styles.primaryButtonDisabled,
-          ]}
+          style={[styles.primaryButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
           onPress={() => onExport('xlsx')}
           disabled={exporting}
           accessibilityRole="button"
@@ -63,19 +63,14 @@ export function ExportSection({ isPremium, exporting, exportingFormat, onExport 
           nativeID="btn-export-xlsx"
         >
           <View style={styles.buttonContent}>
-            {isLoading('xlsx') ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : null}
+            {isLoading('xlsx') ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
             <Text style={styles.primaryButtonText}>
               {isLoading('xlsx') ? 'Gerando...' : 'XLSX'}
             </Text>
           </View>
         </Pressable>
         <Pressable
-          style={[
-            styles.primaryButton,
-            (!isPremium || exporting) && styles.primaryButtonDisabled,
-          ]}
+          style={[styles.primaryButton, (!isPremium || exporting) && styles.primaryButtonDisabled]}
           onPress={() => onExport('csv')}
           disabled={exporting}
           accessibilityRole="button"
@@ -85,12 +80,8 @@ export function ExportSection({ isPremium, exporting, exportingFormat, onExport 
           nativeID="btn-export-csv"
         >
           <View style={styles.buttonContent}>
-            {isLoading('csv') ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : null}
-            <Text style={styles.primaryButtonText}>
-              {isLoading('csv') ? 'Gerando...' : 'CSV'}
-            </Text>
+            {isLoading('csv') ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+            <Text style={styles.primaryButtonText}>{isLoading('csv') ? 'Gerando...' : 'CSV'}</Text>
           </View>
         </Pressable>
       </View>

@@ -1,49 +1,49 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
-- tapOn: "Calculadora"
-- assertVisible: "Calculadora Price & SAC"
+- tapOn: 'Calculadora'
+- assertVisible: 'Calculadora Price & SAC'
 - scrollUntilVisible:
     element:
-      text: "Parâmetros"
+      text: 'Parâmetros'
     centerElement: true
     visibilityPercentage: 10
 - scrollUntilVisible:
     element:
-      text: "Valor do financiamento"
+      text: 'Valor do financiamento'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Valor do financiamento"
+- tapOn: 'Valor do financiamento'
 - eraseText
-- inputText: "250000"
+- inputText: '250000'
 - scrollUntilVisible:
     element:
-      text: "Taxa de juros"
+      text: 'Taxa de juros'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Taxa de juros"
+- tapOn: 'Taxa de juros'
 - eraseText
-- inputText: "1,1"
+- inputText: '1,1'
 - scrollUntilVisible:
     element:
-      text: "Prazo"
+      text: 'Prazo'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Prazo"
+- tapOn: 'Prazo'
 - eraseText
-- inputText: "240"
+- inputText: '240'
 - scrollUntilVisible:
     element:
-      text: "Dia de vencimento"
+      text: 'Dia de vencimento'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Dia de vencimento"
+- tapOn: 'Dia de vencimento'
 - eraseText
-- inputText: "10"
+- inputText: '10'
 - scrollUntilVisible:
     element:
-      text: "Resumo"
+      text: 'Resumo'
     centerElement: true
     visibilityPercentage: 10
-- assertVisible: "Total Pago"
-- assertVisible: "Total de Juros"
+- assertVisible: 'Total Pago'
+- assertVisible: 'Total de Juros'

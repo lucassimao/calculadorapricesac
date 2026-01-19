@@ -1,11 +1,11 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
-- tapOn: "Calculadora"
+- tapOn: 'Calculadora'
 - scrollUntilVisible:
     element:
-      text: "Exportar"
+      text: 'Exportar'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: "Exportar PDF"
-- assertVisible: "Exportação disponível apenas para assinantes."
+- tapOn: 'Exportar PDF'
+- assertVisible: 'Exportação disponível apenas para assinantes.'

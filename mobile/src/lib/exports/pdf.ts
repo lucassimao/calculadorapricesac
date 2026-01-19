@@ -7,7 +7,12 @@ interface PdfOptions {
   tableOnly?: boolean;
 }
 
-const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleRow[], options?: PdfOptions) => {
+const buildHtml = (
+  scenario: Scenario,
+  summary: LoanSummary,
+  schedule: ScheduleRow[],
+  options?: PdfOptions,
+) => {
   const rows = schedule.filter((row) => row.installmentNumber > 0);
   const tableRows = rows
     .map(
@@ -23,11 +28,13 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
         <td>${formatCurrency(row.fgtsSubsidy ?? 0)}</td>
         <td>${formatCurrency(row.netPayment ?? row.payment)}</td>
       </tr>
-    `
+    `,
     )
     .join('');
 
-  const summarySection = options?.tableOnly ? '' : `
+  const summarySection = options?.tableOnly
+    ? ''
+    : `
         <p><strong>Sistema:</strong> ${scenario.system}</p>
         <p><strong>Valor:</strong> ${formatCurrency(scenario.principal)}</p>
         <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
@@ -85,7 +92,12 @@ const buildHtml = (scenario: Scenario, summary: LoanSummary, schedule: ScheduleR
   `;
 };
 
-export async function exportPdf(scenario: Scenario, summary: LoanSummary, schedule: ScheduleRow[], options?: PdfOptions) {
+export async function exportPdf(
+  scenario: Scenario,
+  summary: LoanSummary,
+  schedule: ScheduleRow[],
+  options?: PdfOptions,
+) {
   const html = buildHtml(scenario, summary, schedule, options);
   const { uri } = await Print.printToFileAsync({ html });
   await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Exportar PDF' });

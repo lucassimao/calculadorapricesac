@@ -26,9 +26,7 @@ export function useIapAvailability() {
           setState('unsupported');
           return;
         }
-        const hasPlayStore = await Linking.canOpenURL(
-          'market://details?id=com.android.vending'
-        );
+        const hasPlayStore = await Linking.canOpenURL('market://details?id=com.android.vending');
         if (!hasPlayStore) {
           setState('unsupported');
           return;

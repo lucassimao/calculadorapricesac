@@ -28,11 +28,11 @@ body {
 }
 
 body {
-  background: radial-gradient(1200px 600px at 80% -10%, #e8efe9 0%, rgba(232, 239, 233, 0) 60%),
-    radial-gradient(900px 500px at 10% 0%, #f0e7da 0%, rgba(240, 231, 218, 0) 55%),
-    var(--bg);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #e8efe9 0%, rgba(232, 239, 233, 0) 60%),
+    radial-gradient(900px 500px at 10% 0%, #f0e7da 0%, rgba(240, 231, 218, 0) 55%), var(--bg);
   color: var(--ink);
-  font-family: var(--font-body), "Manrope", "Helvetica Neue", sans-serif;
+  font-family: var(--font-body), 'Manrope', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;

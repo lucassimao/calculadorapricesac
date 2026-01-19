@@ -33,13 +33,20 @@ export function SummarySection({
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.section,
+        { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]} testID="section-summary">
           Resumo
         </Text>
         {isCalculating && (
-          <Text style={[styles.calculatingText, { color: colors.textTertiary }]}>calculando...</Text>
+          <Text style={[styles.calculatingText, { color: colors.textTertiary }]}>
+            calculando...
+          </Text>
         )}
       </View>
 
@@ -93,7 +100,11 @@ export function SummarySection({
       )}
 
       {summary.totalFgtsUsed > 0 && (
-        <SummaryRow label="FGTS Usado" value={formatCurrency(summary.totalFgtsUsed)} colors={colors} />
+        <SummaryRow
+          label="FGTS Usado"
+          value={formatCurrency(summary.totalFgtsUsed)}
+          colors={colors}
+        />
       )}
 
       {summary.totalPaymentNet !== summary.totalPayment && (
@@ -104,9 +115,17 @@ export function SummarySection({
         />
       )}
 
-      <SummaryRow label="Total de Juros" value={formatCurrency(summary.totalInterest)} colors={colors} />
+      <SummaryRow
+        label="Total de Juros"
+        value={formatCurrency(summary.totalInterest)}
+        colors={colors}
+      />
       <SummaryRow label="1ª Parcela" value={formatCurrency(summary.firstPayment)} colors={colors} />
-      <SummaryRow label="Última Parcela" value={formatCurrency(summary.lastPayment)} colors={colors} />
+      <SummaryRow
+        label="Última Parcela"
+        value={formatCurrency(summary.lastPayment)}
+        colors={colors}
+      />
     </View>
   );
 }

@@ -5,7 +5,7 @@
 }
 
 .title {
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: clamp(26px, 3vw, 36px);
 }
 
@@ -45,7 +45,7 @@
 }
 
 .code {
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   background: rgba(0, 0, 0, 0.05);
   padding: 4px 6px;
   border-radius: 6px;

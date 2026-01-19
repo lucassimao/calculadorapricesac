@@ -1,16 +1,16 @@
-import type { Metadata } from "next";
-import styles from "../legal.module.css";
+import type { Metadata } from 'next';
+import styles from '../legal.module.css';
 
 export const metadata: Metadata = {
-  title: "Termos de Uso",
-  description: "Termos de uso da Calculadora Price & SAC.",
+  title: 'Termos de Uso',
+  description: 'Termos de uso da Calculadora Price & SAC.',
   alternates: {
-    canonical: "/termos",
+    canonical: '/termos',
   },
   openGraph: {
-    title: "Termos de Uso",
-    description: "Termos de uso da Calculadora Price & SAC.",
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com"}/termos`,
+    title: 'Termos de Uso',
+    description: 'Termos de uso da Calculadora Price & SAC.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com'}/termos`,
   },
 };
 
@@ -20,8 +20,8 @@ export default function TermsPage() {
       <div>
         <h1 className={styles.title}>Termos de Uso</h1>
         <p className={styles.lead}>
-          Última atualização: 16 de janeiro de 2026. Ao utilizar a Calculadora Price &amp; SAC,
-          você concorda com os termos abaixo.
+          Última atualização: 16 de janeiro de 2026. Ao utilizar a Calculadora Price &amp; SAC, você
+          concorda com os termos abaixo.
         </p>
       </div>
 
@@ -58,16 +58,14 @@ export default function TermsPage() {
         </p>
         <p>
           O aplicativo <strong>não constitui oferta de crédito</strong>, recomendação de
-          investimento ou aconselhamento financeiro. Consulte sempre uma instituição financeira
-          para obter condições reais de financiamento.
+          investimento ou aconselhamento financeiro. Consulte sempre uma instituição financeira para
+          obter condições reais de financiamento.
         </p>
       </section>
 
       <section className={styles.section}>
         <h2>4. Isenção de Responsabilidade</h2>
-        <p>
-          O desenvolvedor não se responsabiliza por:
-        </p>
+        <p>O desenvolvedor não se responsabiliza por:</p>
         <ul className={styles.list}>
           <li>Decisões financeiras tomadas com base nas simulações do aplicativo.</li>
           <li>Divergências entre os valores simulados e as condições reais de financiamento.</li>
@@ -93,13 +91,13 @@ export default function TermsPage() {
       <section className={styles.section}>
         <h2>6. Propriedade Intelectual</h2>
         <p>
-          Todo o conteúdo do aplicativo, incluindo textos, gráficos, ícones, imagens, código-fonte
-          e marca, é de propriedade exclusiva do desenvolvedor e protegido por leis de direitos
+          Todo o conteúdo do aplicativo, incluindo textos, gráficos, ícones, imagens, código-fonte e
+          marca, é de propriedade exclusiva do desenvolvedor e protegido por leis de direitos
           autorais.
         </p>
         <p>
-          É proibida a reprodução, distribuição, modificação ou engenharia reversa do aplicativo
-          sem autorização prévia por escrito.
+          É proibida a reprodução, distribuição, modificação ou engenharia reversa do aplicativo sem
+          autorização prévia por escrito.
         </p>
       </section>
 
@@ -129,23 +127,23 @@ export default function TermsPage() {
         <h2>9. Alterações nos Termos</h2>
         <p>
           Estes termos podem ser atualizados periodicamente. Alterações significativas serão
-          comunicadas através do aplicativo ou do site. O uso continuado após alterações
-          constitui aceitação dos novos termos.
+          comunicadas através do aplicativo ou do site. O uso continuado após alterações constitui
+          aceitação dos novos termos.
         </p>
       </section>
 
       <section className={styles.section}>
         <h2>10. Legislação Aplicável</h2>
         <p>
-          Estes termos são regidos pelas leis da República Federativa do Brasil. Eventuais
-          disputas serão resolvidas no foro da comarca de São Paulo, SP.
+          Estes termos são regidos pelas leis da República Federativa do Brasil. Eventuais disputas
+          serão resolvidas no foro da comarca de São Paulo, SP.
         </p>
       </section>
 
       <section className={styles.section}>
         <h2>Contato</h2>
         <p>
-          Dúvidas sobre os termos de uso? Entre em contato pelo e-mail:{" "}
+          Dúvidas sobre os termos de uso? Entre em contato pelo e-mail:{' '}
           <a className={styles.link} href="mailto:lucas@lucassimao.com">
             lucas@lucassimao.com
           </a>

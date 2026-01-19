@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { loadPremiumStatus, savePremiumStatus, subscribePremiumStatus } from '../lib/storage/premium';
+import {
+  loadPremiumStatus,
+  savePremiumStatus,
+  subscribePremiumStatus,
+} from '../lib/storage/premium';
 
 export function usePremium() {
   const [isPremium, setIsPremium] = useState(false);

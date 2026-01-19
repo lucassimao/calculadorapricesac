@@ -8,10 +8,17 @@ export default {
     slug: 'calculadora-price-sac',
     scheme: 'calculadora-price-sac',
     version: '1.0.0',
+    platforms: ['ios', 'android'],
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
+    updates: {
+      url: 'https://u.expo.dev/6d83845b-fcdd-4771-9479-8bbf3030c1a6',
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
     splash: {
       image: './assets/splash-icon.png',
       resizeMode: 'contain',

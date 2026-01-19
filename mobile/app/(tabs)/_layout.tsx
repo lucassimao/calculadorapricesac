@@ -5,7 +5,15 @@ import { useTheme } from '../../src/lib/theme';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useExport } from '../../src/contexts/ExportContext';
 
-function ExportTabIcon({ color, size, isPremium }: { color: string; size: number; isPremium: boolean }) {
+function ExportTabIcon({
+  color,
+  size,
+  isPremium,
+}: {
+  color: string;
+  size: number;
+  isPremium: boolean;
+}) {
   return (
     <View>
       <Ionicons name="share-outline" size={size} color={color} />
@@ -44,7 +52,7 @@ export default function TabsLayout() {
           if (buttonIndex === 0) triggerExport('pdf');
           else if (buttonIndex === 1) triggerExport('xlsx');
           else if (buttonIndex === 2) triggerExport('csv');
-        }
+        },
       );
     } else {
       Alert.alert(
@@ -57,7 +65,7 @@ export default function TabsLayout() {
           { text: 'XLSX', onPress: () => triggerExport('xlsx') },
           { text: 'CSV', onPress: () => triggerExport('csv') },
           { text: 'Cancelar', style: 'cancel' },
-        ]
+        ],
       );
     }
   };

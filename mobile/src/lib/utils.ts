@@ -42,11 +42,7 @@ export function parseLocalDate(text: string): Date | null {
  */
 export function parseCurrencyInput(value: string): number {
   if (!value.trim()) return 0;
-  const cleaned = value
-    .replace(/\s/g, '')
-    .replace(/R\$/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
+  const cleaned = value.replace(/\s/g, '').replace(/R\$/g, '').replace(/\./g, '').replace(',', '.');
   const parsed = Number.parseFloat(cleaned);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
@@ -90,9 +86,7 @@ export function maskCurrencyInput(text: string): { display: string; value: numbe
   }
 
   // Calculate numeric value
-  const numericString = decimalPart !== null
-    ? `${integerPart}.${decimalPart}`
-    : integerPart;
+  const numericString = decimalPart !== null ? `${integerPart}.${decimalPart}` : integerPart;
   const value = parseFloat(numericString) || 0;
 
   return { display, value };

@@ -4,7 +4,15 @@ import type { ScheduleRow } from '../types/loan';
 import { formatCurrency } from '../lib/calculations';
 import { useTheme } from '../lib/theme';
 
-type ColumnKey = 'installment' | 'date' | 'payment' | 'interest' | 'amortization' | 'balance' | 'extra' | 'fgts';
+type ColumnKey =
+  | 'installment'
+  | 'date'
+  | 'payment'
+  | 'interest'
+  | 'amortization'
+  | 'balance'
+  | 'extra'
+  | 'fgts';
 
 interface AmortizationTableProps {
   schedule: ScheduleRow[];
@@ -19,7 +27,16 @@ export function AmortizationTable({
   showCumulative = false,
   totalSchedule,
   showExtras = false,
-  columns = ['installment', 'date', 'payment', 'interest', 'amortization', 'balance', 'extra', 'fgts'],
+  columns = [
+    'installment',
+    'date',
+    'payment',
+    'interest',
+    'amortization',
+    'balance',
+    'extra',
+    'fgts',
+  ],
 }: AmortizationTableProps) {
   const { colors } = useTheme();
 
@@ -48,7 +65,7 @@ export function AmortizationTable({
         prepayment: acc.prepayment + (row.prepaymentAmount ?? 0),
         fgts: acc.fgts + (row.fgtsAmortization ?? 0) + (row.fgtsSubsidy ?? 0),
       }),
-      { payment: 0, interest: 0, amortization: 0, prepayment: 0, fgts: 0 }
+      { payment: 0, interest: 0, amortization: 0, prepayment: 0, fgts: 0 },
     );
   }, [schedule, totalSchedule]);
 
@@ -58,7 +75,7 @@ export function AmortizationTable({
       (row) =>
         (row.prepaymentAmount && row.prepaymentAmount > 0) ||
         (row.fgtsAmortization && row.fgtsAmortization > 0) ||
-        (row.fgtsSubsidy && row.fgtsSubsidy > 0)
+        (row.fgtsSubsidy && row.fgtsSubsidy > 0),
     );
   }, [schedule]);
 
@@ -80,15 +97,18 @@ export function AmortizationTable({
   };
 
   // Dynamic themed styles
-  const themedStyles = useMemo(() => ({
-    container: { borderColor: colors.border },
-    headerRow: { backgroundColor: colors.backgroundTertiary },
-    row: { backgroundColor: colors.background },
-    rowAlt: { backgroundColor: colors.rowAlt },
-    footerRow: { backgroundColor: colors.backgroundTertiary },
-    cell: { color: colors.textSecondary },
-    cellHighlight: { color: colors.successDark },
-  }), [colors]);
+  const themedStyles = useMemo(
+    () => ({
+      container: { borderColor: colors.border },
+      headerRow: { backgroundColor: colors.backgroundTertiary },
+      row: { backgroundColor: colors.background },
+      rowAlt: { backgroundColor: colors.rowAlt },
+      footerRow: { backgroundColor: colors.backgroundTertiary },
+      cell: { color: colors.textSecondary },
+      cellHighlight: { color: colors.successDark },
+    }),
+    [colors],
+  );
 
   return (
     <View
@@ -105,7 +125,7 @@ export function AmortizationTable({
               themedStyles.cell,
               col === 'installment' ? styles.cellSmall : null,
               col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
-              (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
+              col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
             ]}
             accessibilityLabel={`Coluna ${headerLabels[col]}`}
           >
@@ -133,7 +153,8 @@ export function AmortizationTable({
                 if (col === 'interest') value = formatCurrency(interestValue);
                 if (col === 'amortization') value = formatCurrency(amortValue);
                 if (col === 'balance') value = formatCurrency(item.balance);
-                if (col === 'extra') value = item.prepaymentAmount ? formatCurrency(item.prepaymentAmount) : '-';
+                if (col === 'extra')
+                  value = item.prepaymentAmount ? formatCurrency(item.prepaymentAmount) : '-';
                 if (col === 'fgts') value = fgtsValue > 0 ? formatCurrency(fgtsValue) : '-';
 
                 return (
@@ -143,9 +164,14 @@ export function AmortizationTable({
                       styles.cell,
                       themedStyles.cell,
                       col === 'installment' ? styles.cellSmall : null,
-                      col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
-                      (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
-                      (col === 'extra' && item.prepaymentAmount) || (col === 'fgts' && fgtsValue > 0)
+                      col === 'installment'
+                        ? styles.cellLeft
+                        : col !== 'date'
+                          ? styles.cellRight
+                          : null,
+                      col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
+                      (col === 'extra' && item.prepaymentAmount) ||
+                      (col === 'fgts' && fgtsValue > 0)
                         ? themedStyles.cellHighlight
                         : null,
                     ]}
@@ -165,7 +191,8 @@ export function AmortizationTable({
             if (col === 'payment') value = formatCurrency(totals.payment);
             if (col === 'interest') value = formatCurrency(totals.interest);
             if (col === 'amortization') value = formatCurrency(totals.amortization);
-            if (col === 'extra') value = totals.prepayment > 0 ? formatCurrency(totals.prepayment) : '-';
+            if (col === 'extra')
+              value = totals.prepayment > 0 ? formatCurrency(totals.prepayment) : '-';
             if (col === 'fgts') value = totals.fgts > 0 ? formatCurrency(totals.fgts) : '-';
             return (
               <Text
@@ -174,8 +201,12 @@ export function AmortizationTable({
                   styles.cell,
                   themedStyles.cell,
                   col === 'installment' ? styles.cellSmall : null,
-                  col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
-                  (col === 'extra' || col === 'fgts') ? styles.cellExtra : null,
+                  col === 'installment'
+                    ? styles.cellLeft
+                    : col !== 'date'
+                      ? styles.cellRight
+                      : null,
+                  col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
                 ]}
                 accessibilityLabel={`Total ${headerLabels[col]}: ${value}`}
               >

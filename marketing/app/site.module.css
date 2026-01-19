@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: 20px;
   letter-spacing: -0.02em;
 }

@@ -1,5 +1,5 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - launchApp
-- tapOn: "Calculadora"
-- assertVisible: "Calculadora Price & SAC"
+- tapOn: 'Calculadora'
+- assertVisible: 'Calculadora Price & SAC'

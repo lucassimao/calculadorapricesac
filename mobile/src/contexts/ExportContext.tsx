@@ -36,11 +36,14 @@ export function ExportProvider({ children }: { children: ReactNode }) {
     setExportHandler(null);
   }, []);
 
-  const triggerExport = useCallback(async (format: ExportFormat) => {
-    if (exportHandler) {
-      await exportHandler(format);
-    }
-  }, [exportHandler]);
+  const triggerExport = useCallback(
+    async (format: ExportFormat) => {
+      if (exportHandler) {
+        await exportHandler(format);
+      }
+    },
+    [exportHandler],
+  );
 
   return (
     <ExportContext.Provider

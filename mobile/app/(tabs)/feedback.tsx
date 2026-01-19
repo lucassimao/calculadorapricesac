@@ -25,14 +25,17 @@ export default function FeedbackScreen() {
   const showAds = !premiumLoading && !isPremium;
   const [attempted, setAttempted] = useState(false);
 
-  const themedStyles = useMemo(() => ({
-    container: { backgroundColor: colors.background },
-    title: { color: colors.text },
-    subtitle: { color: colors.textSecondary },
-    card: { backgroundColor: colors.backgroundSecondary },
-    label: { color: colors.textTertiary },
-    value: { color: colors.text },
-  }), [colors]);
+  const themedStyles = useMemo(
+    () => ({
+      container: { backgroundColor: colors.background },
+      title: { color: colors.text },
+      subtitle: { color: colors.textSecondary },
+      card: { backgroundColor: colors.backgroundSecondary },
+      label: { color: colors.textTertiary },
+      value: { color: colors.text },
+    }),
+    [colors],
+  );
 
   const openEmail = async () => {
     const url = getMailtoUrl();
@@ -60,7 +63,10 @@ export default function FeedbackScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, themedStyles.container]} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[styles.container, themedStyles.container]}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={[styles.title, themedStyles.title]}>Feedback</Text>
       <Text style={[styles.subtitle, themedStyles.subtitle]}>
         Escreva sua sugestão, dúvida ou problema.

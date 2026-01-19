@@ -1,16 +1,16 @@
-import type { Metadata } from "next";
-import styles from "../legal.module.css";
+import type { Metadata } from 'next';
+import styles from '../legal.module.css';
 
 export const metadata: Metadata = {
-  title: "Privacidade",
-  description: "Política de privacidade da Calculadora Price & SAC.",
+  title: 'Privacidade',
+  description: 'Política de privacidade da Calculadora Price & SAC.',
   alternates: {
-    canonical: "/privacidade",
+    canonical: '/privacidade',
   },
   openGraph: {
-    title: "Privacidade",
-    description: "Política de privacidade da Calculadora Price & SAC.",
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com"}/privacidade`,
+    title: 'Privacidade',
+    description: 'Política de privacidade da Calculadora Price & SAC.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com'}/privacidade`,
   },
 };
 
@@ -20,8 +20,8 @@ export default function PrivacyPage() {
       <div>
         <h1 className={styles.title}>Política de Privacidade</h1>
         <p className={styles.lead}>
-          Última atualização: 12 de janeiro de 2026. Esta política explica como a Calculadora
-          Price &amp; SAC trata dados no app.
+          Última atualização: 12 de janeiro de 2026. Esta política explica como a Calculadora Price
+          &amp; SAC trata dados no app.
         </p>
       </div>
 
@@ -41,9 +41,9 @@ export default function PrivacyPage() {
       <section className={styles.section}>
         <h2>Dados coletados pelo app</h2>
         <p>
-          A Calculadora Price &amp; SAC não solicita cadastro e não coleta diretamente dados pessoais
-          como nome, CPF ou endereço. As informações inseridas nas simulações ficam armazenadas no
-          dispositivo do usuário.
+          A Calculadora Price &amp; SAC não solicita cadastro e não coleta diretamente dados
+          pessoais como nome, CPF ou endereço. As informações inseridas nas simulações ficam
+          armazenadas no dispositivo do usuário.
         </p>
       </section>
 
@@ -63,12 +63,22 @@ export default function PrivacyPage() {
         </p>
         <ul className={styles.list}>
           <li>
-            <a className={styles.link} href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
+            <a
+              className={styles.link}
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noreferrer"
+            >
               Google Privacy Policy
             </a>
           </li>
           <li>
-            <a className={styles.link} href="https://www.apple.com/legal/privacy/" target="_blank" rel="noreferrer">
+            <a
+              className={styles.link}
+              href="https://www.apple.com/legal/privacy/"
+              target="_blank"
+              rel="noreferrer"
+            >
               Apple Privacy Policy
             </a>
           </li>
@@ -86,7 +96,7 @@ export default function PrivacyPage() {
       <section className={styles.section}>
         <h2>Contato</h2>
         <p>
-          Dúvidas sobre privacidade? Fale com a gente pelo e-mail:{" "}
+          Dúvidas sobre privacidade? Fale com a gente pelo e-mail:{' '}
           <a className={styles.link} href="mailto:lucas@lucassimao.com">
             lucas@lucassimao.com
           </a>

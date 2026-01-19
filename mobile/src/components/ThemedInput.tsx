@@ -19,9 +19,7 @@ export function ThemedInput({ label, error, style, ...props }: ThemedInputProps)
 
   return (
     <View style={styles.container}>
-      {label && (
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
-      )}
+      {label && <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>}
       <TextInput
         {...props}
         style={[
@@ -45,9 +43,7 @@ export function ThemedInput({ label, error, style, ...props }: ThemedInputProps)
           props.onBlur?.(e);
         }}
       />
-      {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-      )}
+      {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
     </View>
   );
 }

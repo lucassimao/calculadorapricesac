@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useIAP } from 'expo-iap';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
@@ -102,13 +111,10 @@ function PremiumIapScreen() {
     },
   });
 
-  const product = useMemo(
-    () => products.find((item) => item.id === IAP_PRODUCT_ID),
-    [products]
-  );
+  const product = useMemo(() => products.find((item) => item.id === IAP_PRODUCT_ID), [products]);
   const hasEntitlement = useMemo(
     () => availablePurchases.some((purchase) => purchase.productId === IAP_PRODUCT_ID),
-    [availablePurchases]
+    [availablePurchases],
   );
   const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
   const isStoreReady = connected && !!product;
@@ -175,7 +181,10 @@ function PremiumIapScreen() {
         return;
       }
       if (!product) {
-        Alert.alert('Produto indisponível', 'Não foi possível carregar o produto. Tente novamente.');
+        Alert.alert(
+          'Produto indisponível',
+          'Não foi possível carregar o produto. Tente novamente.',
+        );
         return;
       }
       setPurchaseInProgress(true);
@@ -248,9 +257,7 @@ function PremiumIapScreen() {
       <View style={styles.card}>
         <Text style={styles.priceLabel}>Pagamento único</Text>
         <Text style={styles.price}>{priceLabel}</Text>
-        <Text style={styles.helper}>
-          Compra única, sem assinatura recorrente.
-        </Text>
+        <Text style={styles.helper}>Compra única, sem assinatura recorrente.</Text>
         <View style={styles.row}>
           <Pressable
             style={[
@@ -308,19 +315,27 @@ function PremiumIapScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={[styles.modalBackdrop, Platform.OS === 'ios' && styles.modalBackdropIOS]}>
-          <View style={[
-            styles.modalCard,
-            { backgroundColor: colors.background },
-            Platform.OS === 'ios' && styles.modalCardIOS
-          ]}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.background },
+              Platform.OS === 'ios' && styles.modalCardIOS,
+            ]}
+          >
             <Text style={[styles.modalTitle, { color: colors.text }]}>Desbloqueie o Premium</Text>
             <Text style={[styles.modalText, { color: colors.textSecondary }]}>
               Remova anúncios e exporte sua análise para compartilhar ou guardar.
             </Text>
             <View style={styles.modalList}>
-              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>• PDF com resumo e tabela</Text>
-              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>• XLSX para editar planilhas</Text>
-              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>• CSV para integrar com outros apps</Text>
+              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>
+                • PDF com resumo e tabela
+              </Text>
+              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>
+                • XLSX para editar planilhas
+              </Text>
+              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>
+                • CSV para integrar com outros apps
+              </Text>
             </View>
             <View style={styles.modalRow}>
               <Pressable
@@ -329,12 +344,15 @@ function PremiumIapScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar compra"
               >
-                <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Agora não</Text>
+                <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                  Agora não
+                </Text>
               </Pressable>
               <Pressable
                 style={[
                   styles.primaryButton,
-                  (isPremium || !isStoreReady || purchaseInProgress) && styles.primaryButtonDisabled,
+                  (isPremium || !isStoreReady || purchaseInProgress) &&
+                    styles.primaryButtonDisabled,
                 ]}
                 onPress={handlePurchase}
                 accessibilityRole="button"
@@ -365,7 +383,8 @@ function PremiumUnsupportedScreen() {
         </Text>
       </View>
       <Text style={styles.subtitle}>
-        Compras no app não estão disponíveis neste dispositivo. Use uma build instalada com loja compatível.
+        Compras no app não estão disponíveis neste dispositivo. Use uma build instalada com loja
+        compatível.
       </Text>
       <AdBanner enabled={showAds} />
       <View style={styles.card}>

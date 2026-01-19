@@ -24,7 +24,7 @@
 }
 
 .heroTitle {
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: clamp(32px, 4vw, 54px);
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -51,7 +51,9 @@
   padding: 14px 20px;
   border-radius: 999px;
   font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: 0 14px 30px rgba(44, 84, 74, 0.25);
   display: inline-flex;
   align-items: center;
@@ -104,7 +106,7 @@
 }
 
 .heroCard::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -40% auto auto -40%;
   width: 220px;
@@ -235,11 +237,16 @@
 
 .sectionDivider {
   height: 1px;
-  background: linear-gradient(90deg, rgba(215, 210, 198, 0), rgba(215, 210, 198, 0.9), rgba(215, 210, 198, 0));
+  background: linear-gradient(
+    90deg,
+    rgba(215, 210, 198, 0),
+    rgba(215, 210, 198, 0.9),
+    rgba(215, 210, 198, 0)
+  );
 }
 
 .sectionTitle {
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: clamp(24px, 2.6vw, 36px);
   letter-spacing: -0.01em;
 }
@@ -346,7 +353,7 @@
 }
 
 .numberValue {
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: 26px;
 }
 
@@ -384,7 +391,7 @@
 }
 
 .shotFrame::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 6px;
   left: 50%;
@@ -397,7 +404,7 @@
 }
 
 .shotFrame::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 10px;
   left: 50%;

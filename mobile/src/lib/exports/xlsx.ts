@@ -7,7 +7,12 @@ interface XlsxOptions {
   tableOnly?: boolean;
 }
 
-export async function exportXlsx(schedule: ScheduleRow[], scenario: Scenario, summary: LoanSummary, options?: XlsxOptions) {
+export async function exportXlsx(
+  schedule: ScheduleRow[],
+  scenario: Scenario,
+  summary: LoanSummary,
+  options?: XlsxOptions,
+) {
   const rows = schedule.filter((row) => row.installmentNumber > 0);
   const data: (string | number)[][] = [
     ['Parcela', 'Data', 'Parcela', 'Juros', 'Amortização', 'Saldo', 'Custos', 'FGTS', 'Líquido'],

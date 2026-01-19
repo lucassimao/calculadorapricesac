@@ -5,7 +5,7 @@
 }
 
 .title {
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
   font-size: clamp(28px, 3vw, 40px);
 }
 
@@ -27,7 +27,7 @@
 
 .section h2 {
   font-size: 18px;
-  font-family: var(--font-heading), "Fraunces", serif;
+  font-family: var(--font-heading), 'Fraunces', serif;
 }
 
 .section p,

@@ -1,12 +1,14 @@
 # Repository Guidelines
 
 ## Project Overview
+
 - Expo 54 mobile app (iOS + Android only) for a SAC/Price loan calculator.
 - PT-BR only, offline-first; no backend or sign-in.
 - Freemium: ads for free users; one-time IAP (R$ 10,00) removes ads and unlocks exports (PDF/XLSX/CSV).
 - Ignore automated content/social pipeline and any server/database persistence.
 
 ## Product Scope Highlights
+
 - SAC and Price formulas:
   - Price: parcela fixa via fórmula PGTO.
   - SAC: amortização = principal / nº parcelas; juros = saldo anterior × taxa; saldo = saldo anterior – amortização.
@@ -18,6 +20,7 @@
 - Tabs: Calculadora, Comparar, Premium, Feedback (abre email padrão).
 
 ## Structure
+
 - `calculadora-price-sac/` — Expo app source
 - `EXPO_ROADMAP.md` — roadmap for mobile development
 - `FIXES_ROADMAP.md` — bug fixes and improvements roadmap (all completed)
@@ -26,6 +29,7 @@
 - `maestro/` — testes de UI (flows principais)
 
 ## Architecture
+
 - **Theme System**: `src/lib/theme.ts` provides light/dark mode via `useTheme()` hook. Colors are WCAG AA compliant.
 - **Calculator Components**: `src/components/calculator/` contains extracted components:
   - `ScenarioSection.tsx` - Save/load/delete scenarios
@@ -41,10 +45,12 @@
   - `maskCurrencyInput()` - Live currency formatting with R$ prefix (e.g., "R$ 300.000")
 
 ## Tech Stack
+
 - Expo 54, TypeScript, ESLint (flat config)
 - Local storage only (no server persistence)
 
 ## Dev Commands (run in `calculadora-price-sac/`)
+
 - `npm install`
 - `npm run start`
 - `npm run android`
@@ -56,12 +62,14 @@
 - `npm run ui:maestro:expo` (UI tests via Expo Go)
 
 ## Product Constraints
+
 - Offline-first calculations and scenarios
 - No user accounts
 - Paid users only: PDF/XLSX/CSV export
 - Ads shown wherever possible for free users
 
 ## Notes
+
 - Use local storage for scenarios, settings, and premium state.
 - Keep UI clear and simple with large touch targets.
 - IAP SKU: `remove_ads` (iOS + Android).
@@ -73,6 +81,7 @@
 - Sentry: inicializado em `src/lib/sentry.ts`, ativo só em produção quando `extra.sentryDsn` estiver definido.
 
 ## IAP Implementation
+
 - Self-contained: no external API for subscription validation
 - Uses `expo-iap` for store integration
 - Premium state stored locally in AsyncStorage
@@ -81,6 +90,7 @@
 - Platform-specific modal styling (iOS: centered, Android: bottom sheet)
 
 ## Responsive Design
+
 - **Breakpoint**: 768px (iPad Mini/iPad portrait)
 - **Tablet Layout**: Two-column layout with inputs on left, results on right
 - **Mobile Layout**: Single column, optimized for phones
@@ -89,6 +99,7 @@
 - **Container**: Max-width 1400px with increased padding on tablets
 
 ## Recent Improvements (FIXES_ROADMAP.md - All Completed)
+
 - **Date handling**: Fixed timezone issues, proper month overflow, Brazilian format
 - **CET calculation**: Uses actual dates for accurate IRR/NPV
 - **Dark mode**: Full theme support across all screens

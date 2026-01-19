@@ -1,66 +1,63 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import styles from "./page.module.css";
+import type { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
+import styles from './page.module.css';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com.br";
-const appStoreUrl = "https://apps.apple.com/us/app/calculadora-sac-price/id6757717537";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com.br';
+const appStoreUrl = 'https://apps.apple.com/us/app/calculadora-sac-price/id6757717537';
 
 export const metadata: Metadata = {
-  title: "Simulador SAC e Price",
+  title: 'Simulador SAC e Price',
   description:
-    "Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.",
+    'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
   alternates: {
-    canonical: "/",
+    canonical: '/',
   },
   openGraph: {
-    title: "Simulador SAC e Price",
+    title: 'Simulador SAC e Price',
     description:
-      "Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.",
+      'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
     url: siteUrl,
     images: [
       {
         url: `${siteUrl}/opengraph-image`,
         width: 1200,
         height: 630,
-        alt: "Calculadora Price & SAC — simulador SAC e Price",
-        type: "image/png",
+        alt: 'Calculadora Price & SAC — simulador SAC e Price',
+        type: 'image/png',
       },
       {
         url: `${siteUrl}/og-square`,
         width: 1200,
         height: 1200,
-        alt: "Calculadora Price & SAC — ícone do app",
-        type: "image/png",
+        alt: 'Calculadora Price & SAC — ícone do app',
+        type: 'image/png',
       },
     ],
   },
   twitter: {
-    title: "Simulador SAC e Price",
+    title: 'Simulador SAC e Price',
     description:
-      "Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.",
+      'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
     images: [`${siteUrl}/twitter-image`],
   },
 };
 
 export default function Home() {
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "MobileApplication",
-    name: "Calculadora Price & SAC",
-    operatingSystem: "iOS, Android",
-    applicationCategory: "FinanceApplication",
+    '@context': 'https://schema.org',
+    '@type': 'MobileApplication',
+    name: 'Calculadora Price & SAC',
+    operatingSystem: 'iOS, Android',
+    applicationCategory: 'FinanceApplication',
     description:
-      "Simulador de financiamento imobiliário com SAC e Price. Funciona offline, com tabela completa, FGTS e exportações Premium.",
-    image: [
-      `${siteUrl}/opengraph-image`,
-      `${siteUrl}/og-square`,
-    ],
+      'Simulador de financiamento imobiliário com SAC e Price. Funciona offline, com tabela completa, FGTS e exportações Premium.',
+    image: [`${siteUrl}/opengraph-image`, `${siteUrl}/og-square`],
     offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "BRL",
-      category: "Free",
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'BRL',
+      category: 'Free',
     },
     url: siteUrl,
   };
@@ -99,21 +96,18 @@ export default function Home() {
               </span>
               App Store
             </a>
-            <span className={`${styles.secondaryButton} ${styles.disabledButton}`} aria-disabled="true">
+            <span
+              className={`${styles.secondaryButton} ${styles.disabledButton}`}
+              aria-disabled="true"
+            >
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
                     d="M3.2 2.4c-.2.3-.2.7-.2 1.1v17.1c0 .4.1.8.3 1.1l9.4-9.6-9.5-9.7z"
                     fill="#34A853"
                   />
-                  <path
-                    d="M14 12l2.9-3-10-5.9 7.1 8.9z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M14 12l-7.1 8.9 10-5.8-2.9-3.1z"
-                    fill="#FBBC05"
-                  />
+                  <path d="M14 12l2.9-3-10-5.9 7.1 8.9z" fill="#4285F4" />
+                  <path d="M14 12l-7.1 8.9 10-5.8-2.9-3.1z" fill="#FBBC05" />
                   <path
                     d="M20.8 10.4l-3.9-2.3L14 12l2.9 3.1 3.9-2.3c.7-.5.7-1.9 0-2.4z"
                     fill="#EA4335"
@@ -162,7 +156,12 @@ export default function Home() {
               <div className={styles.previewCard}>
                 <div className={styles.previewTitle}>Gráficos</div>
                 <div className={styles.miniCharts}>
-                  <svg className={styles.curveLine} viewBox="0 0 240 70" role="img" aria-label="Curva de saldo devedor">
+                  <svg
+                    className={styles.curveLine}
+                    viewBox="0 0 240 70"
+                    role="img"
+                    aria-label="Curva de saldo devedor"
+                  >
                     <path
                       d="M4 16 C 70 10, 140 18, 220 60"
                       fill="none"
@@ -171,22 +170,35 @@ export default function Home() {
                       strokeLinecap="round"
                     />
                   </svg>
-                  <svg className={styles.flatLine} viewBox="0 0 240 10" role="img" aria-label="Linha de parcelas">
-                    <line x1="6" y1="5" x2="234" y2="5" stroke="#2f6bdd" strokeWidth="4" strokeLinecap="round" />
+                  <svg
+                    className={styles.flatLine}
+                    viewBox="0 0 240 10"
+                    role="img"
+                    aria-label="Linha de parcelas"
+                  >
+                    <line
+                      x1="6"
+                      y1="5"
+                      x2="234"
+                      y2="5"
+                      stroke="#2f6bdd"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    />
                   </svg>
                   <div className={styles.barRow} aria-hidden="true">
-                    <span className={styles.barOrange} style={{ height: "80%" }} />
-                    <span className={styles.barOrange} style={{ height: "78%" }} />
-                    <span className={styles.barOrange} style={{ height: "76%" }} />
-                    <span className={styles.barOrange} style={{ height: "72%" }} />
-                    <span className={styles.barOrange} style={{ height: "70%" }} />
-                    <span className={styles.barOrange} style={{ height: "64%" }} />
-                    <span className={styles.barOrange} style={{ height: "60%" }} />
-                    <span className={styles.barOrange} style={{ height: "56%" }} />
-                    <span className={styles.barOrange} style={{ height: "52%" }} />
-                    <span className={styles.barOrange} style={{ height: "48%" }} />
-                    <span className={styles.barOrange} style={{ height: "42%" }} />
-                    <span className={styles.barGreen} style={{ height: "55%" }} />
+                    <span className={styles.barOrange} style={{ height: '80%' }} />
+                    <span className={styles.barOrange} style={{ height: '78%' }} />
+                    <span className={styles.barOrange} style={{ height: '76%' }} />
+                    <span className={styles.barOrange} style={{ height: '72%' }} />
+                    <span className={styles.barOrange} style={{ height: '70%' }} />
+                    <span className={styles.barOrange} style={{ height: '64%' }} />
+                    <span className={styles.barOrange} style={{ height: '60%' }} />
+                    <span className={styles.barOrange} style={{ height: '56%' }} />
+                    <span className={styles.barOrange} style={{ height: '52%' }} />
+                    <span className={styles.barOrange} style={{ height: '48%' }} />
+                    <span className={styles.barOrange} style={{ height: '42%' }} />
+                    <span className={styles.barGreen} style={{ height: '55%' }} />
                   </div>
                 </div>
               </div>
@@ -201,28 +213,49 @@ export default function Home() {
         <div>
           <h2 className={styles.sectionTitle}>Decida com clareza</h2>
           <p className={styles.sectionLead}>
-            A Calculadora Price &amp; SAC foi pensada para quem precisa comparar propostas e entender
-            o custo real do financiamento. Tudo acontece no aparelho, sem login.
+            A Calculadora Price &amp; SAC foi pensada para quem precisa comparar propostas e
+            entender o custo real do financiamento. Tudo acontece no aparelho, sem login.
           </p>
         </div>
         <div className={styles.shotsGrid}>
           <figure className={styles.shotCard}>
             <div className={styles.shotFrame}>
-              <Image src="/screenshots/resumo.png" alt="Resumo do financiamento" width={720} height={1280} />
+              <Image
+                src="/screenshots/resumo.png"
+                alt="Resumo do financiamento"
+                width={720}
+                height={1280}
+              />
             </div>
-            <figcaption className={styles.shotCaption}>Resumo com total pago, juros e CET.</figcaption>
+            <figcaption className={styles.shotCaption}>
+              Resumo com total pago, juros e CET.
+            </figcaption>
           </figure>
           <figure className={styles.shotCard}>
             <div className={styles.shotFrame}>
-              <Image src="/screenshots/tabela.png" alt="Tabela de amortização" width={720} height={1280} />
+              <Image
+                src="/screenshots/tabela.png"
+                alt="Tabela de amortização"
+                width={720}
+                height={1280}
+              />
             </div>
-            <figcaption className={styles.shotCaption}>Tabela completa com saldo e amortização.</figcaption>
+            <figcaption className={styles.shotCaption}>
+              Tabela completa com saldo e amortização.
+            </figcaption>
           </figure>
           <figure className={styles.shotCard}>
             <div className={styles.shotFrame}>
-              <Image src="/screenshots/graficos.png" alt="Gráficos de evolução" width={720} height={1280} />
+              <Image
+                src="/screenshots/graficos.png"
+                alt="Gráficos de evolução"
+                width={720}
+                height={1280}
+              />
             </div>
-            <figcaption className={styles.shotCaption}>Gráficos de saldo, parcelas e composição.</figcaption>
+            <figcaption className={styles.shotCaption}>
+              Gráficos de saldo, parcelas e composição.
+            </figcaption>
           </figure>
         </div>
         <div className={styles.featureGrid}>
@@ -304,7 +337,8 @@ export default function Home() {
         <div className={styles.premiumBox}>
           <h2 className={styles.sectionTitle}>Premium por compra única</h2>
           <p>
-            Remova anúncios e desbloqueie exportações profissionais. Sem mensalidade e sem surpresas.
+            Remova anúncios e desbloqueie exportações profissionais. Sem mensalidade e sem
+            surpresas.
           </p>
           <div className={styles.premiumList}>
             <span>• Exportação em PDF, XLSX e CSV</span>
@@ -320,7 +354,8 @@ export default function Home() {
         <div className={styles.ctaBlock}>
           <h2 className={styles.sectionTitle}>Pronto para simular?</h2>
           <p>
-            Baixe agora e descubra o cenário ideal para o seu financiamento imobiliário. Tudo offline.
+            Baixe agora e descubra o cenário ideal para o seu financiamento imobiliário. Tudo
+            offline.
           </p>
           <div className={styles.ctaActions}>
             <a className={styles.primaryButton} href={appStoreUrl}>
@@ -338,21 +373,18 @@ export default function Home() {
               </span>
               App Store
             </a>
-            <span className={`${styles.secondaryButton} ${styles.disabledButton}`} aria-disabled="true">
+            <span
+              className={`${styles.secondaryButton} ${styles.disabledButton}`}
+              aria-disabled="true"
+            >
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
                     d="M3.2 2.4c-.2.3-.2.7-.2 1.1v17.1c0 .4.1.8.3 1.1l9.4-9.6-9.5-9.7z"
                     fill="#34A853"
                   />
-                  <path
-                    d="M14 12l2.9-3-10-5.9 7.1 8.9z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M14 12l-7.1 8.9 10-5.8-2.9-3.1z"
-                    fill="#FBBC05"
-                  />
+                  <path d="M14 12l2.9-3-10-5.9 7.1 8.9z" fill="#4285F4" />
+                  <path d="M14 12l-7.1 8.9 10-5.8-2.9-3.1z" fill="#FBBC05" />
                   <path
                     d="M20.8 10.4l-3.9-2.3L14 12l2.9 3.1 3.9-2.3c.7-.5.7-1.9 0-2.4z"
                     fill="#EA4335"

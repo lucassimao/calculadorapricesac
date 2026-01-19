@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Scenario } from '../../src/types/loan';
-import { calculateLoanSummary, formatCurrency, generateAmortizationSchedule } from '../../src/lib/calculations';
+import {
+  calculateLoanSummary,
+  formatCurrency,
+  generateAmortizationSchedule,
+} from '../../src/lib/calculations';
 import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
@@ -36,56 +40,57 @@ export default function ComparisonScreen() {
   const { isPremium, loading: premiumLoading } = usePremium();
   const showAds = !premiumLoading && !isPremium;
 
-  const themedStyles = useMemo(() => ({
-    container: { backgroundColor: colors.background },
-    section: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-    title: { color: colors.text },
-    sectionTitle: { color: colors.text },
-    label: { color: colors.textSecondary },
-    input: { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
-    card: { borderColor: colors.border },
-    cardTitle: { color: colors.primary },
-    cardValue: { color: colors.text },
-    cardLabel: { color: colors.textTertiary },
-    highlight: { backgroundColor: colors.primaryLight },
-    highlightText: { color: colors.primary },
-    helperText: { color: colors.textTertiary },
-    quickCard: { borderColor: colors.border },
-    quickTitle: { color: colors.text },
-    quickLabel: { color: colors.textTertiary },
-    quickValue: { color: colors.text },
-  }), [colors]);
+  const themedStyles = useMemo(
+    () => ({
+      container: { backgroundColor: colors.background },
+      section: { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+      title: { color: colors.text },
+      sectionTitle: { color: colors.text },
+      label: { color: colors.textSecondary },
+      input: { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+      card: { borderColor: colors.border },
+      cardTitle: { color: colors.primary },
+      cardValue: { color: colors.text },
+      cardLabel: { color: colors.textTertiary },
+      highlight: { backgroundColor: colors.primaryLight },
+      highlightText: { color: colors.primary },
+      helperText: { color: colors.textTertiary },
+      quickCard: { borderColor: colors.border },
+      quickTitle: { color: colors.text },
+      quickLabel: { color: colors.textTertiary },
+      quickValue: { color: colors.text },
+    }),
+    [colors],
+  );
 
   const priceSchedule = useMemo(
     () => generateAmortizationSchedule({ ...base, system: 'PRICE' }),
-    [base]
+    [base],
   );
   const sacSchedule = useMemo(
     () => generateAmortizationSchedule({ ...base, system: 'SAC' }),
-    [base]
+    [base],
   );
 
   const priceSummary = useMemo(
     () => calculateLoanSummary(priceSchedule, base),
-    [priceSchedule, base]
+    [priceSchedule, base],
   );
-  const sacSummary = useMemo(
-    () => calculateLoanSummary(sacSchedule, base),
-    [sacSchedule, base]
-  );
+  const sacSummary = useMemo(() => calculateLoanSummary(sacSchedule, base), [sacSchedule, base]);
 
   const interestDiff = priceSummary.totalInterest - sacSummary.totalInterest;
   const totalDiff = priceSummary.totalPaymentWithCosts - sacSummary.totalPaymentWithCosts;
 
   // Sync quick comparison scenarios with base principal
   useEffect(() => {
-    setQuickCases((prev) =>
-      prev.map((c) => ({ ...c, principal: base.principal }))
-    );
+    setQuickCases((prev) => prev.map((c) => ({ ...c, principal: base.principal })));
   }, [base.principal]);
 
   return (
-    <ScrollView contentContainerStyle={[styles.container, themedStyles.container]} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[styles.container, themedStyles.container]}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={[styles.title, themedStyles.title]}>Comparar SAC vs Price</Text>
       <AdBanner enabled={showAds} />
 
@@ -121,7 +126,11 @@ export default function ComparisonScreen() {
           onChangeText={(text) => {
             setTermText(text);
             const parsed = Number.parseInt(text || '0', 10);
-            setBase((prev) => ({ ...prev, term: Number.isNaN(parsed) ? 0 : parsed, termUnit: 'months' }));
+            setBase((prev) => ({
+              ...prev,
+              term: Number.isNaN(parsed) ? 0 : parsed,
+              termUnit: 'months',
+            }));
           }}
           keyboardType="numeric"
           style={[styles.input, themedStyles.input]}
@@ -138,12 +147,16 @@ export default function ComparisonScreen() {
         <View style={styles.cardRow}>
           <View style={[styles.card, themedStyles.card]}>
             <Text style={[styles.cardTitle, themedStyles.cardTitle]}>Price</Text>
-            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(priceSummary.totalPayment)}</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>
+              {formatCurrency(priceSummary.totalPayment)}
+            </Text>
             <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Pago</Text>
           </View>
           <View style={[styles.card, themedStyles.card]}>
             <Text style={[styles.cardTitle, themedStyles.cardTitle]}>SAC</Text>
-            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(sacSummary.totalPayment)}</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>
+              {formatCurrency(sacSummary.totalPayment)}
+            </Text>
             <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Pago</Text>
           </View>
         </View>
@@ -171,20 +184,24 @@ export default function ComparisonScreen() {
         <View style={styles.cardRow}>
           <View style={[styles.card, themedStyles.card]}>
             <Text style={[styles.cardTitle, themedStyles.cardTitle]}>Price</Text>
-            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(priceSummary.totalInterest)}</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>
+              {formatCurrency(priceSummary.totalInterest)}
+            </Text>
             <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Juros</Text>
           </View>
           <View style={[styles.card, themedStyles.card]}>
             <Text style={[styles.cardTitle, themedStyles.cardTitle]}>SAC</Text>
-            <Text style={[styles.cardValue, themedStyles.cardValue]}>{formatCurrency(sacSummary.totalInterest)}</Text>
+            <Text style={[styles.cardValue, themedStyles.cardValue]}>
+              {formatCurrency(sacSummary.totalInterest)}
+            </Text>
             <Text style={[styles.cardLabel, themedStyles.cardLabel]}>Total Juros</Text>
           </View>
         </View>
 
         <View style={[styles.highlight, themedStyles.highlight]}>
           <Text style={[styles.highlightText, themedStyles.highlightText]}>
-            Diferença de juros: {formatCurrency(Math.abs(interestDiff))} {' '}
-            ({interestDiff > 0 ? 'SAC economiza' : 'Price economiza'})
+            Diferença de juros: {formatCurrency(Math.abs(interestDiff))} (
+            {interestDiff > 0 ? 'SAC economiza' : 'Price economiza'})
           </Text>
         </View>
 
@@ -192,8 +209,8 @@ export default function ComparisonScreen() {
           sacSummary.totalPaymentWithCosts > sacSummary.totalPayment) && (
           <View style={[styles.highlightAlt, { backgroundColor: colors.successLight }]}>
             <Text style={[styles.highlightText, { color: colors.success }]}>
-              Diferença total c/ custos: {formatCurrency(Math.abs(totalDiff))} {' '}
-              ({totalDiff > 0 ? 'SAC economiza' : 'Price economiza'})
+              Diferença total c/ custos: {formatCurrency(Math.abs(totalDiff))} (
+              {totalDiff > 0 ? 'SAC economiza' : 'Price economiza'})
             </Text>
           </View>
         )}
@@ -202,10 +219,15 @@ export default function ComparisonScreen() {
       <AdBanner enabled={showAds} />
 
       <View style={[styles.section, themedStyles.section]}>
-        <Text style={[styles.sectionTitle, themedStyles.sectionTitle]} testID="section-quick-compare">Comparador Rápido</Text>
+        <Text
+          style={[styles.sectionTitle, themedStyles.sectionTitle]}
+          testID="section-quick-compare"
+        >
+          Comparador Rápido
+        </Text>
         <Text style={[styles.helperText, themedStyles.helperText]}>
-          Compare até 3 condições diferentes (juros, prazo e entrada). O ranking
-          usa o total pago com custos.
+          Compare até 3 condições diferentes (juros, prazo e entrada). O ranking usa o total pago
+          com custos.
         </Text>
         {quickCases.map((item, index) => (
           <View key={item.id} style={[styles.quickCard, themedStyles.quickCard]}>
@@ -216,7 +238,9 @@ export default function ComparisonScreen() {
                 onChangeText={(text) => {
                   const value = Number.parseFloat(text.replace(',', '.'));
                   setQuickCases((prev) =>
-                    prev.map((c, i) => (i === index ? { ...c, rate: Number.isNaN(value) ? 0 : value } : c))
+                    prev.map((c, i) =>
+                      i === index ? { ...c, rate: Number.isNaN(value) ? 0 : value } : c,
+                    ),
                   );
                 }}
                 keyboardType="numeric"
@@ -232,7 +256,9 @@ export default function ComparisonScreen() {
                 onChangeText={(text) => {
                   const value = Number.parseInt(text || '0', 10);
                   setQuickCases((prev) =>
-                    prev.map((c, i) => (i === index ? { ...c, term: Number.isNaN(value) ? 0 : value } : c))
+                    prev.map((c, i) =>
+                      i === index ? { ...c, term: Number.isNaN(value) ? 0 : value } : c,
+                    ),
                   );
                 }}
                 keyboardType="numeric"
@@ -248,7 +274,15 @@ export default function ComparisonScreen() {
                 onChangeText={(text) => {
                   const value = Number.parseFloat(text.replace(',', '.'));
                   setQuickCases((prev) =>
-                    prev.map((c, i) => (i === index ? { ...c, downPayment: Number.isNaN(value) ? 0 : value, loanMode: 'property' } : c))
+                    prev.map((c, i) =>
+                      i === index
+                        ? {
+                            ...c,
+                            downPayment: Number.isNaN(value) ? 0 : value,
+                            loanMode: 'property',
+                          }
+                        : c,
+                    ),
                   );
                 }}
                 keyboardType="numeric"
@@ -264,7 +298,8 @@ export default function ComparisonScreen() {
               <Text style={[styles.quickLabel, themedStyles.quickLabel]}>Total c/ custos</Text>
               <Text style={[styles.quickValue, themedStyles.quickValue]}>
                 {formatCurrency(
-                  calculateLoanSummary(generateAmortizationSchedule(item), item).totalPaymentWithCosts
+                  calculateLoanSummary(generateAmortizationSchedule(item), item)
+                    .totalPaymentWithCosts,
                 )}
               </Text>
             </View>

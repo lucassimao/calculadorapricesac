@@ -31,10 +31,7 @@ export async function incrementAppOpens(): Promise<number> {
 }
 
 export async function shouldRequestReview(): Promise<boolean> {
-  const [alreadyRequested, opens] = await Promise.all([
-    hasRequestedReview(),
-    getAppOpensCount(),
-  ]);
+  const [alreadyRequested, opens] = await Promise.all([hasRequestedReview(), getAppOpensCount()]);
 
   // Don't request if already requested or not enough app opens
   if (alreadyRequested) return false;
