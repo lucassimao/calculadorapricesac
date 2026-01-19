@@ -7,7 +7,7 @@ import "./globals.css";
 import styles from "./site.module.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com";
-const appStoreId = process.env.NEXT_PUBLIC_APP_STORE_ID;
+const appStoreId = "6757717537";
 const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL;
 const playStoreId = process.env.NEXT_PUBLIC_PLAY_STORE_ID;
 const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL;

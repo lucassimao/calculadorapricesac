@@ -73,6 +73,12 @@
   gap: 10px;
 }
 
+.disabledButton {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .storeIcon {
   width: 18px;
   height: 18px;

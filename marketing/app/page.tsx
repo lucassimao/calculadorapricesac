@@ -4,8 +4,9 @@ import Link from "next/link";
 import styles from "./page.module.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://calculadorapricesac.com";
-const appStoreUrl = process.env.NEXT_PUBLIC_APP_STORE_URL ?? "#";
-const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? "#";
+const appStoreUrl =
+  process.env.NEXT_PUBLIC_APP_STORE_URL ??
+  "https://apps.apple.com/us/app/calculadora-sac-price/id6757717537";
 
 export const metadata: Metadata = {
   title: "Simulador SAC e Price",
@@ -85,7 +86,7 @@ export default function Home() {
             veja o impacto de FGTS, amortizações extras e taxas opcionais no seu bolso.
           </p>
           <div className={`${styles.heroActions} ${styles.fadeUp} ${styles.delay3}`}>
-            <a className={styles.primaryButton} href="#baixar">
+            <a className={styles.primaryButton} href={appStoreUrl}>
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
@@ -100,7 +101,7 @@ export default function Home() {
               </span>
               App Store
             </a>
-            <a className={styles.secondaryButton} href="#baixar">
+            <span className={`${styles.secondaryButton} ${styles.disabledButton}`} aria-disabled="true">
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
@@ -121,8 +122,8 @@ export default function Home() {
                   />
                 </svg>
               </span>
-              Google Play
-            </a>
+              Google Play (em breve)
+            </span>
             <Link className={styles.secondaryButton} href="/suporte">
               Preciso de ajuda
             </Link>
@@ -339,7 +340,7 @@ export default function Home() {
               </span>
               App Store
             </a>
-            <a className={styles.secondaryButton} href={playStoreUrl}>
+            <span className={`${styles.secondaryButton} ${styles.disabledButton}`} aria-disabled="true">
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
@@ -360,8 +361,8 @@ export default function Home() {
                   />
                 </svg>
               </span>
-              Google Play
-            </a>
+              Google Play (em breve)
+            </span>
             <Link className={styles.secondaryButton} href="/privacidade">
               Ler política de privacidade
             </Link>

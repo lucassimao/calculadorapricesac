@@ -37,7 +37,14 @@ export async function renderCovers(cfg: Config, storeFilter: string, slotFilter:
       console.log(`[store-assets] store=${store} slot=${slot.key} screenshot=${screenshotPath}`);
 
       const prompt = buildCoverPrompt(cfg, creative, store, storeCfg, slot, copyEntry, baseWidth, baseHeight, layout);
-      const prepared = await prepareScreenshotCanvas(cfg, screenshotPath, baseWidth, baseHeight, layout);
+      const prepared = await prepareScreenshotCanvas(
+        cfg,
+        screenshotPath,
+        baseWidth,
+        baseHeight,
+        layout,
+        storeCfg.aspectRatio
+      );
       console.log(`[store-assets] store=${store} slot=${slot.key} prepared=${prepared}`);
       const images = [
         { path: prepared, mime: 'image/png' },
