@@ -19,11 +19,6 @@ export default {
     runtimeVersion: {
       policy: 'appVersion',
     },
-    splash: {
-      image: './assets/splash-icon.png',
-      resizeMode: 'contain',
-      backgroundColor: '#ffffff',
-    },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.lsimaocosta.calculadorapricesac',
