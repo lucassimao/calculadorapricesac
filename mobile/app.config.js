@@ -7,7 +7,7 @@ export default {
     name: 'calculadora-price-sac',
     slug: 'calculadora-price-sac',
     scheme: 'calculadora-price-sac',
-    version: '1.0.0',
+    version: '1.0.1',
     platforms: ['ios', 'android'],
     orientation: 'portrait',
     icon: './assets/icon.png',
