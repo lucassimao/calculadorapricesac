@@ -56,6 +56,8 @@ export default {
       adsDisabled: false,
       admobBannerUnitIdAndroid: process.env.ADMOB_BANNER_UNIT_ID_ANDROID ?? '',
       admobBannerUnitIdIos: process.env.ADMOB_BANNER_UNIT_ID_IOS ?? '',
+      admobAppIdAndroid: process.env.ADMOB_ANDROID_APP_ID ?? '',
+      admobAppIdIos: process.env.ADMOB_IOS_APP_ID ?? '',
       eas: {
         projectId: '6d83845b-fcdd-4771-9479-8bbf3030c1a6',
       },
