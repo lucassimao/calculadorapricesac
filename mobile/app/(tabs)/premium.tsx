@@ -16,6 +16,7 @@ import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
+import { trackEvent, trackScreen } from '../../src/lib/analytics';
 
 interface BenefitItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -70,6 +71,10 @@ const benefitStyles = StyleSheet.create({
 export default function PremiumScreen() {
   const iapAvailability = useIapAvailability();
 
+  useEffect(() => {
+    trackScreen('premium');
+  }, []);
+
   return iapAvailability === 'supported' ? <PremiumIapScreen /> : <PremiumUnsupportedScreen />;
 }
 
@@ -95,6 +100,7 @@ function PremiumIapScreen() {
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       if (purchase.productId !== IAP_PRODUCT_ID) return;
+      trackEvent('purchase_success', { source: 'premium_tab' });
       // Mark that we just purchased to prevent revocation race condition
       setRecentPurchaseAt(Date.now());
       try {
@@ -107,6 +113,7 @@ function PremiumIapScreen() {
       setModalVisible(false);
     },
     onPurchaseError: () => {
+      trackEvent('purchase_failed', { source: 'premium_tab' });
       Alert.alert('Erro', 'Não foi possível concluir a compra.');
     },
   });
@@ -121,6 +128,10 @@ function PremiumIapScreen() {
   const restoreInProgress = restoreRequestedAt !== null;
   // Consider recently purchased (within 10 seconds) to avoid race condition
   const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
+
+  useEffect(() => {
+    trackEvent('premium_paywall_viewed');
+  }, []);
 
   useEffect(() => {
     if (!connected) return;
@@ -172,6 +183,7 @@ function PremiumIapScreen() {
 
   const handlePurchase = async () => {
     try {
+      trackEvent('purchase_started', { source: 'premium_tab' });
       if (!connected) {
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para comprar.');
         return;
@@ -204,6 +216,7 @@ function PremiumIapScreen() {
 
   const handleRestore = async () => {
     try {
+      trackEvent('purchase_restore_started', { source: 'premium_tab' });
       if (!connected) {
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para restaurar.');
         return;

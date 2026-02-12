@@ -42,6 +42,7 @@ import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { useTheme } from '../../src/lib/theme';
 import { useExport } from '../../src/contexts/ExportContext';
 import { useStoreReview } from '../../src/hooks/useStoreReview';
+import { trackEvent, trackScreen } from '../../src/lib/analytics';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -85,6 +86,7 @@ function PremiumSectionIap({
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       if (purchase.productId !== IAP_PRODUCT_ID) return;
+      trackEvent('purchase_success', { source: 'calculator_inline' });
       // Mark that we just purchased to prevent revocation race condition
       setRecentPurchaseAt(Date.now());
       try {
@@ -96,6 +98,7 @@ function PremiumSectionIap({
       Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
     },
     onPurchaseError: () => {
+      trackEvent('purchase_failed', { source: 'calculator_inline' });
       Alert.alert('Erro', 'Não foi possível concluir a compra.');
     },
   });
@@ -160,6 +163,7 @@ function PremiumSectionIap({
 
   const handlePurchase = async () => {
     try {
+      trackEvent('purchase_started', { source: 'calculator_inline' });
       if (!connected) {
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para comprar.');
         return;
@@ -192,6 +196,7 @@ function PremiumSectionIap({
 
   const handleRestore = async () => {
     try {
+      trackEvent('purchase_restore_started', { source: 'calculator_inline' });
       if (!connected) {
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para restaurar.');
         return;
@@ -334,6 +339,10 @@ export default function CalculatorScreen() {
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
 
   useEffect(() => {
+    trackScreen('calculator');
+  }, []);
+
+  useEffect(() => {
     loadScenarios()
       .then((loaded) => setScenarios(loaded))
       .catch(() => {});
@@ -417,6 +426,12 @@ export default function CalculatorScreen() {
       setScenario((prev) => ({ ...prev, id: newId }));
     }
     await persistScenarios(nextList);
+    trackEvent('scenario_saved', {
+      is_update: existingIndex >= 0,
+      is_premium: isPremium,
+      loan_mode: scenario.loanMode ?? 'standard',
+      system: scenario.system,
+    });
   };
 
   const formatCurrencyValue = (value: number | undefined): string => {
@@ -484,6 +499,10 @@ export default function CalculatorScreen() {
       strategy: 'reduce_term',
       date: new Date(),
     });
+    trackEvent('prepayment_added', {
+      type: next.type,
+      strategy: next.strategy,
+    });
   };
 
   const handleRemovePrepayment = (id: string) => {
@@ -515,6 +534,10 @@ export default function CalculatorScreen() {
       usage: 'amortization',
       strategy: 'reduce_term',
       date: new Date(),
+    });
+    trackEvent('fgts_added', {
+      usage: next.usage,
+      strategy: next.strategy ?? null,
     });
   };
 
@@ -554,7 +577,9 @@ export default function CalculatorScreen() {
   };
 
   const handleExportTableOnly = async (format: 'pdf' | 'xlsx' | 'csv') => {
+    trackEvent('export_clicked', { format, source: 'table_only' });
     if (!isPremium) {
+      trackEvent('export_blocked_premium', { format, source: 'table_only' });
       Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
       return;
     }
@@ -569,9 +594,11 @@ export default function CalculatorScreen() {
       } else {
         await exportCsv(schedule, scenario, summary, { tableOnly: true });
       }
+      trackEvent('export_success', { format, source: 'table_only' });
       // Request store review after successful export (non-blocking)
       requestReviewIfAppropriate().catch(() => {});
     } catch {
+      trackEvent('export_failed', { format, source: 'table_only' });
       Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
     } finally {
       setExporting(false);
@@ -582,7 +609,9 @@ export default function CalculatorScreen() {
   // Callback for the export context (used by tab bar action sheet)
   const handleExportFromContext = useCallback(
     async (format: 'pdf' | 'xlsx' | 'csv') => {
+      trackEvent('export_clicked', { format, source: 'tab_action' });
       if (!isPremium) {
+        trackEvent('export_blocked_premium', { format, source: 'tab_action' });
         Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
         router.push('/(tabs)/premium');
         return;
@@ -599,9 +628,11 @@ export default function CalculatorScreen() {
         } else {
           await exportCsv(schedule, scenario, summary);
         }
+        trackEvent('export_success', { format, source: 'tab_action' });
         // Request store review after successful export (non-blocking)
         requestReviewIfAppropriate().catch(() => {});
       } catch {
+        trackEvent('export_failed', { format, source: 'tab_action' });
         Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
       } finally {
         setExporting(false);

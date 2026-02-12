@@ -54,6 +54,8 @@ export default {
     extra: {
       router: {},
       adsDisabled: false,
+      posthogApiKey: process.env.POSTHOG_API_KEY ?? '',
+      posthogHost: process.env.POSTHOG_HOST ?? 'https://us.i.posthog.com',
       admobBannerUnitIdAndroid: process.env.ADMOB_BANNER_UNIT_ID_ANDROID ?? '',
       admobBannerUnitIdIos: process.env.ADMOB_BANNER_UNIT_ID_IOS ?? '',
       admobAppIdAndroid: process.env.ADMOB_ANDROID_APP_ID ?? '',

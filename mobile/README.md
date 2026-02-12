@@ -31,6 +31,40 @@ SKU usado no app: `remove_ads` (one-time).
 3. Product ID: `remove_ads` (mesmo do app).
 4. Ativar e publicar junto com a release.
 
+## Product Analytics (PostHog)
+
+O app suporta analytics de comportamento via PostHog.
+
+### Configuracao
+
+Defina as variaveis de ambiente antes de build/update:
+
+- `POSTHOG_API_KEY` (obrigatoria para habilitar tracking)
+- `POSTHOG_HOST` (opcional, padrao: `https://us.i.posthog.com`)
+
+As chaves sao lidas de `expo.extra` em `app.config.js`.
+Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
+
+### Eventos principais instrumentados
+
+- `app_open`
+- `scenario_saved`
+- `prepayment_added`
+- `fgts_added`
+- `export_clicked`
+- `export_success`
+- `export_failed`
+- `export_blocked_premium`
+- `premium_paywall_viewed`
+- `purchase_started`
+- `purchase_success`
+- `purchase_failed`
+- `purchase_restore_started`
+- `feedback_email_clicked`
+- `feedback_email_opened`
+- `feedback_whatsapp_clicked`
+- `feedback_whatsapp_opened`
+
 ## Store assets (capas/screenhots)
 
 Ferramenta: `tools/store-assets/` (usa Gemini + screenshots locais).

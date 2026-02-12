@@ -10,6 +10,7 @@ import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useTheme } from '../../src/lib/theme';
+import { trackScreen } from '../../src/lib/analytics';
 
 const BASE_SCENARIO: Scenario = {
   id: 'base',
@@ -39,6 +40,10 @@ export default function ComparisonScreen() {
   const [termText, setTermText] = useState('360');
   const { isPremium, loading: premiumLoading } = usePremium();
   const showAds = !premiumLoading && !isPremium;
+
+  useEffect(() => {
+    trackScreen('comparison');
+  }, []);
 
   const themedStyles = useMemo(
     () => ({

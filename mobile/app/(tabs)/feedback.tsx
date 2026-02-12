@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import { useTheme } from '../../src/lib/theme';
 import { usePremium } from '../../src/hooks/usePremium';
 import { PremiumPill } from '../../src/components/PremiumPill';
 import { AdBanner } from '../../src/components/AdBanner';
+import { trackEvent, trackScreen } from '../../src/lib/analytics';
 
 const FEEDBACK_EMAIL = 'lucas@lucassimao.com';
 const FEEDBACK_SUBJECT = 'Feedback - Calculadora Price & SAC';
@@ -25,6 +26,10 @@ export default function FeedbackScreen() {
   const showAds = !premiumLoading && !isPremium;
   const [attempted, setAttempted] = useState(false);
 
+  useEffect(() => {
+    trackScreen('feedback');
+  }, []);
+
   const themedStyles = useMemo(
     () => ({
       container: { backgroundColor: colors.background },
@@ -39,23 +44,29 @@ export default function FeedbackScreen() {
 
   const openEmail = async () => {
     const url = getMailtoUrl();
+    trackEvent('feedback_email_clicked');
     const supported = await Linking.canOpenURL(url);
     if (!supported) {
+      trackEvent('feedback_email_failed', { reason: 'cannot_open_url' });
       Alert.alert('Email indisponível', 'Não foi possível abrir o app de e-mail.');
       return;
     }
     await Linking.openURL(url);
+    trackEvent('feedback_email_opened');
     setAttempted(true);
   };
 
   const openWhatsApp = async () => {
     const url = getWhatsAppUrl();
+    trackEvent('feedback_whatsapp_clicked');
     const supported = await Linking.canOpenURL(url);
     if (!supported) {
+      trackEvent('feedback_whatsapp_failed', { reason: 'cannot_open_url' });
       Alert.alert('WhatsApp indisponível', 'Não foi possível abrir o WhatsApp.');
       return;
     }
     await Linking.openURL(url);
+    trackEvent('feedback_whatsapp_opened');
   };
 
   return (
