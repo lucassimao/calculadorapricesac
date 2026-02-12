@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,10 +57,6 @@ export default function FeedbackScreen() {
     }
     await Linking.openURL(url);
   };
-
-  useEffect(() => {
-    openEmail().catch(() => {});
-  }, []);
 
   return (
     <ScrollView
