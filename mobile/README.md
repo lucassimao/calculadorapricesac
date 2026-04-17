@@ -2,6 +2,39 @@
 
 App Expo (iOS + Android) para simular financiamento com sistemas SAC e Price. Offline-first e sem backend.
 
+## OTA (EAS Update)
+
+Configuracao atual:
+
+- `updates.url` ja aponta para o projeto EAS correto em `app.config.js`.
+- `runtimeVersion` usa `policy: "appVersion"`.
+- Canais definidos em `eas.json`:
+  - `development` -> `development`
+  - `preview` -> `preview`
+  - `internal` -> `preview`
+  - `production` -> `production`
+
+Regras de uso:
+
+- OTA so deve ser usado para mudancas compativeis com o runtime nativo ja instalado.
+- Se houver mudanca nativa, plugin novo, remocao/adicao de biblioteca nativa, ou mudanca que exija novo runtime, faca nova build antes de publicar update.
+- Com `runtimeVersion: "appVersion"`, publicar OTA para uma build existente exige manter a mesma `expo.version`.
+
+Comandos:
+
+```bash
+cd mobile
+npm run ota:preview -- --message "Descricao da mudanca"
+npm run ota:production -- --message "Descricao da mudanca"
+```
+
+Checklist antes de `ota:production`:
+
+1. Confirmar que nao houve mudanca nativa.
+2. Rodar testes relevantes.
+3. Publicar no canal `preview` primeiro, quando fizer sentido.
+4. Fechar e reabrir a build duas vezes para validar que o update foi baixado e aplicado.
+
 ## Ads (toggle temporario)
 
 Ads podem ser desativados via config e reativados por OTA:
