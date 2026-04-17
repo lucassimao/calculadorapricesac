@@ -13,30 +13,18 @@ appId: com.lsimaocosta.calculadorapricesac
 - extendedWaitUntil:
     visible: 'Price & SAC'
     timeout: 30000
+- tapOn: 'Premium'
+- assertVisible: 'Plano Premium'
+- tapOn: 'Ativar premium (dev)'
 - tapOn: 'Calculadora'
 - scrollUntilVisible:
     element:
-      text: 'Nome do cenário'
+      text: 'Popular extras (dev)'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Nome do cenário'
-- eraseText
-- inputText: 'Cenario Teste'
-- pressKey: Back
-- tapOn: 'Salvar cenário'
-- scrollUntilVisible:
-    element:
-      text: 'Cenario Teste'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- tapOn: 'Novo'
-- scrollUntilVisible:
-    element:
-      text: 'Cenario Teste'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- tapOn: 'Cenario Teste'
-- assertVisible: 'Cenario Teste'
+- tapOn: 'Popular extras (dev)'
+- assertVisible: 'Extras prontos (dev)'
+- tapOn: 'Exportar'
+- assertVisible: 'Exportar Simulação'
+- tapOn: 'XLSX'

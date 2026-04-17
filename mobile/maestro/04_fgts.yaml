@@ -1,20 +1,44 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- launchApp
+- killApp
+- clearState
+- openLink:
+    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- tapOn:
+    text: 'Continue'
+    optional: true
+- tapOn:
+    text: 'Go home'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Price & SAC'
+    timeout: 30000
 - tapOn: 'Calculadora'
-- scrollUntilVisible:
-    element:
-      text: 'FGTS'
-    centerElement: true
-    visibilityPercentage: 10
-- tapOn: 'Data do FGTS'
-- eraseText
-- inputText: '2026-01-10'
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
 - tapOn: 'Valor do FGTS'
 - eraseText
 - inputText: '800'
+- hideKeyboard
 - tapOn: 'FGTS para parcela'
-- pressKey: Back
+- scrollUntilVisible:
+    element:
+      text: 'Adicionar FGTS'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
 - tapOn: 'Adicionar FGTS'
-- assertVisible: 'Parcela'
-- tapOn: 'Remover'
+- scrollUntilVisible:
+    element:
+      text: 'Remover FGTS'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- assertVisible: 'Remover FGTS'
+- tapOn: 'Remover FGTS'

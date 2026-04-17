@@ -7,6 +7,7 @@ import { usePremium } from '../../src/hooks/usePremium';
 import { PremiumPill } from '../../src/components/PremiumPill';
 import { AdBanner } from '../../src/components/AdBanner';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
+import { shouldShowAds } from '../../src/lib/premium';
 
 const FEEDBACK_EMAIL = 'lucas@lucassimao.com';
 const FEEDBACK_SUBJECT = 'Feedback - Calculadora Price & SAC';
@@ -23,7 +24,7 @@ const getWhatsAppUrl = () =>
 export default function FeedbackScreen() {
   const { colors } = useTheme();
   const { isPremium, loading: premiumLoading } = usePremium();
-  const showAds = !premiumLoading && !isPremium;
+  const showAds = shouldShowAds(isPremium, premiumLoading);
   const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
@@ -113,7 +114,10 @@ export default function FeedbackScreen() {
           <Ionicons name="mail-outline" size={24} color={colors.primary} />
           <Text style={[styles.cardTitle, themedStyles.title]}>E-mail</Text>
         </View>
-        <Text style={[styles.value, themedStyles.value]}>{FEEDBACK_EMAIL}</Text>
+        <Text selectable style={[styles.value, themedStyles.value]}>
+          {FEEDBACK_EMAIL}
+        </Text>
+        <Text style={[styles.copyHint, themedStyles.subtitle]}>Toque e segure para copiar</Text>
         <Pressable
           style={styles.primaryButton}
           onPress={openEmail}
@@ -230,6 +234,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+  },
+  copyHint: {
+    fontSize: 12,
+    color: '#6B7280',
   },
   primaryButton: {
     backgroundColor: '#2563EB',

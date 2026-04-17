@@ -16,12 +16,15 @@ Os flows usam `appId: com.lsimaocosta.calculadorapricesac`.
 
 ### 1) Estrutura básica do flow
 
-Cada arquivo deve começar com o `appId` e lançar o app:
+Cada arquivo deve começar com o `appId`, encerrar o app anterior e abrir o dev client via deep link:
 
 ```yaml
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- launchApp
+- killApp
+- clearState
+- openLink:
+    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
 ```
 
 ### 2) Seletores recomendados
@@ -71,7 +74,7 @@ Em telas longas, sempre combine:
 
 Checklist:
 
-1. Abrir app com `launchApp`.
+1. Abrir app com `killApp` + `openLink`.
 2. Garantir navegação correta (tab "Calculadora" ou "Comparar").
 3. Preencher inputs via texto/labels + `scrollUntilVisible`.
 4. Asserções sempre após rolar até o trecho alvo.

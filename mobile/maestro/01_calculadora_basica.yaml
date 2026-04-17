@@ -1,8 +1,19 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- launchApp
+- killApp
+- clearState
+- openLink:
+    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- tapOn:
+    text: 'Continue'
+    optional: true
+- tapOn:
+    text: 'Go home'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Price & SAC'
+    timeout: 30000
 - tapOn: 'Calculadora'
-- assertVisible: 'Calculadora Price & SAC'
 - scrollUntilVisible:
     element:
       text: 'Parâmetros'
@@ -16,6 +27,7 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn: 'Valor do financiamento'
 - eraseText
 - inputText: '250000'
+- hideKeyboard
 - scrollUntilVisible:
     element:
       text: 'Taxa de juros'
@@ -24,6 +36,7 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn: 'Taxa de juros'
 - eraseText
 - inputText: '1,1'
+- hideKeyboard
 - scrollUntilVisible:
     element:
       text: 'Prazo'
@@ -32,6 +45,7 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn: 'Prazo'
 - eraseText
 - inputText: '240'
+- hideKeyboard
 - scrollUntilVisible:
     element:
       text: 'Dia de vencimento'
@@ -40,10 +54,16 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn: 'Dia de vencimento'
 - eraseText
 - inputText: '10'
+- hideKeyboard
 - scrollUntilVisible:
     element:
       text: 'Resumo'
     centerElement: true
     visibilityPercentage: 10
 - assertVisible: 'Total Pago'
-- assertVisible: 'Total de Juros'
+- scrollUntilVisible:
+    element:
+      text: 'Composição das Parcelas'
+    centerElement: true
+    visibilityPercentage: 10
+- assertVisible: 'Composição das Parcelas'

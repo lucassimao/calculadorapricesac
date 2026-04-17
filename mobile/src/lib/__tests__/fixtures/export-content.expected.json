@@ -1,0 +1,101 @@
+{
+  "rows": [
+    [
+      "N°",
+      "Data",
+      "Valor Parcela",
+      "Juros",
+      "Amortização",
+      "Saldo",
+      "Custos",
+      "Extra",
+      "FGTS Amortização",
+      "FGTS Parcela",
+      "Líquido"
+    ],
+    [
+      "1",
+      "01/02/2026",
+      "10000,00",
+      "1000,00",
+      "9000,00",
+      "91000,00",
+      "120,00",
+      "500,00",
+      "300,00",
+      "200,00",
+      "9800,00"
+    ],
+    [
+      "2",
+      "01/03/2026",
+      "9900,00",
+      "910,00",
+      "8990,00",
+      "82010,00",
+      "100,00",
+      "0,00",
+      "0,00",
+      "0,00",
+      "9900,00"
+    ],
+    [],
+    ["Cenário", "Teste"],
+    ["Modalidade", "Imobiliário"],
+    ["Sistema", "PRICE"],
+    ["Data de início", "01/01/2026"],
+    ["Dia de vencimento", "1"],
+    ["Principal financiado", "100000,00"],
+    ["Valor do imóvel", "140000,00"],
+    ["Entrada", "40000,00"],
+    ["Taxa", "1% a.m."],
+    ["Prazo", "12 meses"],
+    ["CET (a.a.)", "0,00%"],
+    ["Custos Iniciais", "0,00"],
+    ["Custos Mensais", "0,00"],
+    ["Total com Custos", "120000,00"],
+    ["FGTS Usado", "0,00"],
+    ["Total Pago Líquido", "120000,00"]
+  ],
+  "pdf": {
+    "title": "Relatório de Financiamento",
+    "headers": [
+      "N°",
+      "Data",
+      "Valor Parcela",
+      "Juros",
+      "Amortização",
+      "Saldo",
+      "Custos",
+      "Extra",
+      "FGTS Amort.",
+      "FGTS Parcela",
+      "Líquido"
+    ],
+    "firstRow": [
+      "1",
+      "2026-02-01",
+      "R$ 10.000,00",
+      "R$ 1.000,00",
+      "R$ 9.000,00",
+      "R$ 91.000,00",
+      "R$ 120,00",
+      "R$ 500,00",
+      "R$ 300,00",
+      "R$ 200,00",
+      "R$ 9.800,00"
+    ],
+    "metadata": {
+      "Cenário": "Teste",
+      "Modalidade": "Imobiliário",
+      "Sistema": "PRICE",
+      "Data de início": "01/01/2026",
+      "Dia de vencimento": "1",
+      "Principal financiado": "R$ 100.000,00",
+      "Valor do imóvel": "R$ 140.000,00",
+      "Entrada": "R$ 40.000,00",
+      "Taxa": "1% a.m.",
+      "Prazo": "12 meses"
+    }
+  }
+}

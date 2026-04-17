@@ -5,6 +5,15 @@ import { Sentry, sentryInitialized } from '../lib/sentry';
 
 let hasLoggedAdConfig = false;
 
+function normalizeAdUnitId(value: unknown) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.toLowerCase() === 'untitled') return null;
+  if (!trimmed.startsWith('ca-app-pub-')) return null;
+  return trimmed;
+}
+
 interface AdBannerProps {
   enabled: boolean;
   adUnitId?: string;
@@ -20,7 +29,8 @@ export function AdBanner({ enabled, adUnitId }: AdBannerProps) {
       : 'ca-app-pub-3940256099942544/6300978111';
   const envUnitId =
     Platform.OS === 'ios' ? extra.admobBannerUnitIdIos : extra.admobBannerUnitIdAndroid;
-  const resolvedUnitId = adUnitId ?? envUnitId ?? fallbackUnitId;
+  const resolvedUnitId =
+    normalizeAdUnitId(adUnitId) ?? normalizeAdUnitId(envUnitId) ?? fallbackUnitId;
 
   if (!hasLoggedAdConfig && sentryInitialized && !__DEV__) {
     hasLoggedAdConfig = true;

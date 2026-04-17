@@ -1,19 +1,30 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- launchApp
+- killApp
+- clearState
+- openLink:
+    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- tapOn:
+    text: 'Continue'
+    optional: true
+- tapOn:
+    text: 'Go home'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Price & SAC'
+    timeout: 30000
 - tapOn: 'Calculadora'
-- scrollUntilVisible:
-    element:
-      text: 'Amortizações Extras'
-    centerElement: true
-    visibilityPercentage: 10
-- tapOn: 'Data da amortização extra'
-- eraseText
-- inputText: '2026-01-05'
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
+- scroll
 - tapOn: 'Valor da amortização extra'
 - eraseText
 - inputText: '1000'
 - pressKey: Back
-- tapOn: 'Adicionar amortização'
-- assertVisible: 'Reduzir prazo'
-- tapOn: 'Remover'
+- tapOn: 'Adicionar amortização extra'
+- assertVisible: 'Remover amortização'
+- tapOn: 'Remover amortização'

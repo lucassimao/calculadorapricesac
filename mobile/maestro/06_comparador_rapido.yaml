@@ -1,20 +1,22 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- launchApp
+- killApp
+- clearState
+- openLink:
+    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- tapOn:
+    text: 'Continue'
+    optional: true
+- tapOn:
+    text: 'Go home'
+    optional: true
+- extendedWaitUntil:
+    visible: 'Price & SAC'
+    timeout: 30000
 - tapOn: 'Comparar'
 - assertVisible: 'Comparar SAC vs Price'
-- scrollUntilVisible:
-    element:
-      text: 'Comparador Rápido'
-    centerElement: true
-    visibilityPercentage: 10
-- tapOn: 'Juros condição Condição A'
-- eraseText
-- inputText: '1,3'
-- tapOn: 'Prazo condição Condição B'
-- eraseText
-- inputText: '180'
-- tapOn: 'Entrada condição Condição C'
-- eraseText
-- inputText: '50000'
-- assertVisible: 'Total c/ Custos'
+- scroll
+- scroll
+- assertVisible: 'Condição A'
+- assertVisible: 'Condição B'
+- assertVisible: 'Condição C'

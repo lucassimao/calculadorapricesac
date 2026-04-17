@@ -6,11 +6,13 @@ import {
   formatCurrency,
   generateAmortizationSchedule,
 } from '../../src/lib/calculations';
+import { buildQuickComparisonScenario } from '../../src/lib/comparison';
 import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useTheme } from '../../src/lib/theme';
 import { trackScreen } from '../../src/lib/analytics';
+import { shouldShowAds } from '../../src/lib/premium';
 
 const BASE_SCENARIO: Scenario = {
   id: 'base',
@@ -39,7 +41,7 @@ export default function ComparisonScreen() {
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
   const { isPremium, loading: premiumLoading } = usePremium();
-  const showAds = !premiumLoading && !isPremium;
+  const showAds = shouldShowAds(isPremium, premiumLoading);
 
   useEffect(() => {
     trackScreen('comparison');
@@ -85,11 +87,17 @@ export default function ComparisonScreen() {
 
   const interestDiff = priceSummary.totalInterest - sacSummary.totalInterest;
   const totalDiff = priceSummary.totalPaymentWithCosts - sacSummary.totalPaymentWithCosts;
-
-  // Sync quick comparison scenarios with base principal
-  useEffect(() => {
-    setQuickCases((prev) => prev.map((c) => ({ ...c, principal: base.principal })));
-  }, [base.principal]);
+  const quickCasesForComparison = useMemo(
+    () => quickCases.map((item) => buildQuickComparisonScenario(base.principal, item)),
+    [quickCases, base.principal],
+  );
+  const quickComparisonSummaries = useMemo(
+    () =>
+      quickCasesForComparison.map((comparisonCase) =>
+        calculateLoanSummary(generateAmortizationSchedule(comparisonCase), comparisonCase),
+      ),
+    [quickCasesForComparison],
+  );
 
   return (
     <ScrollView
@@ -142,6 +150,9 @@ export default function ComparisonScreen() {
           placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Prazo em meses"
         />
+        <Text style={[styles.helperText, themedStyles.helperText]}>
+          No comparador rápido, a entrada reduz o valor financiado a partir do valor base acima.
+        </Text>
       </View>
 
       <AdBanner enabled={showAds} />
@@ -234,82 +245,88 @@ export default function ComparisonScreen() {
           Compare até 3 condições diferentes (juros, prazo e entrada). O ranking usa o total pago
           com custos.
         </Text>
-        {quickCases.map((item, index) => (
-          <View key={item.id} style={[styles.quickCard, themedStyles.quickCard]}>
-            <Text style={[styles.quickTitle, themedStyles.quickTitle]}>{item.name}</Text>
-            <View style={styles.quickRow}>
-              <TextInput
-                value={String(item.rate).replace('.', ',')}
-                onChangeText={(text) => {
-                  const value = Number.parseFloat(text.replace(',', '.'));
-                  setQuickCases((prev) =>
-                    prev.map((c, i) =>
-                      i === index ? { ...c, rate: Number.isNaN(value) ? 0 : value } : c,
-                    ),
-                  );
-                }}
-                keyboardType="numeric"
-                style={[styles.input, styles.inputSmall, themedStyles.input]}
-                placeholder="Juros (%) a.m."
-                placeholderTextColor={colors.textTertiary}
-                accessibilityLabel={`Juros condição ${item.name}`}
-                testID={`quick-rate-${index}`}
-                nativeID={`quick-rate-${index}`}
-              />
-              <TextInput
-                value={String(item.term)}
-                onChangeText={(text) => {
-                  const value = Number.parseInt(text || '0', 10);
-                  setQuickCases((prev) =>
-                    prev.map((c, i) =>
-                      i === index ? { ...c, term: Number.isNaN(value) ? 0 : value } : c,
-                    ),
-                  );
-                }}
-                keyboardType="numeric"
-                style={[styles.input, styles.inputSmall, themedStyles.input]}
-                placeholder="Prazo (meses)"
-                placeholderTextColor={colors.textTertiary}
-                accessibilityLabel={`Prazo condição ${item.name}`}
-                testID={`quick-term-${index}`}
-                nativeID={`quick-term-${index}`}
-              />
-              <TextInput
-                value={String(item.downPayment ?? 0)}
-                onChangeText={(text) => {
-                  const value = Number.parseFloat(text.replace(',', '.'));
-                  setQuickCases((prev) =>
-                    prev.map((c, i) =>
-                      i === index
-                        ? {
-                            ...c,
-                            downPayment: Number.isNaN(value) ? 0 : value,
-                            loanMode: 'property',
-                          }
-                        : c,
-                    ),
-                  );
-                }}
-                keyboardType="numeric"
-                style={[styles.input, styles.inputSmall, themedStyles.input]}
-                placeholder="Entrada (R$)"
-                placeholderTextColor={colors.textTertiary}
-                accessibilityLabel={`Entrada condição ${item.name}`}
-                testID={`quick-down-${index}`}
-                nativeID={`quick-down-${index}`}
-              />
+        {quickCases.map((item, index) => {
+          const comparisonSummary = quickComparisonSummaries[index];
+
+          return (
+            <View key={item.id} style={[styles.quickCard, themedStyles.quickCard]}>
+              <Text style={[styles.quickTitle, themedStyles.quickTitle]}>{item.name}</Text>
+              <View style={styles.quickRow}>
+                <TextInput
+                  value={String(item.rate).replace('.', ',')}
+                  onChangeText={(text) => {
+                    const value = Number.parseFloat(text.replace(',', '.'));
+                    setQuickCases((prev) =>
+                      prev.map((c, i) =>
+                        i === index ? { ...c, rate: Number.isNaN(value) ? 0 : value } : c,
+                      ),
+                    );
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.input, styles.inputSmall, themedStyles.input]}
+                  placeholder="Juros (%) a.m."
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel={`Juros condição ${item.name}`}
+                  testID={`quick-rate-${index}`}
+                  nativeID={`quick-rate-${index}`}
+                />
+                <TextInput
+                  value={String(item.term)}
+                  onChangeText={(text) => {
+                    const value = Number.parseInt(text || '0', 10);
+                    setQuickCases((prev) =>
+                      prev.map((c, i) =>
+                        i === index ? { ...c, term: Number.isNaN(value) ? 0 : value } : c,
+                      ),
+                    );
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.input, styles.inputSmall, themedStyles.input]}
+                  placeholder="Prazo (meses)"
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel={`Prazo condição ${item.name}`}
+                  testID={`quick-term-${index}`}
+                  nativeID={`quick-term-${index}`}
+                />
+                <TextInput
+                  value={String(item.downPayment ?? 0)}
+                  onChangeText={(text) => {
+                    const value = parseCurrencyInput(text);
+                    setQuickCases((prev) =>
+                      prev.map((c, i) =>
+                        i === index
+                          ? {
+                              ...c,
+                              downPayment: Number.isNaN(value) ? 0 : value,
+                            }
+                          : c,
+                      ),
+                    );
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.input, styles.inputSmall, themedStyles.input]}
+                  placeholder="Entrada (R$)"
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel={`Entrada condição ${item.name}`}
+                  testID={`quick-down-${index}`}
+                  nativeID={`quick-down-${index}`}
+                />
+              </View>
+              <View style={styles.quickRow}>
+                <Text style={[styles.quickLabel, themedStyles.quickLabel]}>Total c/ custos</Text>
+                <Text style={[styles.quickValue, themedStyles.quickValue]}>
+                  {formatCurrency(comparisonSummary.totalPaymentWithCosts)}
+                </Text>
+              </View>
+              <View style={styles.quickRow}>
+                <Text style={[styles.quickLabel, themedStyles.quickLabel]}>Financiado</Text>
+                <Text style={[styles.quickValue, themedStyles.quickValue]}>
+                  {formatCurrency(comparisonSummary.financedPrincipal)}
+                </Text>
+              </View>
             </View>
-            <View style={styles.quickRow}>
-              <Text style={[styles.quickLabel, themedStyles.quickLabel]}>Total c/ custos</Text>
-              <Text style={[styles.quickValue, themedStyles.quickValue]}>
-                {formatCurrency(
-                  calculateLoanSummary(generateAmortizationSchedule(item), item)
-                    .totalPaymentWithCosts,
-                )}
-              </Text>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <AdBanner enabled={showAds} />

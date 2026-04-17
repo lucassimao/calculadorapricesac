@@ -4,7 +4,7 @@ import Link from 'next/link';
 import styles from './page.module.css';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com.br';
-const appStoreUrl = 'https://apps.apple.com/us/app/calculadora-sac-price/id6757717537';
+const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
 export const metadata: Metadata = {
   title: 'Simulador SAC e Price',

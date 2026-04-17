@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:exports:android": "node scripts/test-export-readback-android.mjs",
     "ui:maestro": "$HOME/.maestro/bin/maestro test maestro",
     "ui:maestro:android": "$HOME/.maestro/bin/maestro test maestro",
     "build:android:local": "eas build -p android --local --profile production",

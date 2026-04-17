@@ -34,7 +34,7 @@ export function ExportSection({
         <PremiumPill hidden={isPremium} />
       </View>
       <Text style={[styles.helperText, { color: colors.textTertiary }]}>
-        Inclui tabela completa com juros, amortização, custos, FGTS e resumo do cenário.
+        Inclui tabela completa com juros, amortização extra, custos, FGTS e resumo do cenário.
       </Text>
       <View style={styles.row}>
         <Pressable

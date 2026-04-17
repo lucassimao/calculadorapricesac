@@ -15,6 +15,11 @@ export function useIapAvailability() {
         return;
       }
 
+      if (__DEV__ && Platform.OS === 'android') {
+        setState('unsupported');
+        return;
+      }
+
       if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
         setState('unsupported');
         return;

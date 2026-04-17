@@ -12,7 +12,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useIAP } from 'expo-iap';
 import { useRouter } from 'expo-router';
 import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
 import {
@@ -37,12 +36,14 @@ import { usePremium } from '../../src/hooks/usePremium';
 import { exportCsv } from '../../src/lib/exports/csv';
 import { exportPdf } from '../../src/lib/exports/pdf';
 import { exportXlsx } from '../../src/lib/exports/xlsx';
-import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
+import { IAP_FALLBACK_PRICE } from '../../src/lib/iap';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { useTheme } from '../../src/lib/theme';
 import { useExport } from '../../src/contexts/ExportContext';
 import { useStoreReview } from '../../src/hooks/useStoreReview';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
+import { useIapPurchase } from '../../src/hooks/useIapPurchase';
+import { shouldShowAds } from '../../src/lib/premium';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -62,6 +63,17 @@ const DEFAULT_SCENARIO: Scenario = {
 const MAX_TABLE_ROWS = 10;
 const FREE_SCENARIO_LIMIT = 1;
 
+function waitForNextPaint() {
+  return new Promise<void>((resolve) => {
+    const scheduleFrame =
+      typeof globalThis.requestAnimationFrame === 'function'
+        ? (callback: () => void) => globalThis.requestAnimationFrame(() => callback())
+        : (callback: () => void) => setTimeout(callback, 16);
+
+    scheduleFrame(() => scheduleFrame(resolve));
+  });
+}
+
 function PremiumSectionIap({
   isPremium,
   markPremium,
@@ -69,145 +81,18 @@ function PremiumSectionIap({
   isPremium: boolean;
   markPremium: (value: boolean) => Promise<void>;
 }) {
-  const [purchaseInProgress, setPurchaseInProgress] = useState(false);
-  const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
-  const [purchasesValidated, setPurchasesValidated] = useState(false);
-  // Track when we've just completed a purchase to prevent race condition with entitlement check
-  const [recentPurchaseAt, setRecentPurchaseAt] = useState<number | null>(null);
   const {
     connected,
-    products,
-    availablePurchases,
-    requestPurchase,
-    restorePurchases,
-    fetchProducts,
-    getAvailablePurchases,
-    finishTransaction,
-  } = useIAP({
-    onPurchaseSuccess: async (purchase) => {
-      if (purchase.productId !== IAP_PRODUCT_ID) return;
-      trackEvent('purchase_success', { source: 'calculator_inline' });
-      // Mark that we just purchased to prevent revocation race condition
-      setRecentPurchaseAt(Date.now());
-      try {
-        await finishTransaction({ purchase, isConsumable: false });
-      } catch {
-        // Ignore finish errors; entitlement is still granted locally.
-      }
-      await markPremium(true);
-      Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
-    },
-    onPurchaseError: () => {
-      trackEvent('purchase_failed', { source: 'calculator_inline' });
-      Alert.alert('Erro', 'Não foi possível concluir a compra.');
-    },
+    priceLabel,
+    purchaseInProgress,
+    restoreInProgress,
+    handlePurchase,
+    handleRestore,
+  } = useIapPurchase({
+    isPremium,
+    markPremium,
+    source: 'calculator_inline',
   });
-
-  const product = useMemo(() => products.find((item) => item.id === IAP_PRODUCT_ID), [products]);
-  const hasEntitlement = useMemo(
-    () => availablePurchases.some((purchase) => purchase.productId === IAP_PRODUCT_ID),
-    [availablePurchases],
-  );
-  const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
-  const restoreInProgress = restoreRequestedAt !== null;
-  // Consider recently purchased (within 10 seconds) to avoid race condition
-  const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
-
-  useEffect(() => {
-    if (!connected) return;
-    fetchProducts({ skus: [IAP_PRODUCT_ID], type: 'in-app' }).catch(() => {});
-    getAvailablePurchases()
-      .then(() => setPurchasesValidated(true))
-      .catch(() => setPurchasesValidated(true));
-  }, [connected, fetchProducts, getAvailablePurchases]);
-
-  useEffect(() => {
-    if (hasEntitlement && !isPremium) {
-      // Grant premium if platform says we have entitlement
-      markPremium(true).catch(() => {});
-    } else if (purchasesValidated && isPremium && !hasEntitlement && !recentlyPurchased) {
-      // Revoke premium if local state says premium but platform has no entitlement
-      // (e.g., user got a refund or purchase was revoked)
-      // Skip if we just made a purchase (entitlement may not have propagated yet)
-      markPremium(false).catch(() => {});
-    }
-  }, [hasEntitlement, isPremium, markPremium, purchasesValidated, recentlyPurchased]);
-
-  // Clear the recent purchase flag after entitlement is confirmed
-  useEffect(() => {
-    if (recentPurchaseAt !== null && hasEntitlement) {
-      setRecentPurchaseAt(null);
-    }
-  }, [recentPurchaseAt, hasEntitlement]);
-
-  useEffect(() => {
-    if (restoreRequestedAt === null) return;
-    if (hasEntitlement) {
-      markPremium(true)
-        .then(() => Alert.alert('Restaurado', 'Compra restaurada com sucesso.'))
-        .catch(() => {});
-      setRestoreRequestedAt(null);
-    }
-  }, [restoreRequestedAt, hasEntitlement, markPremium]);
-
-  useEffect(() => {
-    if (restoreRequestedAt === null) return;
-    const timeout = setTimeout(() => {
-      if (!hasEntitlement) {
-        Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
-        setRestoreRequestedAt(null);
-      }
-    }, 2000);
-    return () => clearTimeout(timeout);
-  }, [restoreRequestedAt, hasEntitlement]);
-
-  const handlePurchase = async () => {
-    try {
-      trackEvent('purchase_started', { source: 'calculator_inline' });
-      if (!connected) {
-        Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para comprar.');
-        return;
-      }
-      if (isPremium) {
-        Alert.alert('Premium ativo', 'Você já removeu os anúncios.');
-        return;
-      }
-      if (!product) {
-        Alert.alert(
-          'Produto indisponível',
-          'Não foi possível carregar o produto. Tente novamente.',
-        );
-        return;
-      }
-      setPurchaseInProgress(true);
-      await requestPurchase({
-        type: 'in-app',
-        request: {
-          ios: { sku: IAP_PRODUCT_ID },
-          android: { skus: [IAP_PRODUCT_ID] },
-        },
-      });
-    } catch {
-      Alert.alert('Erro', 'Não foi possível concluir a compra.');
-    } finally {
-      setPurchaseInProgress(false);
-    }
-  };
-
-  const handleRestore = async () => {
-    try {
-      trackEvent('purchase_restore_started', { source: 'calculator_inline' });
-      if (!connected) {
-        Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para restaurar.');
-        return;
-      }
-      setRestoreRequestedAt(Date.now());
-      await restorePurchases();
-      await getAvailablePurchases();
-    } catch {
-      Alert.alert('Erro', 'Não foi possível restaurar a compra.');
-    }
-  };
 
   return (
     <View style={styles.section}>
@@ -322,7 +207,7 @@ export default function CalculatorScreen() {
     date: new Date(),
   });
   const { isPremium, loading: premiumLoading, markPremium } = usePremium();
-  const showAds = !premiumLoading && !isPremium;
+  const showAds = shouldShowAds(isPremium, premiumLoading);
   const iapAvailability = useIapAvailability();
   const { registerExportHandler, unregisterExportHandler, setIsExporting } = useExport();
   const { requestReviewIfAppropriate } = useStoreReview();
@@ -586,6 +471,7 @@ export default function CalculatorScreen() {
     if (exporting) return;
     setExporting(true);
     setExportingFormat(format);
+    await waitForNextPaint();
     try {
       if (format === 'pdf') {
         await exportPdf(scenario, summary, schedule, { tableOnly: true });
@@ -606,6 +492,46 @@ export default function CalculatorScreen() {
     }
   };
 
+  const seedExportExtrasForDev = () => {
+    const fixedDate = new Date(2026, 0, 1);
+    setScenario((prev) => ({
+      ...prev,
+      name: 'Teste Exportacao',
+      system: 'PRICE',
+      loanMode: 'standard',
+      principal: 300000,
+      rate: 1.2,
+      rateType: 'monthly',
+      term: 360,
+      termUnit: 'months',
+      startDate: fixedDate,
+      dueDay: 5,
+      prepayments: [
+        {
+          id: 'dev-prepayment',
+          amount: 1000,
+          date: fixedDate,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+          description: 'Dev prepayment',
+        },
+      ],
+      fgtsEvents: [
+        {
+          id: 'dev-fgts',
+          amount: 800,
+          date: fixedDate,
+          usage: 'amortization',
+          strategy: 'reduce_term',
+          description: 'Dev FGTS',
+        },
+      ],
+    }));
+  };
+
+  const hasDevSeedExtras =
+    (scenario.prepayments?.length ?? 0) > 0 && (scenario.fgtsEvents?.length ?? 0) > 0;
+
   // Callback for the export context (used by tab bar action sheet)
   const handleExportFromContext = useCallback(
     async (format: 'pdf' | 'xlsx' | 'csv') => {
@@ -620,6 +546,7 @@ export default function CalculatorScreen() {
       setExporting(true);
       setExportingFormat(format);
       setIsExporting(true);
+      await waitForNextPaint();
       try {
         if (format === 'pdf') {
           await exportPdf(scenario, summary, schedule);
@@ -681,6 +608,19 @@ export default function CalculatorScreen() {
             onLoad={handleLoadScenario}
             onDelete={handleDeleteScenario}
           />
+
+          {__DEV__ ? (
+            <Pressable
+              style={[styles.secondaryButton, { marginBottom: 16 }]}
+              onPress={seedExportExtrasForDev}
+              accessibilityRole="button"
+              accessibilityLabel="Popular extras para exportação (dev)"
+            >
+              <Text style={styles.secondaryButtonText}>
+                {hasDevSeedExtras ? 'Extras prontos (dev)' : 'Popular extras (dev)'}
+              </Text>
+            </Pressable>
+          ) : null}
 
           <SystemSelector
             system={scenario.system}

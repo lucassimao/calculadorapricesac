@@ -1,10 +1,56 @@
+import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import type { LoanSummary, Scenario, ScheduleRow } from '../../types/loan';
 import { formatCurrency } from '../calculations';
+import { formatDateBR } from '../utils';
+import { formatExportTerm } from './formatters';
 
 interface PdfOptions {
   tableOnly?: boolean;
+}
+
+const PDF_READY_TIMEOUT_MS = 5000;
+const PDF_READY_POLL_MS = 100;
+
+function decodeBase64(base64: string) {
+  const fromBase64 = (
+    Uint8Array as typeof Uint8Array & {
+      fromBase64?: (value: string) => Uint8Array;
+    }
+  ).fromBase64;
+
+  if (typeof fromBase64 === 'function') {
+    return fromBase64(base64);
+  }
+
+  if (typeof globalThis.atob === 'function') {
+    const binary = globalThis.atob(base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return bytes;
+  }
+
+  throw new Error('Base64 decoding is not available.');
+}
+
+async function waitForPdfFile(uri: string) {
+  const deadline = Date.now() + PDF_READY_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const file = new File(uri);
+    if (file.exists && typeof file.size === 'number' && file.size > 0) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, PDF_READY_POLL_MS));
+  }
+
+  throw new Error('Generated PDF file is empty.');
 }
 
 const buildHtml = (
@@ -25,6 +71,8 @@ const buildHtml = (
         <td>${formatCurrency(row.amortization)}</td>
         <td>${formatCurrency(row.balance)}</td>
         <td>${formatCurrency(row.extraCosts ?? 0)}</td>
+        <td>${formatCurrency(row.prepaymentAmount ?? 0)}</td>
+        <td>${formatCurrency(row.fgtsAmortization ?? 0)}</td>
         <td>${formatCurrency(row.fgtsSubsidy ?? 0)}</td>
         <td>${formatCurrency(row.netPayment ?? row.payment)}</td>
       </tr>
@@ -35,10 +83,20 @@ const buildHtml = (
   const summarySection = options?.tableOnly
     ? ''
     : `
+        <p><strong>Cenário:</strong> ${scenario.name}</p>
+        <p><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</p>
         <p><strong>Sistema:</strong> ${scenario.system}</p>
-        <p><strong>Valor:</strong> ${formatCurrency(scenario.principal)}</p>
+        <p><strong>Data de início:</strong> ${formatDateBR(scenario.startDate)}</p>
+        <p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
+        <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>
+        ${
+          scenario.loanMode === 'property'
+            ? `<p><strong>Valor do imóvel:</strong> ${formatCurrency(scenario.propertyValue ?? 0)}</p>
+        <p><strong>Entrada:</strong> ${formatCurrency(scenario.downPayment ?? 0)}</p>`
+            : ''
+        }
         <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
-        <p><strong>Prazo:</strong> ${scenario.term} ${scenario.termUnit}</p>
+        <p><strong>Prazo:</strong> ${formatExportTerm(scenario.term, scenario.termUnit)}</p>
         <h2>Resumo</h2>
         <p>Total Pago: ${formatCurrency(summary.totalPayment)}</p>
         <p>Total Juros: ${formatCurrency(summary.totalInterest)}</p>
@@ -72,14 +130,16 @@ const buildHtml = (
         <table>
           <thead>
             <tr>
-              <th>Parcela</th>
+              <th>N°</th>
               <th>Data</th>
-              <th>Parcela</th>
+              <th>Valor Parcela</th>
               <th>Juros</th>
               <th>Amortização</th>
               <th>Saldo</th>
               <th>Custos</th>
-              <th>FGTS</th>
+              <th>Extra</th>
+              <th>FGTS Amort.</th>
+              <th>FGTS Parcela</th>
               <th>Líquido</th>
             </tr>
           </thead>
@@ -99,6 +159,22 @@ export async function exportPdf(
   options?: PdfOptions,
 ) {
   const html = buildHtml(scenario, summary, schedule, options);
-  const { uri } = await Print.printToFileAsync({ html });
-  await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Exportar PDF' });
+  const { base64 } = await Print.printToFileAsync({ html, base64: true });
+
+  if (!base64) {
+    throw new Error('Generated PDF payload is missing.');
+  }
+
+  const sharedFile = new File(Paths.cache, 'tabela_amortizacao.pdf');
+  if (sharedFile.exists) {
+    sharedFile.delete();
+  }
+  sharedFile.create({ overwrite: true });
+  sharedFile.write(decodeBase64(base64));
+
+  await waitForPdfFile(sharedFile.uri);
+  await Sharing.shareAsync(sharedFile.uri, {
+    mimeType: 'application/pdf',
+    dialogTitle: 'Exportar PDF',
+  });
 }

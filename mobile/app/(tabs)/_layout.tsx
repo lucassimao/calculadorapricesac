@@ -1,5 +1,15 @@
+import { useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { ActionSheetIOS, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
 import { usePremium } from '../../src/hooks/usePremium';
@@ -31,6 +41,10 @@ export default function TabsLayout() {
   const router = useRouter();
   const { isPremium } = usePremium();
   const { isExporting, isPremium: contextPremium, triggerExport } = useExport();
+  const [androidExportModalVisible, setAndroidExportModalVisible] = useState(false);
+  const [androidExportFormat, setAndroidExportFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(
+    null,
+  );
 
   const showExportActionSheet = () => {
     if (isExporting) return;
@@ -55,111 +69,222 @@ export default function TabsLayout() {
         },
       );
     } else {
-      Alert.alert(
-        'Exportar Simulação',
-        contextPremium
-          ? 'Escolha o formato do arquivo'
-          : 'Recurso disponível para assinantes Premium',
-        [
-          { text: 'PDF', onPress: () => triggerExport('pdf') },
-          { text: 'XLSX', onPress: () => triggerExport('xlsx') },
-          { text: 'CSV', onPress: () => triggerExport('csv') },
-          { text: 'Cancelar', style: 'cancel' },
-        ],
-      );
+      setAndroidExportModalVisible(true);
     }
   };
 
+  const handleAndroidExport = (format: 'pdf' | 'xlsx' | 'csv') => {
+    if (isExporting) return;
+
+    setAndroidExportFormat(format);
+    void triggerExport(format).finally(() => {
+      setAndroidExportModalVisible(false);
+      setAndroidExportFormat(null);
+    });
+  };
+
   return (
-    <Tabs
-      screenOptions={{
-        headerTitleAlign: 'left',
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        tabBarActiveTintColor: colors.tabActive,
-        tabBarInactiveTintColor: colors.tabInactive,
-        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
-        headerTitle: () => (
-          <View style={styles.headerTitle}>
-            <View style={styles.headerTitleRow}>
-              <Ionicons name="analytics-outline" size={18} color={colors.tabActive} />
-              <Text style={[styles.headerTitleText, { color: colors.text }]}>Price & SAC</Text>
+    <>
+      <Tabs
+        screenOptions={{
+          headerTitleAlign: 'left',
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
+          tabBarActiveTintColor: colors.tabActive,
+          tabBarInactiveTintColor: colors.tabInactive,
+          tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
+          headerTitle: () => (
+            <View style={styles.headerTitle}>
+              <View style={styles.headerTitleRow}>
+                <Ionicons name="analytics-outline" size={18} color={colors.tabActive} />
+                <Text style={[styles.headerTitleText, { color: colors.text }]}>Price & SAC</Text>
+              </View>
+              <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+                Simulador de financiamento
+              </Text>
             </View>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-              Simulador de financiamento
+          ),
+          headerRight: () =>
+            !isPremium ? (
+              <Pressable
+                style={[
+                  styles.headerChip,
+                  { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => router.push('/(tabs)/premium')}
+                accessibilityRole="button"
+                accessibilityLabel="Abrir Premium"
+              >
+                <Ionicons name="star-outline" size={14} color={colors.tabActive} />
+                <Text style={[styles.headerChipText, { color: colors.tabActive }]}>Assinar</Text>
+              </Pressable>
+            ) : null,
+        }}
+      >
+        <Tabs.Screen
+          name="calculator"
+          options={{
+            title: 'Calculadora',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="calculator-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="comparison"
+          options={{
+            title: 'Comparar',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="git-compare-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="export-action"
+          options={{
+            title: 'Exportar',
+            tabBarIcon: ({ color, size }) => (
+              <ExportTabIcon color={color} size={size} isPremium={isPremium} />
+            ),
+          }}
+          listeners={{
+            tabPress: (e) => {
+              // Prevent navigation, just show action sheet
+              e.preventDefault();
+              showExportActionSheet();
+            },
+          }}
+        />
+        <Tabs.Screen
+          name="premium"
+          options={{
+            title: 'Premium',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="star-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="feedback"
+          options={{
+            title: 'Feedback',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={androidExportModalVisible}
+        onRequestClose={() => {
+          if (!isExporting) {
+            setAndroidExportModalVisible(false);
+            setAndroidExportFormat(null);
+          }
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.background, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Exportar Simulação</Text>
+            <Text style={[styles.modalText, { color: colors.textSecondary }]}>
+              {contextPremium
+                ? 'Escolha o formato do arquivo'
+                : 'Recurso disponível para assinantes Premium'}
             </Text>
-          </View>
-        ),
-        headerRight: () =>
-          !isPremium ? (
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[
+                  styles.modalPrimaryButton,
+                  { backgroundColor: '#2563EB' },
+                  isExporting && styles.modalPrimaryButtonDisabled,
+                ]}
+                onPress={() => handleAndroidExport('pdf')}
+                disabled={isExporting}
+                accessibilityRole="button"
+                accessibilityLabel="Exportar PDF"
+              >
+                <View style={styles.modalButtonContent}>
+                  {isExporting && androidExportFormat === 'pdf' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.modalPrimaryButtonText}>
+                    {isExporting && androidExportFormat === 'pdf' ? 'Gerando...' : 'PDF'}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.modalPrimaryButton,
+                  { backgroundColor: '#2563EB' },
+                  isExporting && styles.modalPrimaryButtonDisabled,
+                ]}
+                onPress={() => handleAndroidExport('xlsx')}
+                disabled={isExporting}
+                accessibilityRole="button"
+                accessibilityLabel="Exportar XLSX"
+              >
+                <View style={styles.modalButtonContent}>
+                  {isExporting && androidExportFormat === 'xlsx' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.modalPrimaryButtonText}>
+                    {isExporting && androidExportFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.modalPrimaryButton,
+                  { backgroundColor: '#2563EB' },
+                  isExporting && styles.modalPrimaryButtonDisabled,
+                ]}
+                onPress={() => handleAndroidExport('csv')}
+                disabled={isExporting}
+                accessibilityRole="button"
+                accessibilityLabel="Exportar CSV"
+              >
+                <View style={styles.modalButtonContent}>
+                  {isExporting && androidExportFormat === 'csv' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : null}
+                  <Text style={styles.modalPrimaryButtonText}>
+                    {isExporting && androidExportFormat === 'csv' ? 'Gerando...' : 'CSV'}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
             <Pressable
               style={[
-                styles.headerChip,
+                styles.modalSecondaryButton,
                 { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
+                isExporting && styles.modalSecondaryButtonDisabled,
               ]}
-              onPress={() => router.push('/(tabs)/premium')}
+              onPress={() => {
+                if (!isExporting) {
+                  setAndroidExportModalVisible(false);
+                  setAndroidExportFormat(null);
+                }
+              }}
+              disabled={isExporting}
               accessibilityRole="button"
-              accessibilityLabel="Abrir Premium"
+              accessibilityLabel="Cancelar exportação"
             >
-              <Ionicons name="star-outline" size={14} color={colors.tabActive} />
-              <Text style={[styles.headerChipText, { color: colors.tabActive }]}>Assinar</Text>
+              <Text style={[styles.modalSecondaryButtonText, { color: colors.textSecondary }]}>
+                Cancelar
+              </Text>
             </Pressable>
-          ) : null,
-      }}
-    >
-      <Tabs.Screen
-        name="calculator"
-        options={{
-          title: 'Calculadora',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calculator-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="comparison"
-        options={{
-          title: 'Comparar',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="git-compare-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="export-action"
-        options={{
-          title: 'Exportar',
-          tabBarIcon: ({ color, size }) => (
-            <ExportTabIcon color={color} size={size} isPremium={isPremium} />
-          ),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            // Prevent navigation, just show action sheet
-            e.preventDefault();
-            showExportActionSheet();
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="premium"
-        options={{
-          title: 'Premium',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="star-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="feedback"
-        options={{
-          title: 'Feedback',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -205,5 +330,62 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#F59E0B',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.4)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  modalText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalActions: {
+    gap: 10,
+  },
+  modalPrimaryButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalPrimaryButtonDisabled: {
+    backgroundColor: '#93C5FD',
+  },
+  modalButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  modalPrimaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalSecondaryButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSecondaryButtonDisabled: {
+    opacity: 0.6,
+  },
+  modalSecondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

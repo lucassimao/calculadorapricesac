@@ -42,9 +42,12 @@ mobile/credentials/
 # generated native folders
 /ios
 /android
+/mobile/android
+/mobile/ios
 .venv/
 
 .env.local
 
 # build artifacts
 *.apk
+/mobile/tmp/
