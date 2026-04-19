@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
@@ -26,10 +27,17 @@ export default function FeedbackScreen() {
   const { isPremium, loading: premiumLoading } = usePremium();
   const showAds = shouldShowAds(isPremium, premiumLoading);
   const [attempted, setAttempted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     trackScreen('feedback');
   }, []);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
 
   const themedStyles = useMemo(
     () => ({
@@ -68,6 +76,12 @@ export default function FeedbackScreen() {
     }
     await Linking.openURL(url);
     trackEvent('feedback_whatsapp_opened');
+  };
+
+  const copyEmail = async () => {
+    await Clipboard.setStringAsync(FEEDBACK_EMAIL);
+    trackEvent('feedback_email_copied');
+    setCopied(true);
   };
 
   return (
@@ -114,10 +128,26 @@ export default function FeedbackScreen() {
           <Ionicons name="mail-outline" size={24} color={colors.primary} />
           <Text style={[styles.cardTitle, themedStyles.title]}>E-mail</Text>
         </View>
-        <Text selectable style={[styles.value, themedStyles.value]}>
-          {FEEDBACK_EMAIL}
+        <View style={styles.emailRow}>
+          <Text selectable style={[styles.value, themedStyles.value, styles.emailValue]}>
+            {FEEDBACK_EMAIL}
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.copyButton, pressed ? styles.copyButtonPressed : null]}
+            onPress={copyEmail}
+            accessibilityRole="button"
+            accessibilityLabel="Copiar endereço de e-mail"
+          >
+            <Ionicons
+              name={copied ? 'checkmark' : 'copy-outline'}
+              size={18}
+              color={copied ? '#047857' : colors.primary}
+            />
+          </Pressable>
+        </View>
+        <Text style={[styles.copyHint, themedStyles.subtitle]}>
+          {copied ? 'Endereço copiado.' : 'Copie o endereço ou abra seu app de e-mail.'}
         </Text>
-        <Text style={[styles.copyHint, themedStyles.subtitle]}>Toque e segure para copiar</Text>
         <Pressable
           style={styles.primaryButton}
           onPress={openEmail}
@@ -234,6 +264,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+  },
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  emailValue: {
+    flex: 1,
+  },
+  copyButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  copyButtonPressed: {
+    opacity: 0.7,
   },
   copyHint: {
     fontSize: 12,
