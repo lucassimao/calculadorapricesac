@@ -29,7 +29,9 @@ const ADMOB_UNIT_IDS = {
 };
 
 function getReleaseTarget() {
+  if (process.env.RELEASE_TARGET) return process.env.RELEASE_TARGET;
   if (process.env.EAS_BUILD_PROFILE) return process.env.EAS_BUILD_PROFILE;
+  if (process.env.EAS_UPDATE_BRANCH) return process.env.EAS_UPDATE_BRANCH;
   if (process.env.npm_lifecycle_event === 'ota:production') return 'production';
   if (process.env.npm_lifecycle_event === 'ota:preview') return 'preview';
   return 'development';

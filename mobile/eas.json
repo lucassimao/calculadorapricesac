@@ -11,7 +11,10 @@
     },
     "preview": {
       "channel": "preview",
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "RELEASE_TARGET": "preview"
+      }
     },
     "internal": {
       "channel": "preview",
@@ -19,7 +22,10 @@
     },
     "production": {
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "RELEASE_TARGET": "production"
+      }
     }
   },
   "submit": {
