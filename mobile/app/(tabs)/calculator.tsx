@@ -36,6 +36,7 @@ import { usePremium } from '../../src/hooks/usePremium';
 import { exportCsv } from '../../src/lib/exports/csv';
 import { exportPdf } from '../../src/lib/exports/pdf';
 import { exportXlsx } from '../../src/lib/exports/xlsx';
+import type { ExportAccess, ExportFormat } from '../../src/lib/exports/access';
 import { IAP_FALLBACK_PRICE } from '../../src/lib/iap';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { useTheme } from '../../src/lib/theme';
@@ -44,6 +45,13 @@ import { useStoreReview } from '../../src/hooks/useStoreReview';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
+import { useRewardedExport } from '../../src/hooks/useRewardedExport';
+import { useInterstitialGate } from '../../src/hooks/useInterstitialGate';
+import {
+  isTabActionExportBusy,
+  shouldResetTabActionExportPhase,
+  type TabActionExportPhase,
+} from '../../src/hooks/rewarded-export-state';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -62,6 +70,18 @@ const DEFAULT_SCENARIO: Scenario = {
 
 const MAX_TABLE_ROWS = 10;
 const FREE_SCENARIO_LIMIT = 1;
+
+function getExportProgressText({
+  exporting,
+  rewardedExportFormat,
+}: {
+  exporting: boolean;
+  rewardedExportFormat: ExportFormat | null;
+}) {
+  if (exporting) return 'Gerando arquivo...';
+  if (rewardedExportFormat !== null) return 'Abrindo anúncio...';
+  return '';
+}
 
 function waitForNextPaint() {
   return new Promise<void>((resolve) => {
@@ -200,6 +220,7 @@ export default function CalculatorScreen() {
   const [itbiRateText, setItbiRateText] = useState('0');
   const [registryFeeText, setRegistryFeeText] = useState('0');
   const isPropertyMode = scenario.loanMode === 'property';
+  const [tabActionExportPhase, setTabActionExportPhase] = useState<TabActionExportPhase>('idle');
   const [newFgts, setNewFgts] = useState<Partial<FgtsEvent>>({
     amount: 0,
     usage: 'amortization',
@@ -214,6 +235,9 @@ export default function CalculatorScreen() {
   const [exporting, setExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const { canUseRewardedExport, requestRewardedExport, rewardedExportFormat } =
+    useRewardedExport(isPremium);
+  const { maybeShowInterstitial } = useInterstitialGate(isPremium);
   const [newPrepayment, setNewPrepayment] = useState<Partial<PrepaymentEvent>>({
     amount: 0,
     type: 'fixed_amount',
@@ -251,6 +275,7 @@ export default function CalculatorScreen() {
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
+  const exportFlowBusy = exporting || rewardedExportFormat !== null;
 
   // Dynamic themed styles
   const themedStyles = useMemo(
@@ -317,6 +342,7 @@ export default function CalculatorScreen() {
       loan_mode: scenario.loanMode ?? 'standard',
       system: scenario.system,
     });
+    void maybeShowInterstitial(existingIndex >= 0 ? 'scenario_updated' : 'scenario_saved');
   };
 
   const formatCurrencyValue = (value: number | undefined): string => {
@@ -461,36 +487,155 @@ export default function CalculatorScreen() {
     setNewFgts((prev) => ({ ...prev, date: selectedDate }));
   };
 
-  const handleExportTableOnly = async (format: 'pdf' | 'xlsx' | 'csv') => {
-    trackEvent('export_clicked', { format, source: 'table_only' });
-    if (!isPremium) {
-      trackEvent('export_blocked_premium', { format, source: 'table_only' });
-      Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
-      return;
-    }
-    if (exporting) return;
-    setExporting(true);
-    setExportingFormat(format);
-    await waitForNextPaint();
-    try {
-      if (format === 'pdf') {
-        await exportPdf(scenario, summary, schedule, { tableOnly: true });
-      } else if (format === 'xlsx') {
-        await exportXlsx(schedule, scenario, summary, { tableOnly: true });
-      } else {
-        await exportCsv(schedule, scenario, summary, { tableOnly: true });
+  const runExport = useCallback(
+    async ({
+      format,
+      source,
+      tableOnly = false,
+      access = 'premium',
+    }: {
+      format: ExportFormat;
+      source: string;
+      tableOnly?: boolean;
+      access?: ExportAccess;
+    }) => {
+      if (exporting) return;
+
+      setExporting(true);
+      setExportingFormat(format);
+
+      if (source === 'tab_action') {
+        setTabActionExportPhase('exporting');
       }
-      trackEvent('export_success', { format, source: 'table_only' });
-      // Request store review after successful export (non-blocking)
-      requestReviewIfAppropriate().catch(() => {});
-    } catch {
-      trackEvent('export_failed', { format, source: 'table_only' });
-      Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
-    } finally {
-      setExporting(false);
-      setExportingFormat(null);
-    }
-  };
+
+      await waitForNextPaint();
+
+      try {
+        if (format === 'pdf') {
+          await exportPdf(scenario, summary, schedule, {
+            tableOnly,
+            access,
+          });
+        } else if (format === 'xlsx') {
+          await exportXlsx(schedule, scenario, summary, {
+            tableOnly,
+            access,
+          });
+        } else {
+          await exportCsv(schedule, scenario, summary, {
+            tableOnly,
+            access,
+          });
+        }
+
+        trackEvent('export_success', { format, source });
+        requestReviewIfAppropriate().catch(() => {});
+      } catch {
+        trackEvent('export_failed', { format, source });
+        Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
+      } finally {
+        setExporting(false);
+        setExportingFormat(null);
+
+        if (source === 'tab_action') {
+          setTabActionExportPhase('idle');
+        }
+      }
+    },
+    [exporting, requestReviewIfAppropriate, scenario, schedule, summary],
+  );
+
+  const startRewardedExportFlow = useCallback(
+    async ({
+      format,
+      source,
+      tableOnly = false,
+      access = 'free_rewarded',
+    }: {
+      format: ExportFormat;
+      source: string;
+      tableOnly?: boolean;
+      access?: ExportAccess;
+    }) => {
+      if (!canUseRewardedExport) return false;
+
+      if (source === 'tab_action') {
+        setTabActionExportPhase('rewarded');
+      }
+
+      const started = await requestRewardedExport({
+        format,
+        source,
+        onUnlocked: () => runExport({ format, source, tableOnly, access }),
+      });
+
+      if (!started) {
+        if (source === 'tab_action') {
+          setTabActionExportPhase('idle');
+        }
+      }
+
+      return started;
+    },
+    [canUseRewardedExport, requestRewardedExport, runExport],
+  );
+
+  const promptUpgradeForExport = useCallback(
+    (format: ExportFormat, source: string, tableOnly = false) => {
+      Alert.alert(
+        'Exportação grátis com anúncio',
+        'Assista a um anúncio para liberar esta exportação ou assine o Premium para exportar sem limites e sem anúncios.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
+          {
+            text: 'Assistir anúncio',
+            onPress: () => {
+              void startRewardedExportFlow({ format, source, tableOnly });
+            },
+          },
+        ],
+      );
+    },
+    [router, startRewardedExportFlow],
+  );
+
+  const handleExportTableOnly = useCallback(
+    async (format: ExportFormat) => {
+      trackEvent('export_clicked', { format, source: 'table_only' });
+
+      if (exporting || rewardedExportFormat !== null) return;
+
+      if (!isPremium) {
+        if (canUseRewardedExport) {
+          promptUpgradeForExport(format, 'table_only', true);
+          return;
+        }
+
+        trackEvent('export_blocked_premium', { format, source: 'table_only' });
+        Alert.alert(
+          'Premium',
+          'Exportação disponível apenas para assinantes. Assine o Premium para liberar exportações ilimitadas.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
+          ],
+        );
+        return;
+      }
+
+      await runExport({ format, source: 'table_only', tableOnly: true });
+    },
+    [
+      canUseRewardedExport,
+      exporting,
+      isPremium,
+      promptUpgradeForExport,
+      rewardedExportFormat,
+      router,
+      runExport,
+    ],
+  );
 
   const seedExportExtrasForDev = () => {
     const fixedDate = new Date(2026, 0, 1);
@@ -534,59 +679,77 @@ export default function CalculatorScreen() {
 
   // Callback for the export context (used by tab bar action sheet)
   const handleExportFromContext = useCallback(
-    async (format: 'pdf' | 'xlsx' | 'csv') => {
+    async (format: ExportFormat) => {
       trackEvent('export_clicked', { format, source: 'tab_action' });
+
+      if (exporting || rewardedExportFormat !== null) return;
+
       if (!isPremium) {
+        if (canUseRewardedExport) {
+          await startRewardedExportFlow({ format, source: 'tab_action' });
+          return;
+        }
+
         trackEvent('export_blocked_premium', { format, source: 'tab_action' });
         Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
         router.push('/(tabs)/premium');
         return;
       }
-      if (exporting) return;
-      setExporting(true);
-      setExportingFormat(format);
-      setIsExporting(true);
-      await waitForNextPaint();
-      try {
-        if (format === 'pdf') {
-          await exportPdf(scenario, summary, schedule);
-        } else if (format === 'xlsx') {
-          await exportXlsx(schedule, scenario, summary);
-        } else {
-          await exportCsv(schedule, scenario, summary);
-        }
-        trackEvent('export_success', { format, source: 'tab_action' });
-        // Request store review after successful export (non-blocking)
-        requestReviewIfAppropriate().catch(() => {});
-      } catch {
-        trackEvent('export_failed', { format, source: 'tab_action' });
-        Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
-      } finally {
-        setExporting(false);
-        setExportingFormat(null);
-        setIsExporting(false);
-      }
+
+      await runExport({ format, source: 'tab_action' });
     },
     [
-      isPremium,
+      canUseRewardedExport,
       exporting,
-      scenario,
-      summary,
-      schedule,
+      isPremium,
+      rewardedExportFormat,
       router,
-      setIsExporting,
-      requestReviewIfAppropriate,
+      runExport,
+      startRewardedExportFlow,
     ],
   );
 
+  useEffect(() => {
+    if (
+      !shouldResetTabActionExportPhase({
+        phase: tabActionExportPhase,
+        rewardedExportFormat,
+        exporting,
+      })
+    )
+      return;
+
+    // The tab action keeps its modal open across the rewarded ad round-trip. If the ad
+    // closes or fails before an export starts, reset the phase here so the modal can close.
+    setTabActionExportPhase('idle');
+  }, [tabActionExportPhase, rewardedExportFormat, exporting]);
+
+  useEffect(() => {
+    setIsExporting(isTabActionExportBusy(tabActionExportPhase));
+  }, [tabActionExportPhase, setIsExporting]);
+
+  useEffect(() => {
+    return () => setIsExporting(false);
+  }, [setIsExporting]);
+
   // Register the export handler with the context so the tab bar can trigger exports
   useEffect(() => {
-    registerExportHandler(handleExportFromContext, isPremium);
+    registerExportHandler(handleExportFromContext, {
+      isPremium,
+      canUseRewardedExport,
+    });
     return () => unregisterExportHandler();
-  }, [registerExportHandler, unregisterExportHandler, handleExportFromContext, isPremium]);
+  }, [
+    registerExportHandler,
+    unregisterExportHandler,
+    handleExportFromContext,
+    isPremium,
+    canUseRewardedExport,
+  ]);
 
   return (
     <ScrollView
+      testID="screen-calculator"
       contentContainerStyle={[
         styles.container,
         themedStyles.container,
@@ -615,8 +778,9 @@ export default function CalculatorScreen() {
               onPress={seedExportExtrasForDev}
               accessibilityRole="button"
               accessibilityLabel="Popular extras para exportação (dev)"
+              testID="btn-seed-export-extras-dev"
             >
-              <Text style={styles.secondaryButtonText}>
+              <Text style={styles.secondaryButtonText} testID="label-seed-export-extras-dev">
                 {hasDevSeedExtras ? 'Extras prontos (dev)' : 'Popular extras (dev)'}
               </Text>
             </Pressable>
@@ -988,73 +1152,83 @@ export default function CalculatorScreen() {
                   </Text>
                   <PremiumPill hidden={isPremium} />
                 </View>
+                {!isPremium ? (
+                  <Text style={[styles.exportHint, { color: colors.textTertiary }]}>
+                    {canUseRewardedExport
+                      ? 'Grátis com anúncio por exportação, ou Premium para liberar tudo sem espera.'
+                      : 'Disponível no Premium para liberar exportações ilimitadas.'}
+                  </Text>
+                ) : null}
                 <View style={styles.row}>
                   <Pressable
-                    style={[
-                      styles.exportButton,
-                      (!isPremium || exporting) && styles.primaryButtonDisabled,
-                    ]}
+                    style={[styles.exportButton, exportFlowBusy && styles.primaryButtonDisabled]}
                     onPress={() => handleExportTableOnly('pdf')}
-                    disabled={exporting}
+                    disabled={exportFlowBusy}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: exporting }}
+                    accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em PDF"
                   >
                     <View style={styles.buttonContent}>
-                      {exporting && exportingFormat === 'pdf' ? (
+                      {exportFlowBusy &&
+                      (exportingFormat === 'pdf' || rewardedExportFormat === 'pdf') ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : null}
                       <Text style={styles.primaryButtonText}>
-                        {exporting && exportingFormat === 'pdf' ? 'Gerando...' : 'PDF'}
+                        {exportFlowBusy &&
+                        (exportingFormat === 'pdf' || rewardedExportFormat === 'pdf')
+                          ? 'Preparando...'
+                          : 'PDF'}
                       </Text>
                     </View>
                   </Pressable>
                   <Pressable
-                    style={[
-                      styles.exportButton,
-                      (!isPremium || exporting) && styles.primaryButtonDisabled,
-                    ]}
+                    style={[styles.exportButton, exportFlowBusy && styles.primaryButtonDisabled]}
                     onPress={() => handleExportTableOnly('xlsx')}
-                    disabled={exporting}
+                    disabled={exportFlowBusy}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: exporting }}
+                    accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em XLSX"
                   >
                     <View style={styles.buttonContent}>
-                      {exporting && exportingFormat === 'xlsx' ? (
+                      {exportFlowBusy &&
+                      (exportingFormat === 'xlsx' || rewardedExportFormat === 'xlsx') ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : null}
                       <Text style={styles.primaryButtonText}>
-                        {exporting && exportingFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
+                        {exportFlowBusy &&
+                        (exportingFormat === 'xlsx' || rewardedExportFormat === 'xlsx')
+                          ? 'Preparando...'
+                          : 'XLSX'}
                       </Text>
                     </View>
                   </Pressable>
                   <Pressable
-                    style={[
-                      styles.exportButton,
-                      (!isPremium || exporting) && styles.primaryButtonDisabled,
-                    ]}
+                    style={[styles.exportButton, exportFlowBusy && styles.primaryButtonDisabled]}
                     onPress={() => handleExportTableOnly('csv')}
-                    disabled={exporting}
+                    disabled={exportFlowBusy}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: exporting }}
+                    accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em CSV"
                   >
                     <View style={styles.buttonContent}>
-                      {exporting && exportingFormat === 'csv' ? (
+                      {exportFlowBusy &&
+                      (exportingFormat === 'csv' || rewardedExportFormat === 'csv') ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : null}
                       <Text style={styles.primaryButtonText}>
-                        {exporting && exportingFormat === 'csv' ? 'Gerando...' : 'CSV'}
+                        {exportFlowBusy &&
+                        (exportingFormat === 'csv' || rewardedExportFormat === 'csv')
+                          ? 'Preparando...'
+                          : 'CSV'}
                       </Text>
                     </View>
                   </Pressable>
                 </View>
-                {exporting ? (
+                {exportFlowBusy ? (
                   <View style={styles.exportingRow} accessibilityLiveRegion="polite">
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={[styles.exportingText, { color: colors.textTertiary }]}>
-                      Gerando arquivo...
+                      {getExportProgressText({ exporting, rewardedExportFormat })}
                     </Text>
                   </View>
                 ) : null}
@@ -1346,6 +1520,7 @@ export default function CalculatorScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'installment' }}
                 accessibilityLabel="FGTS para parcela"
+                testID="chip-fgts-usage-installment"
               >
                 <Text
                   style={[
@@ -1447,6 +1622,7 @@ export default function CalculatorScreen() {
                       accessibilityRole="button"
                       accessibilityLabel="Remover FGTS"
                       hitSlop={8}
+                      testID="btn-remove-fgts"
                     >
                       <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
                     </Pressable>
@@ -1489,73 +1665,81 @@ export default function CalculatorScreen() {
               </Text>
               <PremiumPill hidden={isPremium} />
             </View>
+            {!isPremium ? (
+              <Text style={[styles.exportHint, { color: colors.textTertiary }]}>
+                {canUseRewardedExport
+                  ? 'Grátis com anúncio por exportação, ou Premium para liberar tudo sem espera.'
+                  : 'Disponível no Premium para liberar exportações ilimitadas.'}
+              </Text>
+            ) : null}
             <View style={styles.row}>
               <Pressable
-                style={[
-                  styles.exportButton,
-                  (!isPremium || exporting) && styles.primaryButtonDisabled,
-                ]}
+                style={[styles.exportButton, exportFlowBusy && styles.primaryButtonDisabled]}
                 onPress={() => handleExportTableOnly('pdf')}
-                disabled={exporting}
+                disabled={exportFlowBusy}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: exporting }}
+                accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em PDF"
               >
                 <View style={styles.buttonContent}>
-                  {exporting && exportingFormat === 'pdf' ? (
+                  {exportFlowBusy &&
+                  (exportingFormat === 'pdf' || rewardedExportFormat === 'pdf') ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : null}
                   <Text style={styles.primaryButtonText}>
-                    {exporting && exportingFormat === 'pdf' ? 'Gerando...' : 'PDF'}
+                    {exportFlowBusy && (exportingFormat === 'pdf' || rewardedExportFormat === 'pdf')
+                      ? 'Preparando...'
+                      : 'PDF'}
                   </Text>
                 </View>
               </Pressable>
               <Pressable
-                style={[
-                  styles.exportButton,
-                  (!isPremium || exporting) && styles.primaryButtonDisabled,
-                ]}
+                style={[styles.exportButton, exportFlowBusy && styles.primaryButtonDisabled]}
                 onPress={() => handleExportTableOnly('xlsx')}
-                disabled={exporting}
+                disabled={exportFlowBusy}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: exporting }}
+                accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em XLSX"
               >
                 <View style={styles.buttonContent}>
-                  {exporting && exportingFormat === 'xlsx' ? (
+                  {exportFlowBusy &&
+                  (exportingFormat === 'xlsx' || rewardedExportFormat === 'xlsx') ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : null}
                   <Text style={styles.primaryButtonText}>
-                    {exporting && exportingFormat === 'xlsx' ? 'Gerando...' : 'XLSX'}
+                    {exportFlowBusy &&
+                    (exportingFormat === 'xlsx' || rewardedExportFormat === 'xlsx')
+                      ? 'Preparando...'
+                      : 'XLSX'}
                   </Text>
                 </View>
               </Pressable>
               <Pressable
-                style={[
-                  styles.exportButton,
-                  (!isPremium || exporting) && styles.primaryButtonDisabled,
-                ]}
+                style={[styles.exportButton, exportFlowBusy && styles.primaryButtonDisabled]}
                 onPress={() => handleExportTableOnly('csv')}
-                disabled={exporting}
+                disabled={exportFlowBusy}
                 accessibilityRole="button"
-                accessibilityState={{ disabled: exporting }}
+                accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em CSV"
               >
                 <View style={styles.buttonContent}>
-                  {exporting && exportingFormat === 'csv' ? (
+                  {exportFlowBusy &&
+                  (exportingFormat === 'csv' || rewardedExportFormat === 'csv') ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : null}
                   <Text style={styles.primaryButtonText}>
-                    {exporting && exportingFormat === 'csv' ? 'Gerando...' : 'CSV'}
+                    {exportFlowBusy && (exportingFormat === 'csv' || rewardedExportFormat === 'csv')
+                      ? 'Preparando...'
+                      : 'CSV'}
                   </Text>
                 </View>
               </Pressable>
             </View>
-            {exporting ? (
+            {exportFlowBusy ? (
               <View style={styles.exportingRow} accessibilityLiveRegion="polite">
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={[styles.exportingText, { color: colors.textTertiary }]}>
-                  Gerando arquivo...
+                  {getExportProgressText({ exporting, rewardedExportFormat })}
                 </Text>
               </View>
             ) : null}
@@ -1847,6 +2031,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 12,
     lineHeight: 16,
+  },
+  exportHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 6,
+    marginBottom: 2,
   },
   exportingRow: {
     flexDirection: 'row',

@@ -1,44 +1,59 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- killApp
-- clearState
-- openLink:
-    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- runFlow: helpers/launch_dev_client.yaml
 - tapOn:
-    text: 'Continue'
+    text: 'OK'
     optional: true
+- evalScript: ${output.fgtsVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'input-fgts-amount'
+    commands:
+      - evalScript: ${output.fgtsVisible = true}
+- repeat:
+    while:
+      true: ${output.fgtsVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'input-fgts-amount'
+          commands:
+            - evalScript: ${output.fgtsVisible = true}
 - tapOn:
-    text: 'Go home'
-    optional: true
-- extendedWaitUntil:
-    visible: 'Price & SAC'
-    timeout: 30000
-- tapOn: 'Calculadora'
-- scroll
-- scroll
-- scroll
-- scroll
-- scroll
-- scroll
-- scroll
-- scroll
-- tapOn: 'Valor do FGTS'
+    id: 'input-fgts-amount'
 - eraseText
 - inputText: '800'
 - hideKeyboard
-- tapOn: 'FGTS para parcela'
-- scrollUntilVisible:
-    element:
-      text: 'Adicionar FGTS'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- tapOn: 'Adicionar FGTS'
-- scrollUntilVisible:
-    element:
-      text: 'Remover FGTS'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- assertVisible: 'Remover FGTS'
-- tapOn: 'Remover FGTS'
+- tapOn:
+    id: 'chip-fgts-usage-installment'
+- tapOn:
+    id: 'btn-add-fgts'
+- evalScript: ${output.removeFgtsVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'btn-remove-fgts'
+    commands:
+      - evalScript: ${output.removeFgtsVisible = true}
+- repeat:
+    while:
+      true: ${output.removeFgtsVisible == false}
+    times: 4
+    commands:
+      - swipe:
+          start: 50%, 82%
+          end: 50%, 45%
+      - runFlow:
+          when:
+            visible:
+              id: 'btn-remove-fgts'
+          commands:
+            - evalScript: ${output.removeFgtsVisible = true}
+- tapOn:
+    id: 'btn-remove-fgts'

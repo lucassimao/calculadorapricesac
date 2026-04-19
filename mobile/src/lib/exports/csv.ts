@@ -2,11 +2,13 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { LoanSummary, ScheduleRow, Scenario } from '../../types/loan';
 import { formatDateBR } from '../utils';
-import { formatExportTerm } from './formatters';
-
-interface CsvOptions {
-  tableOnly?: boolean;
-}
+import {
+  buildFreeExportNoticeRows,
+  FREE_EXPORT_ROW_LIMIT,
+  isFreeRewardedExport,
+  type ExportOptions,
+} from './access';
+import { formatEffectiveInstallmentCount, formatExportTerm } from './formatters';
 
 const CSV_SEPARATOR = ';';
 
@@ -26,9 +28,13 @@ const buildCsv = (
   schedule: ScheduleRow[],
   scenario: Scenario,
   summary: LoanSummary,
-  options?: CsvOptions,
+  options?: ExportOptions,
 ) => {
   const rows = schedule.filter((row) => row.installmentNumber > 0);
+  const isFreeExport = isFreeRewardedExport(options);
+  const visibleRows = isFreeExport ? rows.slice(0, FREE_EXPORT_ROW_LIMIT) : rows;
+  const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
+  const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
   const header = [
     'N°',
     'Data',
@@ -44,7 +50,7 @@ const buildCsv = (
   ];
   const lines = [
     buildCsvLine(header),
-    ...rows.map((row) =>
+    ...visibleRows.map((row) =>
       buildCsvLine([
         row.installmentNumber,
         formatDateBR(row.date),
@@ -61,7 +67,12 @@ const buildCsv = (
     ),
   ];
 
-  if (!options?.tableOnly) {
+  if (isFreeExport) {
+    lines.push('');
+    for (const row of buildFreeExportNoticeRows(rows.length, visibleRows.length)) {
+      lines.push(buildCsvLine(row));
+    }
+  } else if (!options?.tableOnly) {
     lines.push('');
     lines.push(buildCsvLine(['Cenário', scenario.name]));
     lines.push(
@@ -81,7 +92,8 @@ const buildCsv = (
         `${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}`,
       ]),
     );
-    lines.push(buildCsvLine(['Prazo', formatExportTerm(scenario.term, scenario.termUnit)]));
+    lines.push(buildCsvLine(['Prazo original', originalTerm]));
+    lines.push(buildCsvLine(['Prazo efetivo', effectiveTerm]));
     lines.push(
       buildCsvLine(['CET (a.a.)', `${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%`]),
     );
@@ -99,7 +111,7 @@ export async function exportCsv(
   schedule: ScheduleRow[],
   scenario: Scenario,
   summary: LoanSummary,
-  options?: CsvOptions,
+  options?: ExportOptions,
 ) {
   const csv = buildCsv(schedule, scenario, summary, options);
   const file = new File(Paths.cache, 'tabela_amortizacao.csv');

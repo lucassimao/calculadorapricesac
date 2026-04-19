@@ -1,5 +1,5 @@
 {
-  "rowCount": 347,
+  "rowCount": 348,
   "header": [
     "N°",
     "Data",
@@ -23,7 +23,7 @@
       "298150,19",
       "0,00",
       "1800,00",
-      "0,00",
+      "800,00",
       "0,00",
       "5449,81"
     ],
@@ -114,12 +114,13 @@
     ["Dia de vencimento", "5"],
     ["Principal financiado", "300000,00"],
     ["Taxa", "1.2% a.m."],
-    ["Prazo", "360 meses"],
+    ["Prazo original", "360 meses"],
+    ["Prazo efetivo", "331 parcelas"],
     ["CET (a.a.)", "15,58%"],
     ["Custos Iniciais", "0,00"],
     ["Custos Mensais", "0,00"],
     ["Total com Custos", "1209887,11"],
-    ["FGTS Usado", "0,00"],
+    ["FGTS Usado", "800,00"],
     ["Total Pago Líquido", "1209887,11"]
   ],
   "pdf": {
@@ -133,7 +134,8 @@
       "Dia de vencimento: 5",
       "Principal financiado: R$ 300.000,00",
       "Taxa: 1.2% a.m.",
-      "Prazo: 360 meses",
+      "Prazo original: 360 meses",
+      "Prazo efetivo: 331 parcelas",
       "Total Pago: R$ 1.209.887,11",
       "Total Juros: R$ 906.607,26",
       "CET (a.a.): 15,58%",

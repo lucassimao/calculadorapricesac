@@ -16,36 +16,58 @@ Os flows usam `appId: com.lsimaocosta.calculadorapricesac`.
 
 ### 1) Estrutura básica do flow
 
-Cada arquivo deve começar com o `appId`, encerrar o app anterior e abrir o dev client via deep link:
+Cada arquivo deve começar com o `appId` e, quando possível, reutilizar o helper de bootstrap:
 
 ```yaml
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- killApp
-- clearState
-- openLink:
-    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- runFlow: helpers/launch_dev_client.yaml
 ```
+
+O helper centraliza:
+
+- `killApp`
+- `clearState`
+- `openLink` para o dev client
+- waits opcionais do onboarding (`Continue` / `Go home`)
+- uma asserção de tela carregada via `id`
 
 ### 2) Seletores recomendados
 
-Use texto visível ou `accessibilityLabel` sempre que possível:
+Prefira `testID` em componentes React Native e use `id` no Maestro para se ancorar em elementos estáveis:
 
-- `tapOn: "Valor do financiamento"`
-- `assertVisible: "Resumo"`
+```yaml
+- assertVisible:
+    id: 'input-scenario-name'
+- tapOn:
+    id: 'btn-seed-export-extras-dev'
+```
+
+Use texto ou `accessibilityLabel` apenas quando o elemento for realmente estável e não houver ambiguidade:
+
+- `tapOn: "Aba Premium"`
+- `assertVisible: "Exportar Simulação"`
 
 Para rolar até um elemento:
 
 ```yaml
-- scrollUntilVisible:
-    element:
-      text: 'Resumo'
-    centerElement: true
-    visibilityPercentage: 10
+- repeat:
+    while:
+      true: ${output.targetVisible == false}
+    times: 8
+    commands:
+      - swipe:
+          start: 50%, 85%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'btn-seed-export-extras-dev'
+          commands:
+            - evalScript: ${output.targetVisible = true}
 ```
 
-Evite depender de `testID` para Android (nem sempre expõe `resource-id` no build),
-exceto quando você já validou no `maestro` que o id aparece.
+Quando `scrollUntilVisible` ficar instável em listas longas ou fragments, prefira o padrão acima com `repeat + swipe + id`.
 
 ### 3) Fluxo com teclado
 
@@ -60,15 +82,30 @@ Inputs podem abrir o teclado e esconder a tab bar. Use `pressKey: Back` antes de
 
 Em telas longas, sempre combine:
 
-- `scrollUntilVisible` + `centerElement: true`
-- `visibilityPercentage: 10` (ou menor se necessário)
+- `id` estável no alvo
+- `repeat + swipe` para casos mais teimosos
+- `scrollUntilVisible` só quando o container responde bem
 
 ### 5) Padrões usados neste app
 
-- Preferir labels textuais dos campos:
-  - "Valor do financiamento", "Taxa de juros", "Prazo", "Dia de vencimento"
-- Para seções, usar o título visível:
-  - "Parâmetros", "Resumo", "Amortizações Extras", "FGTS", "Exportar"
+- Bootstrap comum:
+  - `helpers/launch_dev_client.yaml`
+- Seed de extras para export:
+  - `helpers/seed_export_extras_dev.yaml`
+- IDs já expostos no app:
+  - `input-scenario-name`
+  - `input-principal`
+  - `input-prepayment-amount`
+  - `input-fgts-amount`
+  - `btn-add-prepayment`
+  - `btn-add-fgts`
+  - `btn-seed-export-extras-dev`
+- Labels exclusivas das tabs:
+  - `Aba Calculadora`
+  - `Aba Comparar`
+  - `Aba Exportar`
+  - `Aba Premium`
+  - `Aba Feedback`
 
 ### 6) Criando um novo cenário de teste
 
@@ -79,6 +116,26 @@ Checklist:
 3. Preencher inputs via texto/labels + `scrollUntilVisible`.
 4. Asserções sempre após rolar até o trecho alvo.
 5. Fechar teclado antes de mudar de aba.
+
+### 7) Testes de anúncios em dev
+
+Os flows de anúncios usam o modo stub interno do app para evitar depender do criativo real do AdMob:
+
+- `08_rewarded_export_success_stub.yaml`
+- `09_rewarded_export_cancel_stub.yaml`
+- `10_rewarded_export_error_stub.yaml`
+- `11_interstitial_stub.yaml`
+- `12_app_open_stub.yaml`
+- `13_premium_bypass_ads.yaml`
+- `14_premium_skips_ad_gates.yaml`
+- `15_premium_feedback_whatsapp.yaml`
+- `16_app_open_warm_resume_no_show.yaml`
+
+Ative os toggles de dev na aba `Premium`:
+
+- `Ativar ads stub (dev)`
+- `Ativar interstitial stub (dev)`
+- `Ativar app open stub (dev)`
 
 ## Dicas para depuração
 

@@ -4,14 +4,20 @@ import * as Sharing from 'expo-sharing';
 import type { LoanSummary, Scenario, ScheduleRow } from '../../types/loan';
 import { formatCurrency } from '../calculations';
 import { formatDateBR } from '../utils';
-import { formatExportTerm } from './formatters';
-
-interface PdfOptions {
-  tableOnly?: boolean;
-}
+import {
+  FREE_EXPORT_NOTICE_BODY,
+  FREE_EXPORT_NOTICE_TITLE,
+  FREE_EXPORT_NOTICE_UPGRADE,
+  getFreePdfVisibleRowLimit,
+  isFreeRewardedExport,
+  type ExportOptions,
+} from './access';
+import { formatEffectiveInstallmentCount, formatExportTerm } from './formatters';
 
 const PDF_READY_TIMEOUT_MS = 5000;
 const PDF_READY_POLL_MS = 100;
+const A4_LANDSCAPE_WIDTH_PT = 842;
+const A4_LANDSCAPE_HEIGHT_PT = 595;
 
 function decodeBase64(base64: string) {
   const fromBase64 = (
@@ -53,14 +59,8 @@ async function waitForPdfFile(uri: string) {
   throw new Error('Generated PDF file is empty.');
 }
 
-const buildHtml = (
-  scenario: Scenario,
-  summary: LoanSummary,
-  schedule: ScheduleRow[],
-  options?: PdfOptions,
-) => {
-  const rows = schedule.filter((row) => row.installmentNumber > 0);
-  const tableRows = rows
+function buildTableRows(rows: ScheduleRow[]) {
+  return rows
     .map(
       (row) => `
       <tr>
@@ -79,6 +79,37 @@ const buildHtml = (
     `,
     )
     .join('');
+}
+
+function buildTableHead() {
+  return `
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Data</th>
+        <th>Valor Parcela</th>
+        <th>Juros</th>
+        <th>Amortização</th>
+        <th>Saldo</th>
+        <th>Custos</th>
+        <th>Extra</th>
+        <th>FGTS Amort.</th>
+        <th>FGTS Parcela</th>
+        <th>Líquido</th>
+      </tr>
+    </thead>
+  `;
+}
+
+function buildPremiumHtml(
+  scenario: Scenario,
+  summary: LoanSummary,
+  rows: ScheduleRow[],
+  options?: ExportOptions,
+) {
+  const tableRows = buildTableRows(rows);
+  const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
+  const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
 
   const summarySection = options?.tableOnly
     ? ''
@@ -96,7 +127,8 @@ const buildHtml = (
             : ''
         }
         <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
-        <p><strong>Prazo:</strong> ${formatExportTerm(scenario.term, scenario.termUnit)}</p>
+        <p><strong>Prazo original:</strong> ${originalTerm}</p>
+        <p><strong>Prazo efetivo:</strong> ${effectiveTerm}</p>
         <h2>Resumo</h2>
         <p>Total Pago: ${formatCurrency(summary.totalPayment)}</p>
         <p>Total Juros: ${formatCurrency(summary.totalInterest)}</p>
@@ -116,6 +148,8 @@ const buildHtml = (
     <html>
       <head>
         <style>
+          @page { size: A4 landscape; margin: 10mm; }
+          html, body { margin: 0; padding: 0; }
           body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
           h1 { font-size: 20px; }
           table { width: 100%; border-collapse: collapse; margin-top: 16px; }
@@ -128,21 +162,7 @@ const buildHtml = (
         <h1>${title}</h1>
         ${summarySection}
         <table>
-          <thead>
-            <tr>
-              <th>N°</th>
-              <th>Data</th>
-              <th>Valor Parcela</th>
-              <th>Juros</th>
-              <th>Amortização</th>
-              <th>Saldo</th>
-              <th>Custos</th>
-              <th>Extra</th>
-              <th>FGTS Amort.</th>
-              <th>FGTS Parcela</th>
-              <th>Líquido</th>
-            </tr>
-          </thead>
+          ${buildTableHead()}
           <tbody>
             ${tableRows}
           </tbody>
@@ -150,16 +170,113 @@ const buildHtml = (
       </body>
     </html>
   `;
+}
+
+function buildFreeRewardedHtml(
+  scenario: Scenario,
+  summary: LoanSummary,
+  rows: ScheduleRow[],
+  options?: ExportOptions,
+) {
+  const title = options?.tableOnly ? 'Tabela de Amortização' : 'Relatório de Financiamento';
+  const visibleLimit = getFreePdfVisibleRowLimit(Boolean(options?.tableOnly));
+  const visibleRows = rows.slice(0, visibleLimit);
+  const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
+  const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
+
+  const summarySection = options?.tableOnly
+    ? ''
+    : `
+      <div class="summaryInline">
+        <span><strong>Cenário:</strong> ${scenario.name}</span>
+        <span><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</span>
+        <span><strong>Sistema:</strong> ${scenario.system}</span>
+        <span><strong>Principal:</strong> ${formatCurrency(summary.financedPrincipal)}</span>
+        <span><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</span>
+        <span><strong>Prazo original:</strong> ${originalTerm}</span>
+        <span><strong>Prazo efetivo:</strong> ${effectiveTerm}</span>
+      </div>
+    `;
+
+  const limitedNotice =
+    rows.length > visibleRows.length
+      ? `<p class="limitNotice">Mostrando ${visibleRows.length} de ${rows.length} parcelas nesta versão gratuita.</p>`
+      : '';
+
+  return `
+    <html>
+      <head>
+        <style>
+          @page { size: A4 landscape; margin: 4mm; }
+          html, body { margin: 0; padding: 0; }
+          body { font-family: Arial, sans-serif; color: #111827; }
+          .page { position: relative; padding: 2px; }
+          .pageHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+          h1 { font-size: 11px; margin: 0 0 2px; }
+          .freeBadge { font-size: 6px; font-weight: 700; color: #92400E; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 999px; padding: 1px 5px; }
+          .noticeCard { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 5px; padding: 3px 5px; margin-bottom: 3px; }
+          .noticeCard p { margin: 0 0 1px; font-size: 6px; line-height: 1.1; }
+          .summaryInline { display: flex; flex-wrap: wrap; gap: 1px 6px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 5px; padding: 3px 5px; margin-bottom: 3px; font-size: 6px; line-height: 1.1; }
+          .summaryInline span { white-space: nowrap; }
+          .limitNotice { margin: 0 0 3px; color: #92400E; font-size: 6px; font-weight: 700; }
+          table { width: 100%; border-collapse: collapse; margin-top: 1px; table-layout: fixed; }
+          th, td { border: 1px solid #E5E7EB; padding: 1px; font-size: 5.2px; line-height: 1.0; text-align: right; word-break: break-word; }
+          th { background: #F3F4F6; }
+          td:first-child, th:first-child { text-align: left; }
+          .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: rgba(148, 163, 184, 0.10); transform: rotate(-22deg); pointer-events: none; z-index: 0; }
+          .pageHeader, .noticeCard, .summaryInline, table, .limitNotice { position: relative; z-index: 1; }
+        </style>
+      </head>
+      <body>
+        <section class="page">
+          <div class="watermark">VERSÃO GRATUITA</div>
+          <div class="pageHeader">
+            <h1>${title}</h1>
+            <div class="freeBadge">${FREE_EXPORT_NOTICE_TITLE}</div>
+          </div>
+          <div class="noticeCard">
+            <p>${FREE_EXPORT_NOTICE_BODY}</p>
+            <p><strong>${FREE_EXPORT_NOTICE_UPGRADE}</strong></p>
+          </div>
+          ${summarySection}
+          ${limitedNotice}
+          <table>
+            ${buildTableHead()}
+            <tbody>
+              ${buildTableRows(visibleRows)}
+            </tbody>
+          </table>
+        </section>
+      </body>
+    </html>
+  `;
+}
+
+const buildHtml = (
+  scenario: Scenario,
+  summary: LoanSummary,
+  schedule: ScheduleRow[],
+  options?: ExportOptions,
+) => {
+  const rows = schedule.filter((row) => row.installmentNumber > 0);
+  return isFreeRewardedExport(options)
+    ? buildFreeRewardedHtml(scenario, summary, rows, options)
+    : buildPremiumHtml(scenario, summary, rows, options);
 };
 
 export async function exportPdf(
   scenario: Scenario,
   summary: LoanSummary,
   schedule: ScheduleRow[],
-  options?: PdfOptions,
+  options?: ExportOptions,
 ) {
   const html = buildHtml(scenario, summary, schedule, options);
-  const { base64 } = await Print.printToFileAsync({ html, base64: true });
+  const { base64 } = await Print.printToFileAsync({
+    html,
+    base64: true,
+    width: A4_LANDSCAPE_WIDTH_PT,
+    height: A4_LANDSCAPE_HEIGHT_PT,
+  });
 
   if (!base64) {
     throw new Error('Generated PDF payload is missing.');

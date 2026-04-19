@@ -1,0 +1,16 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- killApp
+- clearState
+- openLink:
+    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
+- tapOn:
+    text: 'Continue'
+    optional: true
+- tapOn:
+    text: 'Go home'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'input-scenario-name'
+    timeout: 30000

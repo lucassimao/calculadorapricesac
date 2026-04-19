@@ -1,0 +1,17 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
+- tapOn: 'Desativar premium (dev)'
+- tapOn: 'Ativar ads stub (dev)'
+- tapOn: 'Aba Calculadora'
+- runFlow: helpers/seed_export_extras_dev.yaml
+- tapOn: 'Aba Exportar'
+- assertVisible: 'Exportar Simulação'
+- tapOn: 'Exportar PDF'
+- assertVisible: 'Anúncio Rewarded de Teste'
+- tapOn: 'Falhar anúncio'
+- assertVisible: 'Anúncio indisponível'
+- assertVisible: 'Não foi possível carregar o anúncio agora. Tente novamente em instantes ou assine o Premium.'

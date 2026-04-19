@@ -1,21 +1,16 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- killApp
-- clearState
-- openLink:
-    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
-- tapOn:
-    text: 'Continue'
-    optional: true
-- tapOn:
-    text: 'Go home'
-    optional: true
-- extendedWaitUntil:
-    visible: 'Price & SAC'
-    timeout: 30000
-- tapOn: 'Premium'
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
 - tapOn: 'Desativar premium (dev)'
-- tapOn: 'Exportar'
+- tapOn: 'Ativar ads stub (dev)'
+- assertVisible: 'Stub: ativo | Interstitial: inativo | App open: inativo'
+- tapOn: 'Aba Calculadora'
+- tapOn: 'Aba Exportar'
 - assertVisible: 'Exportar Simulação'
-- tapOn: 'PDF'
-- assertVisible: 'Exportação disponível apenas para assinantes.'
+- tapOn: 'Exportar PDF'
+- extendedWaitUntil:
+    visible: 'Anúncio Rewarded de Teste'
+    timeout: 10000

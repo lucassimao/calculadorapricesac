@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import {
   ActionSheetIOS,
@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useExport } from '../../src/contexts/ExportContext';
+import type { ExportFormat } from '../../src/lib/exports/access';
 
 function ExportTabIcon({
   color,
@@ -40,17 +41,31 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   const router = useRouter();
   const { isPremium } = usePremium();
-  const { isExporting, isPremium: contextPremium, triggerExport } = useExport();
+  const {
+    isExporting,
+    isPremium: contextPremium,
+    canUseRewardedExport,
+    triggerExport,
+  } = useExport();
   const [androidExportModalVisible, setAndroidExportModalVisible] = useState(false);
-  const [androidExportFormat, setAndroidExportFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(
-    null,
-  );
+  const [androidExportFormat, setAndroidExportFormat] = useState<ExportFormat | null>(null);
 
   const showExportActionSheet = () => {
     if (isExporting) return;
 
-    const options = ['Exportar PDF', 'Exportar XLSX', 'Exportar CSV', 'Cancelar'];
-    const cancelButtonIndex = 3;
+    const options = contextPremium
+      ? ['Exportar PDF', 'Exportar XLSX', 'Exportar CSV', 'Cancelar']
+      : canUseRewardedExport
+        ? [
+            'Ver anúncio e exportar PDF',
+            'Ver anúncio e exportar XLSX',
+            'Ver anúncio e exportar CSV',
+            'Assinar Premium',
+            'Cancelar',
+          ]
+        : ['Exportar PDF', 'Exportar XLSX', 'Exportar CSV', 'Assinar Premium', 'Cancelar'];
+    const cancelButtonIndex = options.length - 1;
+    const premiumButtonIndex = options.length - 2;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -60,12 +75,17 @@ export default function TabsLayout() {
           title: 'Exportar Simulação',
           message: contextPremium
             ? 'Escolha o formato do arquivo'
-            : 'Recurso disponível para assinantes Premium',
+            : canUseRewardedExport
+              ? 'Usuários gratuitos podem destravar cada exportação assistindo a um anúncio.'
+              : 'Recurso disponível para assinantes Premium',
         },
         (buttonIndex) => {
           if (buttonIndex === 0) triggerExport('pdf');
           else if (buttonIndex === 1) triggerExport('xlsx');
           else if (buttonIndex === 2) triggerExport('csv');
+          else if (!contextPremium && buttonIndex === premiumButtonIndex) {
+            router.push('/(tabs)/premium');
+          }
         },
       );
     } else {
@@ -77,11 +97,14 @@ export default function TabsLayout() {
     if (isExporting) return;
 
     setAndroidExportFormat(format);
-    void triggerExport(format).finally(() => {
-      setAndroidExportModalVisible(false);
-      setAndroidExportFormat(null);
-    });
+    void triggerExport(format);
   };
+
+  useEffect(() => {
+    if (isExporting || !androidExportModalVisible || androidExportFormat === null) return;
+    setAndroidExportModalVisible(false);
+    setAndroidExportFormat(null);
+  }, [isExporting, androidExportModalVisible, androidExportFormat]);
 
   return (
     <>
@@ -125,6 +148,8 @@ export default function TabsLayout() {
           name="calculator"
           options={{
             title: 'Calculadora',
+            tabBarButtonTestID: 'tab-calculator',
+            tabBarAccessibilityLabel: 'Aba Calculadora',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="calculator-outline" size={size} color={color} />
             ),
@@ -134,6 +159,8 @@ export default function TabsLayout() {
           name="comparison"
           options={{
             title: 'Comparar',
+            tabBarButtonTestID: 'tab-comparison',
+            tabBarAccessibilityLabel: 'Aba Comparar',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="git-compare-outline" size={size} color={color} />
             ),
@@ -143,6 +170,8 @@ export default function TabsLayout() {
           name="export-action"
           options={{
             title: 'Exportar',
+            tabBarButtonTestID: 'tab-export',
+            tabBarAccessibilityLabel: 'Aba Exportar',
             tabBarIcon: ({ color, size }) => (
               <ExportTabIcon color={color} size={size} isPremium={isPremium} />
             ),
@@ -159,6 +188,8 @@ export default function TabsLayout() {
           name="premium"
           options={{
             title: 'Premium',
+            tabBarButtonTestID: 'tab-premium',
+            tabBarAccessibilityLabel: 'Aba Premium',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="star-outline" size={size} color={color} />
             ),
@@ -168,6 +199,8 @@ export default function TabsLayout() {
           name="feedback"
           options={{
             title: 'Feedback',
+            tabBarButtonTestID: 'tab-feedback',
+            tabBarAccessibilityLabel: 'Aba Feedback',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />
             ),
@@ -197,7 +230,9 @@ export default function TabsLayout() {
             <Text style={[styles.modalText, { color: colors.textSecondary }]}>
               {contextPremium
                 ? 'Escolha o formato do arquivo'
-                : 'Recurso disponível para assinantes Premium'}
+                : canUseRewardedExport
+                  ? 'Usuários gratuitos podem destravar cada exportação assistindo a um anúncio.'
+                  : 'Recurso disponível para assinantes Premium'}
             </Text>
             <View style={styles.modalActions}>
               <Pressable
@@ -261,6 +296,29 @@ export default function TabsLayout() {
                 </View>
               </Pressable>
             </View>
+            {!contextPremium ? (
+              <Pressable
+                style={[
+                  styles.modalSecondaryButton,
+                  { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
+                  isExporting && styles.modalSecondaryButtonDisabled,
+                ]}
+                onPress={() => {
+                  if (!isExporting) {
+                    setAndroidExportModalVisible(false);
+                    setAndroidExportFormat(null);
+                    router.push('/(tabs)/premium');
+                  }
+                }}
+                disabled={isExporting}
+                accessibilityRole="button"
+                accessibilityLabel="Assinar Premium"
+              >
+                <Text style={[styles.modalSecondaryButtonText, { color: colors.text }]}>
+                  Assinar Premium
+                </Text>
+              </Pressable>
+            ) : null}
             <Pressable
               style={[
                 styles.modalSecondaryButton,

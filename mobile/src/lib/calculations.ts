@@ -15,6 +15,10 @@ interface CostSummary {
   registryFee: number;
 }
 
+type MonthlyAmortization = PrepaymentEvent & {
+  source: 'prepayment' | 'fgts';
+};
+
 function getFinancedPrincipal(scenario: Scenario): number {
   const propertyValue = scenario.propertyValue ?? 0;
   const downPayment = scenario.downPayment ?? 0;
@@ -162,14 +166,17 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     balance: roundCents(balance),
   });
 
-  const getPrepaymentsForMonth = (installmentDate: Date): PrepaymentEvent[] => {
+  const getPrepaymentsForMonth = (installmentDate: Date): MonthlyAmortization[] => {
     const month = installmentDate.getMonth();
     const year = installmentDate.getFullYear();
-    return sortedPrepayments.filter(
-      (p) => p.date.getMonth() === month && p.date.getFullYear() === year,
-    );
+    return sortedPrepayments
+      .filter((p) => p.date.getMonth() === month && p.date.getFullYear() === year)
+      .map((prepayment) => ({
+        ...prepayment,
+        source: 'prepayment',
+      }));
   };
-  const getAllAmortizationsForMonth = (installmentDate: Date): PrepaymentEvent[] => {
+  const getAllAmortizationsForMonth = (installmentDate: Date): MonthlyAmortization[] => {
     const base = getPrepaymentsForMonth(installmentDate);
     const fgtsAmortizations = getFgtsAmortizationsForMonth(sortedFgts, installmentDate).map(
       (event) => ({
@@ -179,6 +186,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         type: 'fixed_amount' as const,
         strategy: event.strategy ?? 'reduce_term',
         description: event.description ?? 'FGTS',
+        source: 'fgts' as const,
       }),
     );
     return [...base, ...fgtsAmortizations];
@@ -215,7 +223,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
           if (amount > 0) {
             prepaymentAmount += amount;
             prepaymentDescription = prepayment.description || prepaymentDescription;
-            if (prepayment.description === 'FGTS') {
+            if (prepayment.source === 'fgts') {
               fgtsAmortization += amount;
             }
           }
@@ -300,7 +308,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
           if (amount > 0) {
             prepaymentAmount += amount;
             prepaymentDescription = prepayment.description || prepaymentDescription;
-            if (prepayment.description === 'FGTS') {
+            if (prepayment.source === 'fgts') {
               fgtsAmortization += amount;
             }
           }

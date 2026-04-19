@@ -148,6 +148,28 @@ describe('calculateLoanSummary', () => {
     expect(summary.totalPaymentNet).toBeLessThan(summary.totalPayment);
     expect(schedule[1]?.netPayment).toBeLessThanOrEqual(schedule[1]?.payment ?? 0);
   });
+
+  it('tracks FGTS amortization even when the event has a custom description', () => {
+    const scenario = {
+      ...baseScenario,
+      fgtsEvents: [
+        {
+          id: 'fgts-amort',
+          date: new Date(2026, 0, 1),
+          amount: 800,
+          usage: 'amortization' as const,
+          strategy: 'reduce_term' as const,
+          description: 'Dev FGTS',
+        },
+      ],
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const summary = calculateLoanSummary(schedule, scenario);
+
+    expect(schedule[1]?.prepaymentAmount).toBeCloseTo(800, 2);
+    expect(schedule[1]?.fgtsAmortization).toBeCloseTo(800, 2);
+    expect(summary.totalFgtsUsed).toBeCloseTo(800, 2);
+  });
 });
 
 describe('validateScenario', () => {

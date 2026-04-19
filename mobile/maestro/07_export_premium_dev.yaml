@@ -1,86 +1,44 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- killApp
-- clearState
-- openLink:
-    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
-- tapOn:
-    text: 'Continue'
-    optional: true
-- tapOn:
-    text: 'Go home'
-    optional: true
-- extendedWaitUntil:
-    visible: 'Price & SAC'
-    timeout: 30000
-- tapOn: 'Premium'
-- assertVisible: 'Plano Premium'
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
 - tapOn: 'Ativar premium (dev)'
-- tapOn: 'Calculadora'
-- scrollUntilVisible:
-    element:
-      text: 'Popular extras (dev)'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- tapOn: 'Popular extras (dev)'
-- assertVisible: 'Extras prontos (dev)'
-- tapOn: 'Exportar'
+- tapOn: 'Aba Calculadora'
+- runFlow: helpers/seed_export_extras_dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'label-seed-export-extras-dev'
+    timeout: 5000
+- tapOn: 'Aba Exportar'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'PDF'
-- killApp
-- clearState
-- openLink:
-    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
-- tapOn:
-    text: 'Continue'
-    optional: true
-- tapOn:
-    text: 'Go home'
-    optional: true
-- extendedWaitUntil:
-    visible: 'Price & SAC'
-    timeout: 30000
-- tapOn: 'Premium'
-- assertVisible: 'Plano Premium'
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
 - tapOn: 'Ativar premium (dev)'
-- tapOn: 'Calculadora'
-- scrollUntilVisible:
-    element:
-      text: 'Popular extras (dev)'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- tapOn: 'Popular extras (dev)'
-- assertVisible: 'Extras prontos (dev)'
-- tapOn: 'Exportar'
+- tapOn: 'Aba Calculadora'
+- runFlow: helpers/seed_export_extras_dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'label-seed-export-extras-dev'
+    timeout: 5000
+- tapOn: 'Aba Exportar'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'XLSX'
-- killApp
-- clearState
-- openLink:
-    link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
-- tapOn:
-    text: 'Continue'
-    optional: true
-- tapOn:
-    text: 'Go home'
-    optional: true
-- extendedWaitUntil:
-    visible: 'Price & SAC'
-    timeout: 30000
-- tapOn: 'Premium'
-- assertVisible: 'Plano Premium'
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
 - tapOn: 'Ativar premium (dev)'
-- tapOn: 'Calculadora'
-- scrollUntilVisible:
-    element:
-      text: 'Popular extras (dev)'
-    timeout: 8000
-    speed: 80
-    visibilityPercentage: 10
-- tapOn: 'Popular extras (dev)'
-- assertVisible: 'Extras prontos (dev)'
-- tapOn: 'Exportar'
+- tapOn: 'Aba Calculadora'
+- runFlow: helpers/seed_export_extras_dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'label-seed-export-extras-dev'
+    timeout: 5000
+- tapOn: 'Aba Exportar'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'CSV'

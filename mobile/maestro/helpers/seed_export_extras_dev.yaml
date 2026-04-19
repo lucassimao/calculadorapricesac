@@ -1,0 +1,25 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- evalScript: ${output.seedExtrasVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'btn-seed-export-extras-dev'
+    commands:
+      - evalScript: ${output.seedExtrasVisible = true}
+- repeat:
+    while:
+      true: ${output.seedExtrasVisible == false}
+    times: 8
+    commands:
+      - swipe:
+          start: 50%, 85%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'btn-seed-export-extras-dev'
+          commands:
+            - evalScript: ${output.seedExtrasVisible = true}
+- tapOn:
+    id: 'btn-seed-export-extras-dev'

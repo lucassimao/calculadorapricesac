@@ -8,3 +8,7 @@ const TERM_UNIT_LABELS: Record<Scenario['termUnit'], string> = {
 export function formatExportTerm(term: number, termUnit: Scenario['termUnit']) {
   return `${term} ${TERM_UNIT_LABELS[termUnit] ?? termUnit}`;
 }
+
+export function formatEffectiveInstallmentCount(installmentCount: number) {
+  return `${installmentCount} parcelas`;
+}

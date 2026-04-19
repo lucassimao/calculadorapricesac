@@ -1,0 +1,15 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
+- tapOn: 'Ativar ads stub (dev)'
+- assertVisible: 'Banner de teste ativo'
+- tapOn: 'Ativar premium (dev)'
+- tapOn: 'Aba Feedback'
+- assertVisible: 'Feedback'
+- assertNotVisible: 'Banner de teste ativo'
+- assertVisible: 'WhatsApp'
+- assertVisible: 'Conversar no WhatsApp'
+- assertNotVisible: 'Assine o Premium para atendimento prioritário via WhatsApp.'

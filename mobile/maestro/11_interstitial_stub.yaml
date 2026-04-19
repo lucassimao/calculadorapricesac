@@ -1,0 +1,16 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn: 'Aba Premium'
+- assertVisible:
+    id: 'screen-premium-title'
+- tapOn: 'Desativar premium (dev)'
+- tapOn: 'Ativar ads stub (dev)'
+- tapOn: 'Ativar interstitial stub (dev)'
+- assertVisible: 'Stub: ativo | Interstitial: ativo | App open: inativo'
+- tapOn: 'Aba Calculadora'
+- tapOn: 'Salvar cenário'
+- assertVisible: 'Interstitial de Teste'
+- tapOn: 'Fechar anúncio'
+- tapOn: 'Salvar cenário'
+- assertNotVisible: 'Interstitial de Teste'

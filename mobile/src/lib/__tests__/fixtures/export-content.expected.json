@@ -49,7 +49,8 @@
     ["Valor do imóvel", "140000,00"],
     ["Entrada", "40000,00"],
     ["Taxa", "1% a.m."],
-    ["Prazo", "12 meses"],
+    ["Prazo original", "12 meses"],
+    ["Prazo efetivo", "2 parcelas"],
     ["CET (a.a.)", "0,00%"],
     ["Custos Iniciais", "0,00"],
     ["Custos Mensais", "0,00"],
@@ -95,7 +96,8 @@
       "Valor do imóvel": "R$ 140.000,00",
       "Entrada": "R$ 40.000,00",
       "Taxa": "1% a.m.",
-      "Prazo": "12 meses"
+      "Prazo original": "12 meses",
+      "Prazo efetivo": "2 parcelas"
     }
   }
 }

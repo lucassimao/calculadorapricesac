@@ -1,18 +1,11 @@
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import Constants from 'expo-constants';
+import { useAdTest } from '../contexts/AdTestContext';
 import { Sentry, sentryInitialized } from '../lib/sentry';
+import { areAdsDisabled, getAdUnitId } from '../lib/ads';
 
 let hasLoggedAdConfig = false;
-
-function normalizeAdUnitId(value: unknown) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (trimmed.toLowerCase() === 'untitled') return null;
-  if (!trimmed.startsWith('ca-app-pub-')) return null;
-  return trimmed;
-}
 
 interface AdBannerProps {
   enabled: boolean;
@@ -20,20 +13,31 @@ interface AdBannerProps {
 }
 
 export function AdBanner({ enabled, adUnitId }: AdBannerProps) {
+  const { stubModeEnabled } = useAdTest();
   const extra = Constants.expoConfig?.extra ?? {};
-  if (!enabled || extra.adsDisabled) return null;
+  if (!enabled || areAdsDisabled(extra)) return null;
 
-  const fallbackUnitId =
-    Platform.OS === 'ios'
-      ? 'ca-app-pub-3940256099942544/2934735716'
-      : 'ca-app-pub-3940256099942544/6300978111';
-  const envUnitId =
-    Platform.OS === 'ios' ? extra.admobBannerUnitIdIos : extra.admobBannerUnitIdAndroid;
-  const resolvedUnitId =
-    normalizeAdUnitId(adUnitId) ?? normalizeAdUnitId(envUnitId) ?? fallbackUnitId;
+  const resolvedUnitId = getAdUnitId('banner', adUnitId);
+  if (!resolvedUnitId) return null;
+
+  if (stubModeEnabled) {
+    return (
+      <View style={styles.stubContainer}>
+        <View style={styles.stubBanner}>
+          <View style={styles.stubDot} />
+          <View>
+            <Text style={styles.stubTitle}>Banner de teste ativo</Text>
+            <Text style={styles.stubSubtitle}>Stub visual para Maestro e validação local.</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   if (!hasLoggedAdConfig && sentryInitialized && !__DEV__) {
     hasLoggedAdConfig = true;
+    const envUnitId =
+      Platform.OS === 'ios' ? extra.admobBannerUnitIdIos : extra.admobBannerUnitIdAndroid;
     const envUnitIdPresent = typeof envUnitId === 'string' && envUnitId.trim().length > 0;
     const overridePresent = typeof adUnitId === 'string' && adUnitId.trim().length > 0;
     Sentry.captureMessage('AdMob banner config', {
@@ -48,21 +52,54 @@ export function AdBanner({ enabled, adUnitId }: AdBannerProps) {
         overridePresent,
         overrideUnitId: adUnitId,
         resolvedUnitId,
-        usingFallback: resolvedUnitId === fallbackUnitId,
+        usingFallback: !envUnitIdPresent && !overridePresent,
       },
     });
   }
 
   return (
     <View style={styles.container}>
-      <BannerAd unitId={resolvedUnitId} size={BannerAdSize.BANNER} />
+      <BannerAd unitId={resolvedUnitId} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    alignSelf: 'stretch',
     alignItems: 'center',
     paddingVertical: 8,
+  },
+  stubContainer: {
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingVertical: 8,
+  },
+  stubBanner: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  stubDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#2563EB',
+  },
+  stubTitle: {
+    color: '#1D4ED8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  stubSubtitle: {
+    color: '#1E40AF',
+    fontSize: 12,
   },
 });

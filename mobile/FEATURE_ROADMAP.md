@@ -445,3 +445,185 @@ Many Brazilian mortgages (especially Caixa SFH/SFI) use a monetary correction in
 - Existing loan holders can model their actual loan for the first time.
 - Broader accuracy increases trust and word-of-mouth.
 - Differentiates the app from generic calculators that ignore correction indices.
+
+---
+
+## 9) "Amortizar ou Investir?" Comparator (Premium)
+
+### Problem
+
+The single most-debated topic in Brazilian personal-finance forums (r/investimentos, r/financaspessoaisbrasil, InvestNews) is whether to use spare cash to prepay the mortgage or invest it at Selic/CDI/Tesouro IPCA+. Existing loan holders have no tool that compares the after-tax return of investing against the guaranteed "return" of cutting mortgage interest.
+
+### Scope (MVP)
+
+- New premium-only flow attached to a saved scenario.
+- Inputs:
+  - Extra monthly amount available
+  - Investment vehicle preset (Selic, CDI %, Tesouro IPCA+, custom annual rate)
+  - Tax regime (IR regressivo table by holding period, isento for LCI/LCA)
+  - Horizon (months) — defaults to remaining loan term
+- Outputs:
+  - Path A — Amortize: total interest saved, new payoff date, equivalent annual return
+  - Path B — Invest: gross balance, IR withheld, net balance at horizon
+  - Net delta in R$ and as a clear winner badge
+  - Sensitivity bar: how much Selic would need to change to flip the decision
+- Reuses existing prepayment engine for Path A.
+- Premium gating: full numeric output and export require subscription; free users see a teaser ("Você economizaria R$ X,XXX amortizando — desbloqueie para ver a comparação completa").
+
+### Out of Scope (for MVP)
+
+- Stochastic projections (Monte Carlo on Selic path).
+- Custodial fees per broker.
+- Tax-loss harvesting strategies.
+- Multi-product portfolio split (e.g., 60% Tesouro, 40% CDB).
+
+### Sequence of Work
+
+1. Define the comparator data model and tax-regime tables.
+2. Implement after-tax investment projection (regressive IR table for renda fixa).
+3. Reuse prepayment engine to compute interest-saved path.
+4. Build result UI with winner badge and sensitivity bar.
+5. Wire premium gating and teaser state.
+6. Add export of the comparison summary (PDF/CSV).
+7. Instrument paywall view, paywall conversion, and feature usage events.
+
+### Expected Results
+
+- Strong paid conversion: directly answers the #1 forum question.
+- High repeat usage as users adjust Selic or extra amount.
+- Sharable winner cards drive word-of-mouth.
+
+---
+
+## 10) Stress Test / Teste de Estresse (Premium)
+
+### Problem
+
+Brazilian indexed loans (TR/IPCA) and household budgets are vulnerable to rate shocks, income loss, and inflation spikes. Users committing to a 30-year loan have no way to see how their installment behaves under adverse scenarios before signing.
+
+### Scope (MVP)
+
+- New premium-only "Teste de Estresse" tab on a saved scenario.
+- Predefined shock scenarios (toggleable):
+  - Selic +2pp / +4pp shock (for post-fixado contracts)
+  - IPCA spike (e.g., +5pp annualized for 12 months)
+  - Income loss (-20% / -40% for N months)
+  - Combined adverse scenario (rate + income)
+- Outputs per scenario:
+  - New peak installment value and month
+  - Months at risk (installment > 30% of declared income)
+  - Worst-case total cost vs. baseline
+  - Risk gauge: green / yellow / red
+- Recommendation card: suggested emergency reserve months for the chosen scenario.
+- Requires income input (reused from Affordability Planner if present).
+
+### Out of Scope (for MVP)
+
+- Custom user-defined shock parameters (only presets in MVP).
+- Probability-weighted scenario blending.
+- Historical back-testing against real Selic/IPCA series.
+
+### Sequence of Work
+
+1. Define stress scenario presets and shock application math.
+2. Reuse `generateAmortizationSchedule` with overridden index/rate paths.
+3. Implement risk-gauge thresholds and emergency-reserve recommendation.
+4. Build comparison UI (baseline vs. stressed schedule).
+5. Wire premium gating with free-tier teaser (single shock preview).
+6. Add export of stress-test report.
+7. Instrument scenario selection and conversion events.
+
+### Expected Results
+
+- Premium-worthy depth that no Brazilian calculator offers.
+- Builds trust by showing risks transparently before commitment.
+- Repeat sessions as users tune scenarios and reserves.
+
+---
+
+## 11) Renda Comprometida Dashboard (Premium)
+
+### Problem
+
+Users juggle multiple monthly obligations (mortgage, car, credit card, school) and lack a single view of total debt-to-income ratio across the loan's life. Banks evaluate this; users currently can't.
+
+> Note: significant overlap with Feature 4 (Affordability Planner). Likely better folded into the Planner as a premium tab than shipped standalone. Kept here as a candidate for evaluation.
+
+### Scope (MVP)
+
+- Premium-only dashboard mode.
+- Inputs:
+  - Household net income
+  - Other monthly obligations (free-form list with amount + remaining months)
+  - Linked mortgage scenario
+- Outputs:
+  - Current debt-to-income (DTI) ratio
+  - DTI trajectory over time (line chart) as obligations end and the mortgage installment evolves (especially for SAC and indexed loans)
+  - Months above bank-recommended thresholds (30% / 40%)
+  - Suggested actions: extend term, prepay specific debt first, etc.
+
+### Out of Scope (for MVP)
+
+- Account aggregation / Open Finance integration.
+- Credit-bureau score modeling.
+- Automatic categorization of expenses.
+
+### Sequence of Work
+
+1. Decide whether to ship standalone or fold into Affordability Planner (#4).
+2. If standalone: define obligations data model and persistence.
+3. Implement DTI trajectory calculation across the loan lifetime.
+4. Build dashboard UI with chart and threshold bands.
+5. Wire premium gating.
+6. Instrument adoption and threshold-breach events.
+
+### Expected Results
+
+- Higher perceived value of premium for users with multiple obligations.
+- Stickiness: users return monthly to update obligations and re-check DTI.
+- Caveat: ROI uncertain due to overlap with #4 — validate with prototype before full build.
+
+---
+
+## 12) Branded PDF Reports — Modo Profissional (Premium)
+
+### Problem
+
+Brokers, real-estate agents, and independent financial planners use the app to model loans for clients but currently can only export the generic PDF. They want to deliver a polished, branded document that reinforces their professional identity.
+
+### Scope (MVP)
+
+- Premium-only "Modo Profissional" toggle on the export dialog.
+- Brand profile (saved per user):
+  - Logo upload
+  - Name / company / CRECI or CFP registration
+  - Phone, email, website
+  - Optional brand color (single accent color)
+- Output: enhanced PDF with:
+  - Header: logo + professional info
+  - Cover page: client name (optional), scenario summary, generation date
+  - Existing schedule and summary sections, restyled with the accent color
+  - Footer on every page with professional contact and a small disclaimer
+- Reuses existing `exportPdf` infrastructure; adds brand-aware HTML template variant.
+
+### Out of Scope (for MVP)
+
+- Multiple saved brand profiles per user.
+- Custom typography or full theme editor.
+- White-label app distribution.
+- Branded CSV/XLSX (only PDF in MVP).
+
+### Sequence of Work
+
+1. Design brand profile data model and storage (local; no backend dependency).
+2. Build brand profile editor UI inside Premium settings.
+3. Add `professional` option to `PdfOptions` and a second HTML template that consumes the brand profile.
+4. Add cover page and header/footer rendering with logo embed (base64).
+5. Wire premium gating and "Profissional" badge on the export sheet.
+6. Instrument professional-export usage and brand-profile completion events.
+
+### Expected Results
+
+- Captures broker / agent segment with clear willingness to pay.
+- Each client report exported is implicit marketing for the app.
+- Higher LTV from professional users (active across many sessions per month).

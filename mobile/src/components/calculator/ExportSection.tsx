@@ -1,8 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { ExportFormat } from '../../lib/exports/access';
 import { useTheme } from '../../lib/theme';
 import { PremiumPill } from '../PremiumPill';
-
-type ExportFormat = 'pdf' | 'xlsx' | 'csv';
 
 interface ExportSectionProps {
   isPremium: boolean;

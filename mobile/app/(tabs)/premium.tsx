@@ -1,17 +1,9 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAdTest } from '../../src/contexts/AdTestContext';
 import { useTheme } from '../../src/lib/theme';
-import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../../src/lib/iap';
+import { IAP_FALLBACK_PRICE } from '../../src/lib/iap';
 import { usePremium } from '../../src/hooks/usePremium';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
@@ -36,6 +28,107 @@ function BenefitItem({ icon, title, description, color = '#2563EB' }: BenefitIte
         <Text style={benefitStyles.title}>{title}</Text>
         <Text style={benefitStyles.description}>{description}</Text>
       </View>
+    </View>
+  );
+}
+
+function DevAdControls() {
+  const {
+    stubModeEnabled,
+    interstitialStubEnabled,
+    appOpenStubEnabled,
+    setStubModeEnabled,
+    setInterstitialStubEnabled,
+    setAppOpenStubEnabled,
+    resetAdTestConfig,
+  } = useAdTest();
+
+  if (!__DEV__) return null;
+
+  return (
+    <View style={styles.devToolsCard}>
+      <Text style={styles.devToolsTitle}>Anúncios stub (dev)</Text>
+      <Text style={styles.devToolsStatus}>
+        Stub: {stubModeEnabled ? 'ativo' : 'inativo'} | Interstitial:{' '}
+        {interstitialStubEnabled ? 'ativo' : 'inativo'} | App open:{' '}
+        {appOpenStubEnabled ? 'ativo' : 'inativo'}
+      </Text>
+      <View style={styles.devRow}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void setStubModeEnabled(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Ativar ads stub (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Ativar ads stub (dev)</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void setStubModeEnabled(false);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Desativar ads stub (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Desativar ads stub (dev)</Text>
+        </Pressable>
+      </View>
+      <View style={styles.devRow}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void setInterstitialStubEnabled(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Ativar interstitial stub (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Ativar interstitial stub (dev)</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void setInterstitialStubEnabled(false);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Desativar interstitial stub (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Desativar interstitial stub (dev)</Text>
+        </Pressable>
+      </View>
+      <View style={styles.devRow}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void setAppOpenStubEnabled(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Ativar app open stub (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Ativar app open stub (dev)</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void setAppOpenStubEnabled(false);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Desativar app open stub (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Desativar app open stub (dev)</Text>
+        </Pressable>
+      </View>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => {
+          void resetAdTestConfig();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Resetar ads stub (dev)"
+      >
+        <Text style={styles.secondaryButtonText}>Resetar ads stub (dev)</Text>
+      </Pressable>
     </View>
   );
 }
@@ -104,8 +197,14 @@ function PremiumIapScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Plano Premium</Text>
+    <ScrollView
+      testID="screen-premium"
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={styles.title} testID="screen-premium-title">
+        Plano Premium
+      </Text>
       <Text style={styles.subtitle}>
         Desbloqueie recursos essenciais para comparar financiamentos com clareza.
       </Text>
@@ -195,6 +294,8 @@ function PremiumIapScreen() {
         ) : null}
       </View>
 
+      <DevAdControls />
+
       <Modal
         animationType={Platform.OS === 'ios' ? 'fade' : 'slide'}
         transparent
@@ -262,8 +363,14 @@ function PremiumUnsupportedScreen() {
   const showAds = shouldShowAds(isPremium);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Plano Premium</Text>
+    <ScrollView
+      testID="screen-premium"
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={styles.title} testID="screen-premium-title">
+        Plano Premium
+      </Text>
       <View style={styles.bannerWarning}>
         <Text style={styles.bannerWarningText}>
           Compras no app indisponíveis neste dispositivo.
@@ -301,6 +408,8 @@ function PremiumUnsupportedScreen() {
           </View>
         ) : null}
       </View>
+
+      <DevAdControls />
     </ScrollView>
   );
 }
@@ -355,6 +464,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+  },
+  devToolsCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  devToolsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  devToolsStatus: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#475569',
   },
   primaryButton: {
     backgroundColor: '#2563EB',
