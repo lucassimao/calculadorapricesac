@@ -23,6 +23,14 @@ export function isFreeRewardedExport(options?: ExportOptions) {
   return options?.access === 'free_rewarded';
 }
 
+export function getExportFileStem(options?: ExportOptions) {
+  return options?.tableOnly ? 'tabela_amortizacao' : 'relatorio_financiamento';
+}
+
+export function getExportFilename(format: ExportFormat, options?: ExportOptions) {
+  return `${getExportFileStem(options)}.${format}`;
+}
+
 export function getFreePdfVisibleRowLimit(tableOnly = false) {
   return tableOnly ? FREE_PDF_ROW_LIMITS.tableOnly : FREE_PDF_ROW_LIMITS.detailed;
 }

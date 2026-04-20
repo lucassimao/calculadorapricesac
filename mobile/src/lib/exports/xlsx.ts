@@ -6,6 +6,7 @@ import { formatDateBR } from '../utils';
 import {
   buildFreeExportNoticeRows,
   FREE_EXPORT_ROW_LIMIT,
+  getExportFilename,
   isFreeRewardedExport,
   type ExportOptions,
 } from './access';
@@ -136,7 +137,7 @@ export async function exportXlsx(
 
   const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
   const bytes = new Uint8Array(buffer);
-  const file = new File(Paths.cache, 'tabela_amortizacao.xlsx');
+  const file = new File(Paths.cache, getExportFilename('xlsx', options));
   file.create({ overwrite: true });
   file.write(bytes);
   await Sharing.shareAsync(file.uri, {

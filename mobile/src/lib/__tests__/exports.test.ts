@@ -217,7 +217,7 @@ describe('exports', () => {
     await exportCsv(schedule, scenario, summary);
 
     expect(createdFiles).toHaveLength(1);
-    expect(createdFiles[0]?.uri).toContain('tabela_amortizacao.csv');
+    expect(createdFiles[0]?.uri).toContain('relatorio_financiamento.csv');
     expect(createdFiles[0]?.writes).toHaveLength(1);
     expect(typeof createdFiles[0]?.writes[0]).toBe('string');
     const csv = createdFiles[0]?.writes[0] as string;
@@ -232,7 +232,7 @@ describe('exports', () => {
     expect(csv).toContain('"Prazo original";"12 meses"');
     expect(csv).toContain('"Prazo efetivo";"2 parcelas"');
     expect(shareAsync).toHaveBeenCalledWith(
-      expect.stringContaining('tabela_amortizacao.csv'),
+      expect.stringContaining('relatorio_financiamento.csv'),
       expect.objectContaining({ mimeType: 'text/csv' }),
     );
   });
@@ -241,7 +241,7 @@ describe('exports', () => {
     await exportXlsx(schedule, scenario, summary);
 
     expect(createdFiles).toHaveLength(1);
-    expect(createdFiles[0]?.uri).toContain('tabela_amortizacao.xlsx');
+    expect(createdFiles[0]?.uri).toContain('relatorio_financiamento.xlsx');
     expect(createdFiles[0]?.writes).toHaveLength(1);
     expect(createdFiles[0]?.writes[0]).toBeInstanceOf(Uint8Array);
     const workbook = XLSX.read(createdFiles[0]?.writes[0], { type: 'array', cellNF: true });
@@ -269,7 +269,7 @@ describe('exports', () => {
     expect(rows).toContainEqual(['Prazo original', '12 meses']);
     expect(rows).toContainEqual(['Prazo efetivo', '2 parcelas']);
     expect(shareAsync).toHaveBeenCalledWith(
-      expect.stringContaining('tabela_amortizacao.xlsx'),
+      expect.stringContaining('relatorio_financiamento.xlsx'),
       expect.objectContaining({
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       }),
@@ -285,7 +285,7 @@ describe('exports', () => {
     await exportPdf(scenario, summary, schedule);
 
     const html = printToFileAsync.mock.calls[0]?.[0]?.html as string;
-    const sharedPdf = createdFiles.find((file) => file.uri.includes('tabela_amortizacao.pdf'));
+    const sharedPdf = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.pdf'));
     expect(printToFileAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         html: expect.stringContaining('Relatório de Financiamento'),
@@ -301,9 +301,10 @@ describe('exports', () => {
     expect(html).toContain('<strong>Valor do imóvel:</strong>');
     expect(html).toContain('<strong>Prazo original:</strong> 12 meses');
     expect(html).toContain('<strong>Prazo efetivo:</strong> 2 parcelas');
+    expect(html).toContain('class="overviewGrid"');
     expect(sharedPdf?.writes[0]).toBeInstanceOf(Uint8Array);
     expect(shareAsync).toHaveBeenCalledWith(
-      expect.stringContaining('tabela_amortizacao.pdf'),
+      expect.stringContaining('relatorio_financiamento.pdf'),
       expect.objectContaining({ mimeType: 'application/pdf' }),
     );
   });
@@ -344,8 +345,8 @@ describe('exports', () => {
     await exportCsv(longSchedule, scenario, summary, { access: 'free_rewarded' });
     await exportXlsx(longSchedule, scenario, summary, { access: 'free_rewarded' });
 
-    const csvFile = createdFiles.find((file) => file.uri.includes('tabela_amortizacao.csv'));
-    const xlsxFile = createdFiles.find((file) => file.uri.includes('tabela_amortizacao.xlsx'));
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
     const csvRows = parseCsv(csvFile?.writes[0] as string);
     const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array' });
     const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(
@@ -414,8 +415,8 @@ describe('exports', () => {
     await exportXlsx(schedule, scenario, summary);
     await exportPdf(scenario, summary, schedule);
 
-    const csvFile = createdFiles.find((file) => file.uri.includes('tabela_amortizacao.csv'));
-    const xlsxFile = createdFiles.find((file) => file.uri.includes('tabela_amortizacao.xlsx'));
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
     const csvRows = parseCsv(csvFile?.writes[0] as string);
     const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array' });
     const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(

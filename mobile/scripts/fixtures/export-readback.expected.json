@@ -124,7 +124,7 @@
     ["Total Pago Líquido", "1209887,11"]
   ],
   "pdf": {
-    "pageCount": 10,
+    "pageCount": 14,
     "requiredText": [
       "Relatório de Financiamento",
       "Cenário: Teste Exportacao",

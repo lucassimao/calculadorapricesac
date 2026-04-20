@@ -8,6 +8,7 @@ import {
   FREE_EXPORT_NOTICE_BODY,
   FREE_EXPORT_NOTICE_TITLE,
   FREE_EXPORT_NOTICE_UPGRADE,
+  getExportFilename,
   getFreePdfVisibleRowLimit,
   isFreeRewardedExport,
   type ExportOptions,
@@ -111,36 +112,43 @@ function buildPremiumHtml(
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
 
-  const summarySection = options?.tableOnly
+  const overviewSection = options?.tableOnly
     ? ''
     : `
-        <p><strong>Cenário:</strong> ${scenario.name}</p>
-        <p><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</p>
-        <p><strong>Sistema:</strong> ${scenario.system}</p>
-        <p><strong>Data de início:</strong> ${formatDateBR(scenario.startDate)}</p>
-        <p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
-        <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>
-        ${
-          scenario.loanMode === 'property'
-            ? `<p><strong>Valor do imóvel:</strong> ${formatCurrency(scenario.propertyValue ?? 0)}</p>
-        <p><strong>Entrada:</strong> ${formatCurrency(scenario.downPayment ?? 0)}</p>`
-            : ''
-        }
-        <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
-        <p><strong>Prazo original:</strong> ${originalTerm}</p>
-        <p><strong>Prazo efetivo:</strong> ${effectiveTerm}</p>
-        <h2>Resumo</h2>
-        <p>Total Pago: ${formatCurrency(summary.totalPayment)}</p>
-        <p>Total Juros: ${formatCurrency(summary.totalInterest)}</p>
-        <p>Custos Iniciais: ${formatCurrency(summary.totalUpfrontCosts)}</p>
-        <p>Custos Mensais: ${formatCurrency(summary.totalMonthlyCosts)}</p>
-        <p>Total com Custos: ${formatCurrency(summary.totalPaymentWithCosts)}</p>
-        <p>CET (a.a.): ${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%</p>
-        <p>FGTS Usado: ${formatCurrency(summary.totalFgtsUsed)}</p>
-        <p>Total Pago Líquido: ${formatCurrency(summary.totalPaymentNet)}</p>
-        <p>1ª Parcela: ${formatCurrency(summary.firstPayment)}</p>
-        <p>Última Parcela: ${formatCurrency(summary.lastPayment)}</p>
-        <h2>Tabela de Amortização</h2>`;
+      <section class="overviewGrid">
+        <div class="overviewCard">
+          <h2>Dados do Cenário</h2>
+          <p><strong>Cenário:</strong> ${scenario.name}</p>
+          <p><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</p>
+          <p><strong>Sistema:</strong> ${scenario.system}</p>
+          <p><strong>Data de início:</strong> ${formatDateBR(scenario.startDate)}</p>
+          <p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
+          <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>
+          ${
+            scenario.loanMode === 'property'
+              ? `<p><strong>Valor do imóvel:</strong> ${formatCurrency(scenario.propertyValue ?? 0)}</p>
+          <p><strong>Entrada:</strong> ${formatCurrency(scenario.downPayment ?? 0)}</p>`
+              : ''
+          }
+          <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
+          <p><strong>Prazo original:</strong> ${originalTerm}</p>
+          <p><strong>Prazo efetivo:</strong> ${effectiveTerm}</p>
+        </div>
+        <div class="overviewCard">
+          <h2>Resumo</h2>
+          <p><strong>Total Pago:</strong> ${formatCurrency(summary.totalPayment)}</p>
+          <p><strong>Total Juros:</strong> ${formatCurrency(summary.totalInterest)}</p>
+          <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
+          <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
+          <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
+          <p><strong>CET (a.a.):</strong> ${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%</p>
+          <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>
+          <p><strong>Total Pago Líquido:</strong> ${formatCurrency(summary.totalPaymentNet)}</p>
+          <p><strong>1ª Parcela:</strong> ${formatCurrency(summary.firstPayment)}</p>
+          <p><strong>Última Parcela:</strong> ${formatCurrency(summary.lastPayment)}</p>
+        </div>
+      </section>
+      <h2 class="tableTitle">Tabela de Amortização</h2>`;
 
   const title = options?.tableOnly ? 'Tabela de Amortização' : 'Relatório de Financiamento';
 
@@ -150,9 +158,19 @@ function buildPremiumHtml(
         <style>
           @page { size: A4 landscape; margin: 10mm; }
           html, body { margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
-          h1 { font-size: 20px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          body { font-family: Arial, sans-serif; padding: 14px; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          h1 { font-size: 20px; margin: 0 0 12px; }
+          h2 { font-size: 16px; margin: 0 0 8px; }
+          .overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+          .overviewCard { border: 1px solid #E5E7EB; border-radius: 10px; padding: 10px 12px; break-inside: avoid; }
+          .overviewCard p { margin: 0 0 6px; font-size: 12px; line-height: 1.3; }
+          .tableTitle { margin-bottom: 10px; break-after: avoid; page-break-after: avoid; }
+          .tableWrap { break-inside: auto; page-break-inside: auto; }
+          table { width: 100%; border-collapse: collapse; margin-top: 0; page-break-inside: auto; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          tbody { page-break-inside: auto; }
+          tr { break-inside: avoid; page-break-inside: avoid; page-break-after: auto; }
           th, td { border: 1px solid #E5E7EB; padding: 6px; font-size: 11px; text-align: right; }
           th { background: #F3F4F6; }
           td:first-child, th:first-child { text-align: left; }
@@ -160,13 +178,15 @@ function buildPremiumHtml(
       </head>
       <body>
         <h1>${title}</h1>
-        ${summarySection}
-        <table>
-          ${buildTableHead()}
-          <tbody>
-            ${tableRows}
-          </tbody>
-        </table>
+        ${overviewSection}
+        <div class="tableWrap">
+          <table>
+            ${buildTableHead()}
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
       </body>
     </html>
   `;
@@ -209,7 +229,7 @@ function buildFreeRewardedHtml(
         <style>
           @page { size: A4 landscape; margin: 4mm; }
           html, body { margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; color: #111827; }
+          body { font-family: Arial, sans-serif; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .page { position: relative; padding: 2px; }
           .pageHeader { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
           h1 { font-size: 11px; margin: 0 0 2px; }
@@ -219,7 +239,12 @@ function buildFreeRewardedHtml(
           .summaryInline { display: flex; flex-wrap: wrap; gap: 1px 6px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 5px; padding: 3px 5px; margin-bottom: 3px; font-size: 6px; line-height: 1.1; }
           .summaryInline span { white-space: nowrap; }
           .limitNotice { margin: 0 0 3px; color: #92400E; font-size: 6px; font-weight: 700; }
-          table { width: 100%; border-collapse: collapse; margin-top: 1px; table-layout: fixed; }
+          .tableWrap { break-inside: auto; page-break-inside: auto; }
+          table { width: 100%; border-collapse: collapse; margin-top: 1px; table-layout: fixed; page-break-inside: auto; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          tbody { page-break-inside: auto; }
+          tr { break-inside: avoid; page-break-inside: avoid; page-break-after: auto; }
           th, td { border: 1px solid #E5E7EB; padding: 1px; font-size: 5.2px; line-height: 1.0; text-align: right; word-break: break-word; }
           th { background: #F3F4F6; }
           td:first-child, th:first-child { text-align: left; }
@@ -240,12 +265,14 @@ function buildFreeRewardedHtml(
           </div>
           ${summarySection}
           ${limitedNotice}
-          <table>
-            ${buildTableHead()}
-            <tbody>
-              ${buildTableRows(visibleRows)}
-            </tbody>
-          </table>
+          <div class="tableWrap">
+            <table>
+              ${buildTableHead()}
+              <tbody>
+                ${buildTableRows(visibleRows)}
+              </tbody>
+            </table>
+          </div>
         </section>
       </body>
     </html>
@@ -282,7 +309,7 @@ export async function exportPdf(
     throw new Error('Generated PDF payload is missing.');
   }
 
-  const sharedFile = new File(Paths.cache, 'tabela_amortizacao.pdf');
+  const sharedFile = new File(Paths.cache, getExportFilename('pdf', options));
   if (sharedFile.exists) {
     sharedFile.delete();
   }

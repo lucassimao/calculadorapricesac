@@ -5,6 +5,7 @@ import { formatDateBR } from '../utils';
 import {
   buildFreeExportNoticeRows,
   FREE_EXPORT_ROW_LIMIT,
+  getExportFilename,
   isFreeRewardedExport,
   type ExportOptions,
 } from './access';
@@ -114,7 +115,7 @@ export async function exportCsv(
   options?: ExportOptions,
 ) {
   const csv = buildCsv(schedule, scenario, summary, options);
-  const file = new File(Paths.cache, 'tabela_amortizacao.csv');
+  const file = new File(Paths.cache, getExportFilename('csv', options));
   file.create({ overwrite: true });
   file.write(csv);
   await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', dialogTitle: 'Exportar CSV' });

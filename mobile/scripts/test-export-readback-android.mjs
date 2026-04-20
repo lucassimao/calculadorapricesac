@@ -246,7 +246,7 @@ function main() {
 
     console.log('Running PDF export flow...');
     runFlow('export_pdf_dev.yaml');
-    const pdfDevicePath = 'cache/tabela_amortizacao.pdf';
+    const pdfDevicePath = 'cache/relatorio_financiamento.pdf';
     assert(waitForDeviceFile(pdfDevicePath), 'Unable to locate generated PDF in app cache.');
     assert(waitForDeviceFileSize(pdfDevicePath, 1000), 'Generated PDF stayed empty in app cache.');
     const pdfLocalPath = path.join(OUTPUT_DIR, path.basename(pdfDevicePath));
@@ -254,8 +254,8 @@ function main() {
     verifyPdf(pdfLocalPath);
     console.log(`Verified PDF artifact: ${pdfLocalPath}`);
 
-    verifyFormat('xlsx', 'export_xlsx_dev.yaml', 'cache/tabela_amortizacao.xlsx', verifyXlsx);
-    verifyFormat('csv', 'export_csv_dev.yaml', 'cache/tabela_amortizacao.csv', verifyCsv);
+    verifyFormat('xlsx', 'export_xlsx_dev.yaml', 'cache/relatorio_financiamento.xlsx', verifyXlsx);
+    verifyFormat('csv', 'export_csv_dev.yaml', 'cache/relatorio_financiamento.csv', verifyCsv);
 
     console.log(`Export readback verification passed. Artifacts stored in ${OUTPUT_DIR}`);
   } finally {
