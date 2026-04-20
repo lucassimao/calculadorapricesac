@@ -234,22 +234,31 @@ export default function TabsLayout() {
           }
         }}
       >
-        <View style={styles.modalBackdrop}>
+        <View style={styles.modalBackdrop} testID="android-export-modal-backdrop">
           <View
             style={[
               styles.modalCard,
               { backgroundColor: colors.background, borderColor: colors.border },
             ]}
+            testID="android-export-modal-card"
           >
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Exportar Simulação</Text>
-            <Text style={[styles.modalText, { color: colors.textSecondary }]}>
+            <Text
+              style={[styles.modalTitle, { color: colors.text }]}
+              testID="android-export-modal-title"
+            >
+              Exportar Simulação
+            </Text>
+            <Text
+              style={[styles.modalText, { color: colors.textSecondary }]}
+              testID="android-export-modal-description"
+            >
               {contextPremium
                 ? 'Escolha o formato do arquivo'
                 : canUseRewardedExport
                   ? 'Usuários gratuitos podem destravar cada exportação assistindo a um anúncio.'
                   : 'Recurso disponível para assinantes Premium'}
             </Text>
-            <View style={styles.modalActions}>
+            <View style={styles.modalActions} testID="android-export-modal-actions">
               <Pressable
                 style={[
                   styles.modalPrimaryButton,
@@ -260,6 +269,7 @@ export default function TabsLayout() {
                 disabled={isExporting}
                 accessibilityRole="button"
                 accessibilityLabel="Exportar PDF"
+                testID="android-export-modal-pdf"
               >
                 <View style={styles.modalButtonContent}>
                   {isExporting && androidExportFormat === 'pdf' ? (
@@ -280,6 +290,7 @@ export default function TabsLayout() {
                 disabled={isExporting}
                 accessibilityRole="button"
                 accessibilityLabel="Exportar XLSX"
+                testID="android-export-modal-xlsx"
               >
                 <View style={styles.modalButtonContent}>
                   {isExporting && androidExportFormat === 'xlsx' ? (
@@ -300,6 +311,7 @@ export default function TabsLayout() {
                 disabled={isExporting}
                 accessibilityRole="button"
                 accessibilityLabel="Exportar CSV"
+                testID="android-export-modal-csv"
               >
                 <View style={styles.modalButtonContent}>
                   {isExporting && androidExportFormat === 'csv' ? (
@@ -332,6 +344,7 @@ export default function TabsLayout() {
                 disabled={isExporting}
                 accessibilityRole="button"
                 accessibilityLabel="Assinar Premium"
+                testID="android-export-modal-upgrade"
               >
                 <Text style={[styles.modalSecondaryButtonText, { color: colors.text }]}>
                   Assinar Premium
@@ -353,6 +366,7 @@ export default function TabsLayout() {
               disabled={isExporting}
               accessibilityRole="button"
               accessibilityLabel="Cancelar exportação"
+              testID="android-export-modal-cancel"
             >
               <Text style={[styles.modalSecondaryButtonText, { color: colors.textSecondary }]}>
                 Cancelar

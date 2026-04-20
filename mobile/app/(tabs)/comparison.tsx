@@ -150,11 +150,14 @@ export default function ComparisonScreen() {
     <ScrollView
       contentContainerStyle={[styles.container, themedStyles.container]}
       keyboardShouldPersistTaps="handled"
+      testID="screen-comparison"
     >
-      <Text style={[styles.title, themedStyles.title]}>Comparar SAC vs Price</Text>
+      <Text style={[styles.title, themedStyles.title]} testID="screen-comparison-title">
+        Comparar SAC vs Price
+      </Text>
       <AdBanner enabled={showAds} />
 
-      <View style={[styles.section, themedStyles.section]}>
+      <View style={[styles.section, themedStyles.section]} testID="section-comparison-parameters">
         <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Parâmetros</Text>
         <Text style={[styles.label, themedStyles.label]}>Valor do Financiamento (R$)</Text>
         <TextInput
@@ -204,7 +207,7 @@ export default function ComparisonScreen() {
 
       <AdBanner enabled={showAds} />
 
-      <View style={[styles.section, themedStyles.section]}>
+      <View style={[styles.section, themedStyles.section]} testID="section-comparison-summary">
         <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Resumo Comparativo</Text>
 
         <View style={styles.cardRow}>
@@ -296,7 +299,11 @@ export default function ComparisonScreen() {
           const comparisonSummary = quickComparisonSummaries[index];
 
           return (
-            <View key={item.id} style={[styles.quickCard, themedStyles.quickCard]}>
+            <View
+              key={item.id}
+              style={[styles.quickCard, themedStyles.quickCard]}
+              testID={`quick-card-${index}`}
+            >
               <Text style={[styles.quickTitle, themedStyles.quickTitle]}>{item.name}</Text>
               <View style={styles.quickRow}>
                 <TextInput

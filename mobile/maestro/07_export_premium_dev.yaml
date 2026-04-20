@@ -5,11 +5,12 @@ appId: com.lsimaocosta.calculadorapricesac
     id: 'tab-premium'
 - scrollUntilVisible:
     element:
-      text: 'Preparar premium (dev)'
+      id: 'btn-dev-prepare-premium'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'btn-dev-prepare-premium'
 - tapOn:
     id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
@@ -19,18 +20,21 @@ appId: com.lsimaocosta.calculadorapricesac
     timeout: 5000
 - tapOn:
     id: 'tab-export'
-- assertVisible: 'Exportar Simulação'
-- tapOn: 'PDF'
+- assertVisible:
+    id: 'android-export-modal-card'
+- tapOn:
+    id: 'android-export-modal-pdf'
 - runFlow: helpers/launch_dev_client.yaml
 - tapOn:
     id: 'tab-premium'
 - scrollUntilVisible:
     element:
-      text: 'Preparar premium (dev)'
+      id: 'btn-dev-prepare-premium'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'btn-dev-prepare-premium'
 - tapOn:
     id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
@@ -40,18 +44,21 @@ appId: com.lsimaocosta.calculadorapricesac
     timeout: 5000
 - tapOn:
     id: 'tab-export'
-- assertVisible: 'Exportar Simulação'
-- tapOn: 'XLSX'
+- assertVisible:
+    id: 'android-export-modal-card'
+- tapOn:
+    id: 'android-export-modal-xlsx'
 - runFlow: helpers/launch_dev_client.yaml
 - tapOn:
     id: 'tab-premium'
 - scrollUntilVisible:
     element:
-      text: 'Preparar premium (dev)'
+      id: 'btn-dev-prepare-premium'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'btn-dev-prepare-premium'
 - tapOn:
     id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
@@ -61,5 +68,7 @@ appId: com.lsimaocosta.calculadorapricesac
     timeout: 5000
 - tapOn:
     id: 'tab-export'
-- assertVisible: 'Exportar Simulação'
-- tapOn: 'CSV'
+- assertVisible:
+    id: 'android-export-modal-card'
+- tapOn:
+    id: 'android-export-modal-csv'

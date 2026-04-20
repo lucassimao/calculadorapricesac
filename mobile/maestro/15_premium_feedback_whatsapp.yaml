@@ -4,27 +4,36 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn:
     id: 'tab-premium'
 - extendedWaitUntil:
-    visible: 'Plano Premium'
+    visible:
+      id: 'screen-premium'
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: 'Preparar exportação grátis (dev)'
+      id: 'btn-dev-prepare-free-rewarded'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar exportação grátis (dev)'
-- assertVisible: 'Banner de teste ativo'
+- tapOn:
+    id: 'btn-dev-prepare-free-rewarded'
+- assertVisible:
+    id: 'ad-banner-stub'
 - scrollUntilVisible:
     element:
-      text: 'Ativar premium (dev)'
+      id: 'btn-dev-enable-premium'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Ativar premium (dev)'
+- tapOn:
+    id: 'btn-dev-enable-premium'
 - tapOn:
     id: 'tab-feedback'
-- assertVisible: 'Feedback'
-- assertNotVisible: 'Banner de teste ativo'
-- assertVisible: 'WhatsApp'
-- assertVisible: 'Conversar no WhatsApp'
-- assertNotVisible: 'Assine o Premium para atendimento prioritário via WhatsApp.'
+- assertVisible:
+    id: 'screen-feedback'
+- assertNotVisible:
+    id: 'ad-banner-stub'
+- assertVisible:
+    id: 'feedback-whatsapp-card'
+- assertVisible:
+    id: 'feedback-whatsapp-button'
+- assertNotVisible:
+    id: 'feedback-whatsapp-upsell-card'

@@ -1,23 +1,53 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn:
-    id: 'tab-premium'
-- extendedWaitUntil:
-    visible: 'Plano Premium'
-    timeout: 5000
+- evalScript: ${output.premiumReady = false}
+- repeat:
+    while:
+      true: ${output.premiumReady == false}
+    times: 4
+    commands:
+      - tapOn:
+          id: 'tab-premium'
+      - runFlow:
+          when:
+            visible:
+              id: 'screen-premium'
+          commands:
+            - evalScript: ${output.premiumReady = true}
+- assertVisible:
+    id: 'screen-premium'
 - scrollUntilVisible:
     element:
-      text: 'Preparar exportação grátis (dev)'
+      id: 'btn-dev-prepare-free-rewarded'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar exportação grátis (dev)'
 - tapOn:
-    id: 'tab-feedback'
-- assertVisible: 'Feedback'
-- assertVisible: 'E-mail'
-- assertVisible: 'Abrir e-mail'
-- assertVisible: 'WhatsApp'
-- assertVisible: 'Assine o Premium para atendimento prioritário via WhatsApp.'
-- assertNotVisible: 'Conversar no WhatsApp'
+    id: 'btn-dev-prepare-free-rewarded'
+- evalScript: ${output.feedbackReady = false}
+- repeat:
+    while:
+      true: ${output.feedbackReady == false}
+    times: 4
+    commands:
+      - tapOn:
+          id: 'tab-feedback'
+      - runFlow:
+          when:
+            visible:
+              id: 'screen-feedback'
+          commands:
+            - evalScript: ${output.feedbackReady = true}
+- assertVisible:
+    id: 'screen-feedback'
+- assertVisible:
+    id: 'feedback-email-card'
+- assertVisible:
+    id: 'feedback-email-open-button'
+- assertVisible:
+    id: 'feedback-whatsapp-upsell-card'
+- assertVisible:
+    id: 'feedback-whatsapp-upsell-text'
+- assertNotVisible:
+    id: 'feedback-whatsapp-button'

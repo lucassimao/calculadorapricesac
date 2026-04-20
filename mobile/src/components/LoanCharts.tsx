@@ -173,8 +173,11 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
     <View
       style={styles.container}
       onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
+      testID="section-charts"
     >
-      <Text style={[styles.title, themedStyles.title]}>Gráficos</Text>
+      <Text style={[styles.title, themedStyles.title]} testID="section-charts-title">
+        Gráficos
+      </Text>
 
       {/* Summary Stats Row */}
       {summaryStats && (
@@ -382,6 +385,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
           style={[styles.chartBlock, themedStyles.chartBlock, isTablet && styles.chartBlockFull]}
           accessibilityRole="image"
           accessibilityLabel="Gráfico de juros versus amortização"
+          testID="chart-payment-composition"
         >
           <View style={styles.chartHeader}>
             <Text style={[styles.chartLabel, themedStyles.chartLabel]}>

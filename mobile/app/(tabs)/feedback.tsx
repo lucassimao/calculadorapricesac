@@ -88,8 +88,11 @@ export default function FeedbackScreen() {
     <ScrollView
       contentContainerStyle={[styles.container, themedStyles.container]}
       keyboardShouldPersistTaps="handled"
+      testID="screen-feedback"
     >
-      <Text style={[styles.title, themedStyles.title]}>Feedback</Text>
+      <Text style={[styles.title, themedStyles.title]} testID="screen-feedback-title">
+        Feedback
+      </Text>
       <Text style={[styles.subtitle, themedStyles.subtitle]}>
         Escreva sua sugestão, dúvida ou problema.
       </Text>
@@ -98,10 +101,15 @@ export default function FeedbackScreen() {
 
       {/* WhatsApp - Premium only */}
       {isPremium && (
-        <View style={[styles.card, themedStyles.card, styles.whatsappCard]}>
+        <View
+          style={[styles.card, themedStyles.card, styles.whatsappCard]}
+          testID="feedback-whatsapp-card"
+        >
           <View style={styles.cardHeader}>
             <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-            <Text style={[styles.cardTitle, themedStyles.title]}>WhatsApp</Text>
+            <Text style={[styles.cardTitle, themedStyles.title]} testID="feedback-whatsapp-title">
+              WhatsApp
+            </Text>
             <View style={styles.premiumBadge}>
               <Ionicons name="star" size={10} color="#B45309" />
               <Text style={styles.premiumBadgeText}>Premium</Text>
@@ -115,6 +123,7 @@ export default function FeedbackScreen() {
             onPress={openWhatsApp}
             accessibilityRole="button"
             accessibilityLabel="Abrir WhatsApp"
+            testID="feedback-whatsapp-button"
           >
             <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
             <Text style={styles.whatsappButtonText}>Conversar no WhatsApp</Text>
@@ -123,13 +132,17 @@ export default function FeedbackScreen() {
       )}
 
       {/* Email - Available to all */}
-      <View style={[styles.card, themedStyles.card]}>
+      <View style={[styles.card, themedStyles.card]} testID="feedback-email-card">
         <View style={styles.cardHeader}>
           <Ionicons name="mail-outline" size={24} color={colors.primary} />
           <Text style={[styles.cardTitle, themedStyles.title]}>E-mail</Text>
         </View>
         <View style={styles.emailRow}>
-          <Text selectable style={[styles.value, themedStyles.value, styles.emailValue]}>
+          <Text
+            selectable
+            style={[styles.value, themedStyles.value, styles.emailValue]}
+            testID="feedback-email-value"
+          >
             {FEEDBACK_EMAIL}
           </Text>
           <Pressable
@@ -137,6 +150,7 @@ export default function FeedbackScreen() {
             onPress={copyEmail}
             accessibilityRole="button"
             accessibilityLabel="Copiar endereço de e-mail"
+            testID="feedback-email-copy-button"
           >
             <Ionicons
               name={copied ? 'checkmark' : 'copy-outline'}
@@ -153,6 +167,7 @@ export default function FeedbackScreen() {
           onPress={openEmail}
           accessibilityRole="button"
           accessibilityLabel="Abrir app de e-mail"
+          testID="feedback-email-open-button"
         >
           <Text style={styles.primaryButtonText}>
             {attempted ? 'Tentar novamente' : 'Abrir e-mail'}
@@ -162,13 +177,16 @@ export default function FeedbackScreen() {
 
       {/* Premium upsell for non-premium users */}
       {!isPremium && (
-        <View style={[styles.card, styles.upsellCard]}>
+        <View style={[styles.card, styles.upsellCard]} testID="feedback-whatsapp-upsell-card">
           <View style={styles.cardHeader}>
             <Ionicons name="logo-whatsapp" size={24} color="#9CA3AF" />
             <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>WhatsApp</Text>
             <PremiumPill />
           </View>
-          <Text style={[styles.cardDescription, { color: colors.textTertiary }]}>
+          <Text
+            style={[styles.cardDescription, { color: colors.textTertiary }]}
+            testID="feedback-whatsapp-upsell-text"
+          >
             Assine o Premium para atendimento prioritário via WhatsApp.
           </Text>
         </View>

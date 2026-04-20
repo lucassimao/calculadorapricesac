@@ -13,6 +13,7 @@ import { trackEvent, trackScreen } from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
 import { resetAdMonetizationTimestamps } from '../../src/lib/storage/ad-monetization';
+import { saveScenarios } from '../../src/lib/storage/scenarios';
 
 interface BenefitItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -42,13 +43,15 @@ function BenefitItem({ icon, title, description, color = '#2563EB' }: BenefitIte
 
 function PremiumStatusCard({ title, description }: PremiumStatusCardProps) {
   return (
-    <View style={[styles.card, styles.premiumStatusCard]}>
+    <View style={[styles.card, styles.premiumStatusCard]} testID="premium-status-card">
       <View style={styles.premiumStatusHeader}>
         <View style={styles.premiumStatusIcon}>
           <Ionicons name="checkmark-circle" size={22} color="#047857" />
         </View>
         <View style={styles.premiumStatusText}>
-          <Text style={styles.premiumStatusTitle}>{title}</Text>
+          <Text style={styles.premiumStatusTitle} testID="premium-status-title">
+            {title}
+          </Text>
           <Text style={styles.premiumStatusDescription}>{description}</Text>
         </View>
       </View>
@@ -202,10 +205,20 @@ function DevAdControls() {
     await setAppOpenStubEnabled(false);
   };
 
+  const enableAllAdStubs = async () => {
+    await setStubModeEnabled(true);
+    await setInterstitialStubEnabled(true);
+    await setAppOpenStubEnabled(true);
+  };
+
+  const resetSavedScenarios = async () => {
+    await saveScenarios([]);
+  };
+
   return (
     <View style={styles.devToolsCard}>
       <Text style={styles.devToolsTitle}>Anúncios stub (dev)</Text>
-      <Text style={styles.devToolsStatus}>
+      <Text style={styles.devToolsStatus} testID="dev-ads-status">
         Stub: {stubModeEnabled ? 'ativo' : 'inativo'} | Interstitial:{' '}
         {interstitialStubEnabled ? 'ativo' : 'inativo'} | App open:{' '}
         {appOpenStubEnabled ? 'ativo' : 'inativo'}
@@ -234,6 +247,17 @@ function DevAdControls() {
           <Text style={styles.secondaryButtonText}>Preparar premium (dev)</Text>
         </Pressable>
       </View>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => {
+          void enableAllAdStubs();
+        }}
+        testID="btn-dev-enable-all-ad-stubs"
+        accessibilityRole="button"
+        accessibilityLabel="Ativar todos os stubs de anúncio (dev)"
+      >
+        <Text style={styles.secondaryButtonText}>Ativar todos os stubs de anúncio (dev)</Text>
+      </Pressable>
       <View style={styles.devRow}>
         <Pressable
           style={styles.secondaryButton}
@@ -311,10 +335,22 @@ function DevAdControls() {
         onPress={() => {
           void resetAdTestConfig();
         }}
+        testID="btn-dev-reset-ads-stub"
         accessibilityRole="button"
         accessibilityLabel="Resetar ads stub (dev)"
       >
         <Text style={styles.secondaryButtonText}>Resetar ads stub (dev)</Text>
+      </Pressable>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => {
+          void resetSavedScenarios();
+        }}
+        testID="btn-dev-reset-scenarios"
+        accessibilityRole="button"
+        accessibilityLabel="Resetar cenários salvos (dev)"
+      >
+        <Text style={styles.secondaryButtonText}>Resetar cenários salvos (dev)</Text>
       </Pressable>
     </View>
   );

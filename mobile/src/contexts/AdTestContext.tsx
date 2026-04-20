@@ -77,7 +77,7 @@ function StubAdOverlay({
 
   return (
     <Modal animationType="fade" transparent visible onRequestClose={() => {}}>
-      <View style={styles.backdrop}>
+      <View style={styles.backdrop} testID="stub-ad-overlay">
         <View
           style={[
             styles.card,
@@ -86,17 +86,26 @@ function StubAdOverlay({
               borderColor: colors.border,
             },
           ]}
+          testID={`stub-ad-card-${pendingAd.kind}`}
         >
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
+          <Text style={[styles.title, { color: colors.text }]} testID="stub-ad-title">
+            {title}
+          </Text>
+          <Text
+            style={[styles.description, { color: colors.textSecondary }]}
+            testID="stub-ad-description"
+          >
+            {description}
+          </Text>
 
           {isRewarded ? (
-            <View style={styles.actions}>
+            <View style={styles.actions} testID="stub-ad-actions">
               <Pressable
                 style={[styles.primaryButton, { backgroundColor: colors.primary }]}
                 onPress={() => closePendingAd('earned')}
                 accessibilityRole="button"
                 accessibilityLabel="Concluir anúncio"
+                testID="stub-ad-rewarded-complete"
               >
                 <Text style={styles.primaryButtonText}>Concluir anúncio</Text>
               </Pressable>
@@ -108,6 +117,7 @@ function StubAdOverlay({
                 onPress={() => closePendingAd('cancelled')}
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar anúncio"
+                testID="stub-ad-rewarded-cancel"
               >
                 <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
                   Cancelar anúncio
@@ -121,6 +131,7 @@ function StubAdOverlay({
                 onPress={() => closePendingAd('error')}
                 accessibilityRole="button"
                 accessibilityLabel="Falhar anúncio"
+                testID="stub-ad-rewarded-error"
               >
                 <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
                   Falhar anúncio
@@ -133,6 +144,7 @@ function StubAdOverlay({
               onPress={() => closePendingAd('closed')}
               accessibilityRole="button"
               accessibilityLabel="Fechar anúncio"
+              testID="stub-ad-close-button"
             >
               <Text style={styles.primaryButtonText}>Fechar anúncio</Text>
             </Pressable>

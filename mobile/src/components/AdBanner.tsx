@@ -22,11 +22,13 @@ export function AdBanner({ enabled, adUnitId }: AdBannerProps) {
 
   if (stubModeEnabled) {
     return (
-      <View style={styles.stubContainer}>
-        <View style={styles.stubBanner}>
+      <View style={styles.stubContainer} testID="ad-banner-stub-container">
+        <View style={styles.stubBanner} testID="ad-banner-stub">
           <View style={styles.stubDot} />
           <View>
-            <Text style={styles.stubTitle}>Banner de teste ativo</Text>
+            <Text style={styles.stubTitle} testID="ad-banner-stub-title">
+              Banner de teste ativo
+            </Text>
             <Text style={styles.stubSubtitle}>Stub visual para Maestro e validação local.</Text>
           </View>
         </View>

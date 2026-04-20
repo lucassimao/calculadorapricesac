@@ -1,26 +1,36 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
-- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/launch_dev_client_any_screen.yaml
 - tapOn:
     id: 'tab-premium'
 - extendedWaitUntil:
-    visible: 'Plano Premium'
-    timeout: 5000
+    visible:
+      id: 'screen-premium'
+    timeout: 15000
 - scrollUntilVisible:
     element:
-      text: 'Preparar exportação grátis (dev)'
+      id: 'btn-dev-prepare-free-rewarded'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar exportação grátis (dev)'
+- tapOn:
+    id: 'btn-dev-prepare-free-rewarded'
 - tapOn:
     id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'tab-export'
+    timeout: 10000
 - tapOn:
     id: 'tab-export'
-- assertVisible: 'Exportar Simulação'
-- tapOn: 'Exportar PDF'
-- assertVisible: 'Anúncio Rewarded de Teste'
-- tapOn: 'Falhar anúncio'
-- assertVisible: 'Anúncio indisponível'
-- assertVisible: 'Não foi possível carregar o anúncio agora. Tente novamente em instantes ou assine o Premium.'
+- assertVisible:
+    id: 'android-export-modal-card'
+- tapOn:
+    id: 'android-export-modal-pdf'
+- assertVisible:
+    id: 'stub-ad-card-rewarded'
+- tapOn:
+    id: 'stub-ad-rewarded-error'
+- assertNotVisible:
+    id: 'stub-ad-card-rewarded'

@@ -30,6 +30,7 @@ export function ScenarioSection({
         styles.section,
         { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
       ]}
+      testID="section-scenarios"
     >
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Cenário</Text>
       <Text style={[styles.label, { color: colors.textSecondary }]}>Nome do cenário</Text>
@@ -58,6 +59,7 @@ export function ScenarioSection({
         <Pressable
           style={[styles.secondaryButton, { borderColor: colors.border }]}
           onPress={onNew}
+          testID="btn-new-scenario"
           accessibilityRole="button"
           accessibilityLabel="Criar novo cenário"
         >
@@ -66,7 +68,7 @@ export function ScenarioSection({
       </View>
       {scenarios.length > 0 && (
         <View style={styles.list}>
-          {scenarios.map((item) => (
+          {scenarios.map((item, index) => (
             <View
               key={item.id}
               style={[styles.listItemRow, { borderBottomColor: colors.borderLight }]}
@@ -74,10 +76,16 @@ export function ScenarioSection({
               <Pressable
                 style={styles.listItemContent}
                 onPress={() => onLoad(item)}
+                testID={`scenario-item-${index}`}
                 accessibilityRole="button"
                 accessibilityLabel={`Carregar cenário ${item.name}`}
               >
-                <Text style={[styles.listTitle, { color: colors.text }]}>{item.name}</Text>
+                <Text
+                  style={[styles.listTitle, { color: colors.text }]}
+                  testID={`scenario-item-title-${index}`}
+                >
+                  {item.name}
+                </Text>
                 <Text style={[styles.listSubtitle, { color: colors.textTertiary }]}>
                   {item.system} • {formatCurrency(item.principal)}
                 </Text>

@@ -5,63 +5,71 @@ appId: com.lsimaocosta.calculadorapricesac
     id: 'tab-calculator'
 - scrollUntilVisible:
     element:
-      text: 'Parâmetros'
+      id: 'section-parameters'
     centerElement: true
     visibilityPercentage: 10
 - scrollUntilVisible:
     element:
-      text: 'Valor do financiamento'
+      id: 'input-principal'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: 'Valor do financiamento'
+- tapOn:
+    id: 'input-principal'
 - eraseText
 - inputText: '250000'
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      text: 'Taxa de juros'
+      id: 'input-rate'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: 'Taxa de juros'
+- tapOn:
+    id: 'input-rate'
 - eraseText
 - inputText: '1,1'
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      text: 'Prazo'
+      id: 'input-term'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: 'Prazo'
+- tapOn:
+    id: 'input-term'
 - eraseText
 - inputText: '240'
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      text: 'Dia de vencimento'
+      id: 'input-due-day'
     centerElement: true
     visibilityPercentage: 10
-- tapOn: 'Dia de vencimento'
+- tapOn:
+    id: 'input-due-day'
 - eraseText
 - inputText: '10'
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      text: 'Resumo'
+      id: 'section-summary'
     centerElement: true
     visibilityPercentage: 10
-- assertVisible: 'Resumo'
+- assertVisible:
+    id: 'section-summary'
 - scrollUntilVisible:
     element:
-      text: 'Total Pago'
+      id: 'section-summary'
     centerElement: true
     visibilityPercentage: 10
-- assertVisible: 'Total Pago'
+- assertVisible:
+    id: 'section-summary'
 - scrollUntilVisible:
     element:
-      text: 'Composição das Parcelas'
+      id: 'chart-payment-composition'
     centerElement: true
     visibilityPercentage: 10
-- assertVisible: 'Composição das Parcelas'
+- assertVisible:
+    id: 'chart-payment-composition'
 - tapOn:
     id: 'tab-comparison'
-- assertVisible: 'Comparar SAC vs Price'
+- assertVisible:
+    id: 'screen-comparison'

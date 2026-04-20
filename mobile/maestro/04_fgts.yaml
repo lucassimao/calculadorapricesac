@@ -4,15 +4,17 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn:
     id: 'tab-premium'
 - extendedWaitUntil:
-    visible: 'Plano Premium'
+    visible:
+      id: 'screen-premium'
     timeout: 5000
 - scrollUntilVisible:
     element:
-      text: 'Preparar premium (dev)'
+      id: 'btn-dev-prepare-premium'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'btn-dev-prepare-premium'
 - tapOn:
     id: 'tab-calculator'
 - assertVisible:
@@ -46,29 +48,18 @@ appId: com.lsimaocosta.calculadorapricesac
 - eraseText
 - inputText: '800'
 - hideKeyboard
-- evalScript: ${output.fgtsUsageVisible = false}
-- runFlow:
-    when:
-      visible:
-        id: 'chip-fgts-usage-installment'
-    commands:
-      - evalScript: ${output.fgtsUsageVisible = true}
-- repeat:
-    while:
-      true: ${output.fgtsUsageVisible == false}
-    times: 6
-    commands:
-      - swipe:
-          start: 50%, 82%
-          end: 50%, 48%
-      - runFlow:
-          when:
-            visible:
-              id: 'chip-fgts-usage-installment'
-          commands:
-            - evalScript: ${output.fgtsUsageVisible = true}
+- extendedWaitUntil:
+    visible:
+      id: 'chip-fgts-usage-installment'
+    timeout: 5000
 - tapOn:
     id: 'chip-fgts-usage-installment'
+- scrollUntilVisible:
+    element:
+      id: 'btn-add-fgts'
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
 - tapOn:
     id: 'btn-add-fgts'
 - evalScript: ${output.removeFgtsVisible = false}

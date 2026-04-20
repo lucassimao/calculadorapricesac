@@ -5,8 +5,9 @@ appId: com.lsimaocosta.calculadorapricesac
     id: 'tab-calculator'
 - scrollUntilVisible:
     element:
-      text: 'Parâmetros'
+      id: 'section-parameters'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- assertVisible: 'Parâmetros'
+- assertVisible:
+    id: 'section-parameters'

@@ -1,28 +1,19 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn:
-    id: 'tab-calculator'
 - assertVisible:
     id: 'screen-calculator'
-- tapOn:
-    id: 'btn-seed-export-extras-dev'
-- swipe:
-    start: 50%, 78%
-    end: 50%, 30%
-    duration: 450
-- swipe:
-    start: 50%, 78%
-    end: 50%, 30%
-    duration: 450
-- swipe:
-    start: 50%, 82%
-    end: 50%, 22%
-    duration: 500
-- swipe:
-    start: 50%, 82%
-    end: 50%, 22%
-    duration: 500
-- assertVisible: 'Tabela de Amortização'
+- runFlow: helpers/seed_export_extras_dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'label-seed-export-extras-dev'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: 'table-meta-row-331'
+    timeout: 30000
+    speed: 30
+    waitToSettleTimeoutMs: 500
+    visibilityPercentage: 10
 - assertVisible:
     id: 'table-meta-row-331'

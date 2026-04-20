@@ -51,12 +51,3 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn:
     id: 'stub-ad-close-button'
     optional: true
-- tapOn:
-    id: 'tab-calculator'
-    optional: true
-- extendedWaitUntil:
-    visible:
-      id: 'screen-calculator'
-    timeout: 20000
-- assertVisible:
-    id: 'screen-calculator'

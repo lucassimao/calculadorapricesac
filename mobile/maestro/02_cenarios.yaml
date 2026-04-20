@@ -5,37 +5,44 @@ appId: com.lsimaocosta.calculadorapricesac
     id: 'tab-premium'
 - scrollUntilVisible:
     element:
-      text: 'Preparar premium (dev)'
+      id: 'btn-dev-prepare-premium'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Preparar premium (dev)'
-- assertVisible: 'Desativar premium (dev)'
+- tapOn:
+    id: 'btn-dev-prepare-premium'
+- assertVisible:
+    id: 'btn-dev-disable-premium'
 - tapOn:
     id: 'tab-calculator'
 - scrollUntilVisible:
     element:
-      text: 'Nome do cenário'
+      id: 'input-scenario-name'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Nome do cenário'
+- tapOn:
+    id: 'input-scenario-name'
 - eraseText
 - inputText: 'Cenario Teste'
 - pressKey: Back
-- tapOn: 'Salvar cenário'
+- tapOn:
+    id: 'btn-save-scenario'
 - scrollUntilVisible:
     element:
-      text: 'Cenario Teste'
+      id: 'scenario-item-0'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Novo'
+- tapOn:
+    id: 'btn-new-scenario'
 - scrollUntilVisible:
     element:
-      text: 'Cenario Teste'
+      id: 'scenario-item-0'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
-- tapOn: 'Cenario Teste'
-- assertVisible: 'Cenario Teste'
+- tapOn:
+    id: 'scenario-item-0'
+- assertVisible:
+    id: 'input-scenario-name'

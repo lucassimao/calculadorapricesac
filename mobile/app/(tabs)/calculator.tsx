@@ -934,7 +934,7 @@ export default function CalculatorScreen() {
             }}
           />
 
-          <View style={[styles.section, themedStyles.section]}>
+          <View style={[styles.section, themedStyles.section]} testID="section-parameters">
             <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Parâmetros</Text>
 
             <Text style={[styles.label, themedStyles.label]}>Valor do Financiamento (R$)</Text>
@@ -1298,6 +1298,8 @@ export default function CalculatorScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em PDF"
+                    testID="btn-export-table-pdf"
+                    nativeID="btn-export-table-pdf"
                   >
                     <View style={styles.buttonContent}>
                       {exportFlowBusy &&
@@ -1319,6 +1321,8 @@ export default function CalculatorScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em XLSX"
+                    testID="btn-export-table-xlsx"
+                    nativeID="btn-export-table-xlsx"
                   >
                     <View style={styles.buttonContent}>
                       {exportFlowBusy &&
@@ -1340,6 +1344,8 @@ export default function CalculatorScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em CSV"
+                    testID="btn-export-table-csv"
+                    nativeID="btn-export-table-csv"
                   >
                     <View style={styles.buttonContent}>
                       {exportFlowBusy &&
@@ -1814,6 +1820,8 @@ export default function CalculatorScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em PDF"
+                testID="btn-export-table-pdf"
+                nativeID="btn-export-table-pdf"
               >
                 <View style={styles.buttonContent}>
                   {exportFlowBusy &&
@@ -1834,6 +1842,8 @@ export default function CalculatorScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em XLSX"
+                testID="btn-export-table-xlsx"
+                nativeID="btn-export-table-xlsx"
               >
                 <View style={styles.buttonContent}>
                   {exportFlowBusy &&
@@ -1855,6 +1865,8 @@ export default function CalculatorScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em CSV"
+                testID="btn-export-table-csv"
+                nativeID="btn-export-table-csv"
               >
                 <View style={styles.buttonContent}>
                   {exportFlowBusy &&
