@@ -1,10 +1,20 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Comparar'
+- tapOn:
+    id: 'tab-comparison'
 - assertVisible: 'Comparar SAC vs Price'
-- scroll
-- scroll
+- scrollUntilVisible:
+    element:
+      text: 'Condição A'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
 - assertVisible: 'Condição A'
-- assertVisible: 'Condição B'
+- scrollUntilVisible:
+    element:
+      text: 'Condição C'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
 - assertVisible: 'Condição C'

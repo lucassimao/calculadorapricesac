@@ -10,11 +10,11 @@ appId: com.lsimaocosta.calculadorapricesac
 - repeat:
     while:
       true: ${output.seedExtrasVisible == false}
-    times: 8
+    times: 14
     commands:
       - swipe:
-          start: 50%, 85%
-          end: 50%, 35%
+          start: 50%, 90%
+          end: 50%, 30%
       - runFlow:
           when:
             visible:

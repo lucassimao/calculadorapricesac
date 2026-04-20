@@ -13,8 +13,8 @@
     "test:exports:android": "node scripts/test-export-readback-android.mjs",
     "ui:maestro": "$HOME/.maestro/bin/maestro test maestro",
     "ui:maestro:android": "$HOME/.maestro/bin/maestro test maestro",
-    "ota:preview": "RELEASE_TARGET=preview npx eas-cli@latest update --channel preview",
-    "ota:production": "RELEASE_TARGET=production npx eas-cli@latest update --channel production",
+    "ota:preview": "RELEASE_TARGET=preview npx eas-cli@latest update --channel preview --environment preview",
+    "ota:production": "RELEASE_TARGET=production npx eas-cli@latest update --channel production --environment production",
     "build:android:local": "eas build -p android --local --profile production",
     "build:android:local:internal": "eas build -p android --local --profile internal"
   },

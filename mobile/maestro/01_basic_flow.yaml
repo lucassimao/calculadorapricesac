@@ -1,7 +1,8 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-calculator'
 - scrollUntilVisible:
     element:
       text: 'Parâmetros'
@@ -61,5 +62,6 @@ appId: com.lsimaocosta.calculadorapricesac
     centerElement: true
     visibilityPercentage: 10
 - assertVisible: 'Composição das Parcelas'
-- tapOn: 'Aba Comparar'
+- tapOn:
+    id: 'tab-comparison'
 - assertVisible: 'Comparar SAC vs Price'

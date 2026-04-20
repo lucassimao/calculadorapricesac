@@ -8,11 +8,11 @@ import {
   shouldAttemptAdPlacement,
 } from '../lib/ads';
 import { trackEvent } from '../lib/analytics';
-import { usePremium } from '../hooks/usePremium';
+import { usePremiumContext } from '../contexts/PremiumContext';
 import { loadLastAppOpenShownAt, saveLastAppOpenShownAt } from '../lib/storage/ad-monetization';
 
 export function AppOpenAdGate() {
-  const { isPremium, loading } = usePremium();
+  const { isPremium, loading } = usePremiumContext();
   const {
     loading: adTestLoading,
     stubModeEnabled,

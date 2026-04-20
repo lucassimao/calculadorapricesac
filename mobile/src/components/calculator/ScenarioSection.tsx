@@ -49,6 +49,7 @@ export function ScenarioSection({
         <Pressable
           style={styles.primaryButton}
           onPress={onSave}
+          testID="btn-save-scenario"
           accessibilityRole="button"
           accessibilityLabel="Salvar cenário"
         >

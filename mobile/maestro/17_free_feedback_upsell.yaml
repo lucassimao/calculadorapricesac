@@ -14,13 +14,10 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - tapOn: 'Preparar exportação grátis (dev)'
 - tapOn:
-    id: 'tab-calculator'
-- runFlow: helpers/seed_export_extras_dev.yaml
-- tapOn:
-    id: 'tab-export'
-- assertVisible: 'Exportar Simulação'
-- tapOn: 'Exportar PDF'
-- assertVisible: 'Anúncio Rewarded de Teste'
-- tapOn: 'Cancelar anúncio'
-- assertNotVisible: 'Anúncio Rewarded de Teste'
-- assertNotVisible: 'Gerando...'
+    id: 'tab-feedback'
+- assertVisible: 'Feedback'
+- assertVisible: 'E-mail'
+- assertVisible: 'Abrir e-mail'
+- assertVisible: 'WhatsApp'
+- assertVisible: 'Assine o Premium para atendimento prioritário via WhatsApp.'
+- assertNotVisible: 'Conversar no WhatsApp'

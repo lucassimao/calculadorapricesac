@@ -10,12 +10,20 @@ export function useIapAvailability() {
 
   useEffect(() => {
     const check = async () => {
+      if (Constants.expoConfig?.hostUri) {
+        setState('unsupported');
+        return;
+      }
+
       if (Platform.OS === 'web') {
         setState('unsupported');
         return;
       }
 
-      if (__DEV__ && Platform.OS === 'android') {
+      if (
+        Platform.OS === 'android' &&
+        Constants.executionEnvironment !== ExecutionEnvironment.Standalone
+      ) {
         setState('unsupported');
         return;
       }

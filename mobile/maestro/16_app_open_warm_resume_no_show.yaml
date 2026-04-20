@@ -1,11 +1,18 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Desativar premium (dev)'
-- tapOn: 'Ativar ads stub (dev)'
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible: 'Plano Premium'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: 'Preparar exportação grátis (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar exportação grátis (dev)'
 - scrollUntilVisible:
     element:
       text: 'Ativar app open stub (dev)'
@@ -13,7 +20,6 @@ appId: com.lsimaocosta.calculadorapricesac
     speed: 80
     visibilityPercentage: 10
 - tapOn: 'Ativar app open stub (dev)'
-- assertVisible: 'Stub: ativo | Interstitial: inativo | App open: ativo'
 - killApp
 - openLink:
     link: 'exp+calculadora-price-sac://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081&disableOnboarding=1'
@@ -29,7 +35,7 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn: 'Fechar anúncio'
 - extendedWaitUntil:
     visible:
-      id: 'input-scenario-name'
+      id: 'screen-calculator'
     timeout: 30000
 - pressKey: Home
 - openLink:
@@ -42,6 +48,6 @@ appId: com.lsimaocosta.calculadorapricesac
     optional: true
 - extendedWaitUntil:
     visible:
-      id: 'input-scenario-name'
+      id: 'screen-calculator'
     timeout: 30000
 - assertNotVisible: 'App Open de Teste'

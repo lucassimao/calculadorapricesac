@@ -81,22 +81,62 @@ Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
 ### Eventos principais instrumentados
 
 - `app_open`
+- `export_sheet_opened`
+- `export_upgrade_clicked`
+- `premium_entry_clicked`
+- `scenario_new_started`
 - `scenario_saved`
+- `scenario_loaded`
+- `scenario_deleted`
+- `scenario_save_blocked_free_limit`
+- `scenario_limit_upgrade_clicked`
 - `prepayment_added`
+- `prepayment_removed`
 - `fgts_added`
+- `fgts_removed`
 - `export_clicked`
 - `export_success`
 - `export_failed`
 - `export_blocked_premium`
 - `premium_paywall_viewed`
+- `premium_status_viewed`
+- `premium_status_sync_requested`
 - `purchase_started`
 - `purchase_success`
 - `purchase_failed`
+- `purchase_store_unavailable`
 - `purchase_restore_started`
+- `purchase_restore_success`
+- `purchase_restore_empty`
+- `purchase_restore_failed`
+- `comparison_configuration_updated`
 - `feedback_email_clicked`
 - `feedback_email_opened`
 - `feedback_whatsapp_clicked`
 - `feedback_whatsapp_opened`
+
+### Propriedades mais relevantes
+
+Os eventos principais de cenário, exportação e compra carregam propriedades para análise de uso e monetização:
+
+- `source`
+- `format`
+- `access`
+- `table_only`
+- `is_premium`
+- `rewarded_available`
+- `system`
+- `loan_mode`
+- `rate_type`
+- `term_unit`
+- `term_value`
+- `term_months`
+- `effective_installments`
+- `prepayment_count`
+- `fgts_event_count`
+- `store_connected`
+- `store_ready`
+- `price_label`
 
 ## Store assets (capas/screenhots)
 

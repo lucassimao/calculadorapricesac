@@ -1,21 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useAdTest } from '../../src/contexts/AdTestContext';
 import { useTheme } from '../../src/lib/theme';
 import { IAP_FALLBACK_PRICE } from '../../src/lib/iap';
-import { usePremium } from '../../src/hooks/usePremium';
+import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
+import { resetAdMonetizationTimestamps } from '../../src/lib/storage/ad-monetization';
 
 interface BenefitItemProps {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   description: string;
   color?: string;
+}
+
+interface PremiumStatusCardProps {
+  title: string;
+  description: string;
 }
 
 function BenefitItem({ icon, title, description, color = '#2563EB' }: BenefitItemProps) {
@@ -32,7 +40,140 @@ function BenefitItem({ icon, title, description, color = '#2563EB' }: BenefitIte
   );
 }
 
+function PremiumStatusCard({ title, description }: PremiumStatusCardProps) {
+  return (
+    <View style={[styles.card, styles.premiumStatusCard]}>
+      <View style={styles.premiumStatusHeader}>
+        <View style={styles.premiumStatusIcon}>
+          <Ionicons name="checkmark-circle" size={22} color="#047857" />
+        </View>
+        <View style={styles.premiumStatusText}>
+          <Text style={styles.premiumStatusTitle}>{title}</Text>
+          <Text style={styles.premiumStatusDescription}>{description}</Text>
+        </View>
+      </View>
+      <View style={styles.premiumStatusPills}>
+        <View style={styles.premiumStatusPill}>
+          <Ionicons name="ban-outline" size={14} color="#047857" />
+          <Text style={styles.premiumStatusPillText}>Sem anúncios</Text>
+        </View>
+        <View style={styles.premiumStatusPill}>
+          <Ionicons name="share-outline" size={14} color="#047857" />
+          <Text style={styles.premiumStatusPillText}>Exportações completas</Text>
+        </View>
+        <View style={styles.premiumStatusPill}>
+          <Ionicons name="logo-whatsapp" size={14} color="#047857" />
+          <Text style={styles.premiumStatusPillText}>Suporte prioritário</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface PremiumDiagnosticsCardProps {
+  isPremium: boolean;
+  loading: boolean;
+  iapAvailability: string;
+  purchasedProductIds: string[];
+  premiumPurchaseDetails: Record<string, string> | null;
+  refreshAttemptedAt: string | null;
+  refreshCompletedAt: string | null;
+  refreshError: string | null;
+  onRefresh: () => Promise<void>;
+}
+
+function PremiumDiagnosticsCard({
+  isPremium,
+  loading,
+  iapAvailability,
+  purchasedProductIds,
+  premiumPurchaseDetails,
+  refreshAttemptedAt,
+  refreshCompletedAt,
+  refreshError,
+  onRefresh,
+}: PremiumDiagnosticsCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const diagnosticsText = useMemo(
+    () =>
+      [
+        `appVersion=${Constants.expoConfig?.version ?? 'unknown'}`,
+        `executionEnvironment=${String(Constants.executionEnvironment ?? 'unknown')}`,
+        `appOwnership=${String(Constants.appOwnership ?? 'unknown')}`,
+        `iapAvailability=${iapAvailability}`,
+        `isPremium=${String(isPremium)}`,
+        `loading=${String(loading)}`,
+        `purchasedProductIds=${purchasedProductIds.join(',') || '(none)'}`,
+        `premiumPurchaseDetails=${
+          premiumPurchaseDetails
+            ? Object.entries(premiumPurchaseDetails)
+                .map(([key, value]) => `${key}:${value}`)
+                .join('; ')
+            : '(none)'
+        }`,
+        `refreshAttemptedAt=${refreshAttemptedAt ?? '(none)'}`,
+        `refreshCompletedAt=${refreshCompletedAt ?? '(none)'}`,
+        `refreshError=${refreshError ?? '(none)'}`,
+      ].join('\n'),
+    [
+      iapAvailability,
+      isPremium,
+      loading,
+      purchasedProductIds,
+      premiumPurchaseDetails,
+      refreshAttemptedAt,
+      refreshCompletedAt,
+      refreshError,
+    ],
+  );
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  return (
+    <View style={styles.diagnosticsCard} testID="premium-diagnostics-card">
+      <Text style={styles.diagnosticsTitle}>Diagnóstico temporário de premium</Text>
+      <Text style={styles.diagnosticsHint}>
+        Use isto para verificar o que o app recebeu da App Store no startup.
+      </Text>
+      <Text selectable style={styles.diagnosticsText} testID="premium-diagnostics-text">
+        {diagnosticsText}
+      </Text>
+      <View style={styles.devRow}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void onRefresh();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Atualizar diagnóstico premium"
+        >
+          <Text style={styles.secondaryButtonText}>Atualizar diagnóstico</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void Clipboard.setStringAsync(diagnosticsText);
+            setCopied(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Copiar diagnóstico premium"
+        >
+          <Text style={styles.secondaryButtonText}>
+            {copied ? 'Diagnóstico copiado' : 'Copiar diagnóstico'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function DevAdControls() {
+  const { markPremium } = usePremiumContext();
   const {
     stubModeEnabled,
     interstitialStubEnabled,
@@ -44,6 +185,22 @@ function DevAdControls() {
   } = useAdTest();
 
   if (!__DEV__) return null;
+
+  const prepareFreeRewarded = async () => {
+    await resetAdMonetizationTimestamps();
+    await markPremium(false);
+    await setStubModeEnabled(true);
+    await setInterstitialStubEnabled(false);
+    await setAppOpenStubEnabled(false);
+  };
+
+  const preparePremiumMode = async () => {
+    await resetAdMonetizationTimestamps();
+    await markPremium(true);
+    await setStubModeEnabled(false);
+    await setInterstitialStubEnabled(false);
+    await setAppOpenStubEnabled(false);
+  };
 
   return (
     <View style={styles.devToolsCard}>
@@ -57,8 +214,33 @@ function DevAdControls() {
         <Pressable
           style={styles.secondaryButton}
           onPress={() => {
+            void prepareFreeRewarded();
+          }}
+          testID="btn-dev-prepare-free-rewarded"
+          accessibilityRole="button"
+          accessibilityLabel="Preparar exportação grátis (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Preparar exportação grátis (dev)</Text>
+        </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
+            void preparePremiumMode();
+          }}
+          testID="btn-dev-prepare-premium"
+          accessibilityRole="button"
+          accessibilityLabel="Preparar premium (dev)"
+        >
+          <Text style={styles.secondaryButtonText}>Preparar premium (dev)</Text>
+        </Pressable>
+      </View>
+      <View style={styles.devRow}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => {
             void setStubModeEnabled(true);
           }}
+          testID="btn-dev-enable-ads-stub"
           accessibilityRole="button"
           accessibilityLabel="Ativar ads stub (dev)"
         >
@@ -69,6 +251,7 @@ function DevAdControls() {
           onPress={() => {
             void setStubModeEnabled(false);
           }}
+          testID="btn-dev-disable-ads-stub"
           accessibilityRole="button"
           accessibilityLabel="Desativar ads stub (dev)"
         >
@@ -81,6 +264,7 @@ function DevAdControls() {
           onPress={() => {
             void setInterstitialStubEnabled(true);
           }}
+          testID="btn-dev-enable-interstitial-stub"
           accessibilityRole="button"
           accessibilityLabel="Ativar interstitial stub (dev)"
         >
@@ -91,6 +275,7 @@ function DevAdControls() {
           onPress={() => {
             void setInterstitialStubEnabled(false);
           }}
+          testID="btn-dev-disable-interstitial-stub"
           accessibilityRole="button"
           accessibilityLabel="Desativar interstitial stub (dev)"
         >
@@ -103,6 +288,7 @@ function DevAdControls() {
           onPress={() => {
             void setAppOpenStubEnabled(true);
           }}
+          testID="btn-dev-enable-app-open-stub"
           accessibilityRole="button"
           accessibilityLabel="Ativar app open stub (dev)"
         >
@@ -113,6 +299,7 @@ function DevAdControls() {
           onPress={() => {
             void setAppOpenStubEnabled(false);
           }}
+          testID="btn-dev-disable-app-open-stub"
           accessibilityRole="button"
           accessibilityLabel="Desativar app open stub (dev)"
         >
@@ -174,9 +361,11 @@ export default function PremiumScreen() {
 
 function PremiumIapScreen() {
   const { colors } = useTheme();
-  const { isPremium, markPremium } = usePremium();
+  const { isPremium, loading, markPremium, refreshEntitlement, diagnostics } = usePremiumContext();
   const showAds = shouldShowAds(isPremium);
   const [modalVisible, setModalVisible] = useState(false);
+  const [diagnosticsTapCount, setDiagnosticsTapCount] = useState(0);
+  const diagnosticsVisible = diagnosticsTapCount >= 7;
   const {
     connected,
     priceLabel,
@@ -193,8 +382,14 @@ function PremiumIapScreen() {
   });
 
   useEffect(() => {
-    trackEvent('premium_paywall_viewed');
-  }, []);
+    trackEvent(isPremium ? 'premium_status_viewed' : 'premium_paywall_viewed', {
+      iap_availability: 'supported',
+      store_connected: connected,
+      store_ready: isStoreReady,
+      price_label: priceLabel,
+      purchased_product_count: diagnostics.purchasedProductIds.length,
+    });
+  }, [connected, diagnostics.purchasedProductIds.length, isPremium, isStoreReady, priceLabel]);
 
   return (
     <ScrollView
@@ -202,81 +397,173 @@ function PremiumIapScreen() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title} testID="screen-premium-title">
-        Plano Premium
-      </Text>
+      <Pressable
+        onPress={() => setDiagnosticsTapCount((count) => Math.min(count + 1, 7))}
+        accessibilityRole="button"
+        accessibilityLabel="Plano Premium"
+      >
+        <Text style={styles.title} testID="screen-premium-title">
+          Plano Premium
+        </Text>
+      </Pressable>
       <Text style={styles.subtitle}>
         Desbloqueie recursos essenciais para comparar financiamentos com clareza.
       </Text>
       <AdBanner enabled={showAds} />
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>O que você ganha</Text>
-        <View style={styles.benefitsList}>
-          <BenefitItem
-            icon="ban-outline"
-            title="Sem anúncios"
-            description="Navegue sem interrupções publicitárias"
-            color="#EF4444"
+      {isPremium ? (
+        <>
+          <PremiumStatusCard
+            title="Premium ativo"
+            description="Sua compra foi reconhecida neste dispositivo. Todos os recursos pagos já estão liberados."
           />
-          <BenefitItem
-            icon="share-outline"
-            title="Exportar simulação"
-            description="Gere arquivos PDF, XLSX e CSV com tabela completa, resumo e os principais dados do cenário"
-            color="#2563EB"
-          />
-          <BenefitItem
-            icon="logo-whatsapp"
-            title="Suporte prioritário"
-            description="Atendimento direto via WhatsApp para dúvidas e sugestões"
-            color="#25D366"
-          />
-          <BenefitItem
-            icon="infinite-outline"
-            title="Cenários ilimitados"
-            description="Salve e compare quantos cenários precisar"
-            color="#8B5CF6"
-          />
-        </View>
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.priceLabel}>Pagamento único</Text>
-        <Text style={styles.price}>{priceLabel}</Text>
-        <Text style={styles.helper}>Compra única, sem assinatura recorrente.</Text>
-        <View style={styles.row}>
-          <Pressable
-            style={[
-              styles.primaryButton,
-              (isPremium || purchaseInProgress) && styles.primaryButtonDisabled,
-            ]}
-            onPress={() => setModalVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Comprar Premium"
-          >
-            <Text style={styles.primaryButtonText}>
-              {isPremium ? 'Premium ativo' : 'Comprar premium'}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Tudo liberado na sua conta</Text>
+            <View style={styles.benefitsList}>
+              <BenefitItem
+                icon="share-outline"
+                title="Exportações sem limitação"
+                description="PDF, XLSX e CSV completos, sem cortes e sem marca da versão gratuita."
+                color="#2563EB"
+              />
+              <BenefitItem
+                icon="ban-outline"
+                title="Experiência sem anúncios"
+                description="Banners e bloqueios de exportação por anúncio deixam de aparecer."
+                color="#EF4444"
+              />
+              <BenefitItem
+                icon="logo-whatsapp"
+                title="Atendimento prioritário"
+                description="A aba Feedback libera o contato direto via WhatsApp para assinantes."
+                color="#25D366"
+              />
+              <BenefitItem
+                icon="infinite-outline"
+                title="Cenários ilimitados"
+                description="Você pode criar, salvar e comparar quantos cenários precisar."
+                color="#8B5CF6"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Se a compra não for reconhecida</Text>
+            <Text style={styles.helper}>
+              Normalmente o Premium é liberado automaticamente ao abrir o app com a mesma conta da
+              Apple. Use estas ações apenas se houver atraso ou falha no reconhecimento da compra.
             </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.secondaryButton,
-              (!connected || restoreInProgress) && styles.primaryButtonDisabled,
-            ]}
-            onPress={handleRestore}
-            accessibilityRole="button"
-            accessibilityLabel="Restaurar compra"
-          >
-            <Text style={styles.secondaryButtonText}>
-              {restoreInProgress ? 'Restaurando...' : 'Restaurar'}
-            </Text>
-          </Pressable>
-        </View>
-        {__DEV__ ? (
+            <View style={styles.row}>
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  (!connected || loading) && styles.primaryButtonDisabled,
+                ]}
+                onPress={() => {
+                  trackEvent('premium_status_sync_requested', {
+                    store_connected: connected,
+                    store_ready: isStoreReady,
+                    purchased_product_count: diagnostics.purchasedProductIds.length,
+                  });
+                  void refreshEntitlement();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Atualizar status premium"
+              >
+                <Text style={styles.primaryButtonText}>
+                  {loading ? 'Sincronizando...' : 'Sincronizar agora'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.secondaryButton,
+                  (!connected || restoreInProgress) && styles.primaryButtonDisabled,
+                ]}
+                onPress={handleRestore}
+                accessibilityRole="button"
+                accessibilityLabel="Restaurar compra"
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {restoreInProgress ? 'Restaurando...' : 'Restaurar compra'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>O que você ganha</Text>
+            <View style={styles.benefitsList}>
+              <BenefitItem
+                icon="ban-outline"
+                title="Sem anúncios"
+                description="Navegue sem interrupções publicitárias"
+                color="#EF4444"
+              />
+              <BenefitItem
+                icon="share-outline"
+                title="Exportar simulação"
+                description="Gere arquivos PDF, XLSX e CSV com tabela completa, resumo e os principais dados do cenário"
+                color="#2563EB"
+              />
+              <BenefitItem
+                icon="logo-whatsapp"
+                title="Suporte prioritário"
+                description="Atendimento direto via WhatsApp para dúvidas e sugestões"
+                color="#25D366"
+              />
+              <BenefitItem
+                icon="infinite-outline"
+                title="Cenários ilimitados"
+                description="Salve e compare quantos cenários precisar"
+                color="#8B5CF6"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.priceLabel}>Pagamento único</Text>
+            <Text style={styles.price}>{priceLabel}</Text>
+            <Text style={styles.helper}>Compra única, sem assinatura recorrente.</Text>
+            <View style={styles.row}>
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  (isPremium || purchaseInProgress) && styles.primaryButtonDisabled,
+                ]}
+                onPress={() => setModalVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Comprar Premium"
+              >
+                <Text style={styles.primaryButtonText}>Comprar premium</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.secondaryButton,
+                  (!connected || restoreInProgress) && styles.primaryButtonDisabled,
+                ]}
+                onPress={handleRestore}
+                accessibilityRole="button"
+                accessibilityLabel="Restaurar compra"
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {restoreInProgress ? 'Restaurando...' : 'Restaurar'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </>
+      )}
+      {__DEV__ ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Controles de premium (dev)</Text>
           <View style={styles.devRow}>
             <Pressable
               style={styles.secondaryButton}
               onPress={() => markPremium(true)}
+              testID="btn-dev-enable-premium"
               accessibilityRole="button"
               accessibilityLabel="Ativar premium (dev)"
             >
@@ -285,16 +572,30 @@ function PremiumIapScreen() {
             <Pressable
               style={styles.secondaryButton}
               onPress={() => markPremium(false)}
+              testID="btn-dev-disable-premium"
               accessibilityRole="button"
               accessibilityLabel="Desativar premium (dev)"
             >
               <Text style={styles.secondaryButtonText}>Desativar premium (dev)</Text>
             </Pressable>
           </View>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
 
       <DevAdControls />
+      {diagnosticsVisible ? (
+        <PremiumDiagnosticsCard
+          isPremium={isPremium}
+          loading={loading}
+          iapAvailability={diagnostics.iapAvailability}
+          purchasedProductIds={diagnostics.purchasedProductIds}
+          premiumPurchaseDetails={diagnostics.premiumPurchaseDetails}
+          refreshAttemptedAt={diagnostics.refreshAttemptedAt}
+          refreshCompletedAt={diagnostics.refreshCompletedAt}
+          refreshError={diagnostics.refreshError}
+          onRefresh={refreshEntitlement}
+        />
+      ) : null}
 
       <Modal
         animationType={Platform.OS === 'ios' ? 'fade' : 'slide'}
@@ -359,8 +660,10 @@ function PremiumIapScreen() {
 }
 
 function PremiumUnsupportedScreen() {
-  const { isPremium, markPremium } = usePremium();
+  const { isPremium, loading, markPremium, refreshEntitlement, diagnostics } = usePremiumContext();
   const showAds = shouldShowAds(isPremium);
+  const [diagnosticsTapCount, setDiagnosticsTapCount] = useState(0);
+  const diagnosticsVisible = diagnosticsTapCount >= 7;
 
   return (
     <ScrollView
@@ -368,9 +671,15 @@ function PremiumUnsupportedScreen() {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title} testID="screen-premium-title">
-        Plano Premium
-      </Text>
+      <Pressable
+        onPress={() => setDiagnosticsTapCount((count) => Math.min(count + 1, 7))}
+        accessibilityRole="button"
+        accessibilityLabel="Plano Premium"
+      >
+        <Text style={styles.title} testID="screen-premium-title">
+          Plano Premium
+        </Text>
+      </Pressable>
       <View style={styles.bannerWarning}>
         <Text style={styles.bannerWarningText}>
           Compras no app indisponíveis neste dispositivo.
@@ -381,17 +690,28 @@ function PremiumUnsupportedScreen() {
         compatível.
       </Text>
       <AdBanner enabled={showAds} />
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Pagamento único</Text>
-        <Text style={styles.price}>{IAP_FALLBACK_PRICE}</Text>
-        <Text style={styles.helper}>
-          Faça o teste em uma build instalada para concluir a compra.
-        </Text>
-        {__DEV__ ? (
+      {isPremium ? (
+        <PremiumStatusCard
+          title="Premium ativo"
+          description="Mesmo nesta build sem suporte a compras, o app reconheceu que sua conta já tem o Premium liberado."
+        />
+      ) : (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Pagamento único</Text>
+          <Text style={styles.price}>{IAP_FALLBACK_PRICE}</Text>
+          <Text style={styles.helper}>
+            Faça o teste em uma build instalada com App Store ou Play Store para concluir a compra.
+          </Text>
+        </View>
+      )}
+      {__DEV__ ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Controles de premium (dev)</Text>
           <View style={styles.devRow}>
             <Pressable
               style={styles.secondaryButton}
               onPress={() => markPremium(true)}
+              testID="btn-dev-enable-premium"
               accessibilityRole="button"
               accessibilityLabel="Ativar premium (dev)"
             >
@@ -400,16 +720,30 @@ function PremiumUnsupportedScreen() {
             <Pressable
               style={styles.secondaryButton}
               onPress={() => markPremium(false)}
+              testID="btn-dev-disable-premium"
               accessibilityRole="button"
               accessibilityLabel="Desativar premium (dev)"
             >
               <Text style={styles.secondaryButtonText}>Desativar premium (dev)</Text>
             </Pressable>
           </View>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
 
       <DevAdControls />
+      {diagnosticsVisible ? (
+        <PremiumDiagnosticsCard
+          isPremium={isPremium}
+          loading={loading}
+          iapAvailability={diagnostics.iapAvailability}
+          purchasedProductIds={diagnostics.purchasedProductIds}
+          premiumPurchaseDetails={diagnostics.premiumPurchaseDetails}
+          refreshAttemptedAt={diagnostics.refreshAttemptedAt}
+          refreshCompletedAt={diagnostics.refreshCompletedAt}
+          refreshError={diagnostics.refreshError}
+          onRefresh={refreshEntitlement}
+        />
+      ) : null}
     </ScrollView>
   );
 }
@@ -456,9 +790,82 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
+  premiumStatusCard: {
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    backgroundColor: '#ECFDF5',
+  },
+  premiumStatusHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  premiumStatusIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D1FAE5',
+  },
+  premiumStatusText: {
+    flex: 1,
+    gap: 4,
+  },
+  premiumStatusTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  premiumStatusDescription: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#047857',
+  },
+  premiumStatusPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  premiumStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#D1FAE5',
+  },
+  premiumStatusPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#065F46',
+  },
   helper: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  diagnosticsCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    gap: 10,
+  },
+  diagnosticsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  diagnosticsHint: {
+    fontSize: 12,
+    color: '#CBD5E1',
+  },
+  diagnosticsText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#E2E8F0',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
   },
   row: {
     flexDirection: 'row',

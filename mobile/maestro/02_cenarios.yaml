@@ -1,12 +1,18 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Ativar premium (dev)'
+- tapOn:
+    id: 'tab-premium'
+- scrollUntilVisible:
+    element:
+      text: 'Preparar premium (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar premium (dev)'
 - assertVisible: 'Desativar premium (dev)'
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-calculator'
 - scrollUntilVisible:
     element:
       text: 'Nome do cenário'

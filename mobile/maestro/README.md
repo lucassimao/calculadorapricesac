@@ -45,7 +45,7 @@ Prefira `testID` em componentes React Native e use `id` no Maestro para se ancor
 
 Use texto ou `accessibilityLabel` apenas quando o elemento for realmente estável e não houver ambiguidade:
 
-- `tapOn: "Aba Premium"`
+- `tapOn: { id: "tab-premium" }`
 - `assertVisible: "Exportar Simulação"`
 
 Para rolar até um elemento:
@@ -101,11 +101,11 @@ Em telas longas, sempre combine:
   - `btn-add-fgts`
   - `btn-seed-export-extras-dev`
 - Labels exclusivas das tabs:
-  - `Aba Calculadora`
-  - `Aba Comparar`
-  - `Aba Exportar`
-  - `Aba Premium`
-  - `Aba Feedback`
+  - `tab-calculator`
+  - `tab-comparison`
+  - `tab-export`
+  - `tab-premium`
+  - `tab-feedback`
 
 ### 6) Criando um novo cenário de teste
 
@@ -130,6 +130,7 @@ Os flows de anúncios usam o modo stub interno do app para evitar depender do cr
 - `14_premium_skips_ad_gates.yaml`
 - `15_premium_feedback_whatsapp.yaml`
 - `16_app_open_warm_resume_no_show.yaml`
+- `17_free_feedback_upsell.yaml`
 
 Ative os toggles de dev na aba `Premium`:
 

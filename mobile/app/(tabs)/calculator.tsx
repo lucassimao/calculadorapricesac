@@ -32,7 +32,7 @@ import {
 import { loadScenarios, saveScenarios } from '../../src/lib/storage/scenarios';
 import { AdBanner } from '../../src/components/AdBanner';
 import { PremiumPill } from '../../src/components/PremiumPill';
-import { usePremium } from '../../src/hooks/usePremium';
+import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { exportCsv } from '../../src/lib/exports/csv';
 import { exportPdf } from '../../src/lib/exports/pdf';
 import { exportXlsx } from '../../src/lib/exports/xlsx';
@@ -70,6 +70,28 @@ const DEFAULT_SCENARIO: Scenario = {
 
 const MAX_TABLE_ROWS = 10;
 const FREE_SCENARIO_LIMIT = 1;
+
+function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?: number) {
+  const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
+  const prepaymentCount = scenario.prepayments?.length ?? 0;
+  const fgtsEventCount = scenario.fgtsEvents?.length ?? 0;
+
+  return {
+    system: scenario.system,
+    loan_mode: scenario.loanMode ?? 'standard',
+    rate_type: scenario.rateType,
+    term_unit: scenario.termUnit,
+    term_value: scenario.term,
+    term_months: termMonths,
+    principal: scenario.principal,
+    has_prepayments: prepaymentCount > 0,
+    prepayment_count: prepaymentCount,
+    has_fgts: fgtsEventCount > 0,
+    fgts_event_count: fgtsEventCount,
+    effective_installments:
+      typeof scheduleLength === 'number' ? Math.max(scheduleLength - 1, 0) : termMonths,
+  };
+}
 
 function getExportProgressText({
   exporting,
@@ -227,7 +249,7 @@ export default function CalculatorScreen() {
     strategy: 'reduce_term',
     date: new Date(),
   });
-  const { isPremium, loading: premiumLoading, markPremium } = usePremium();
+  const { isPremium, loading: premiumLoading, markPremium } = usePremiumContext();
   const showAds = shouldShowAds(isPremium, premiumLoading);
   const iapAvailability = useIapAvailability();
   const { registerExportHandler, unregisterExportHandler, setIsExporting } = useExport();
@@ -317,12 +339,21 @@ export default function CalculatorScreen() {
     }
     const existingIndex = scenarios.findIndex((item) => item.id === scenario.id);
     if (!isPremium && existingIndex < 0 && scenarios.length >= FREE_SCENARIO_LIMIT) {
+      trackEvent('scenario_save_blocked_free_limit', {
+        scenario_count: scenarios.length,
+      });
       Alert.alert(
         'Plano Premium',
         'Usuários gratuitos podem salvar apenas 1 cenário adicional. Assine o Premium para liberar mais cenários.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
+          {
+            text: 'Ver Premium',
+            onPress: () => {
+              trackEvent('scenario_limit_upgrade_clicked', { source: 'save_scenario' });
+              router.push('/(tabs)/premium');
+            },
+          },
         ],
       );
       return;
@@ -339,8 +370,8 @@ export default function CalculatorScreen() {
     trackEvent('scenario_saved', {
       is_update: existingIndex >= 0,
       is_premium: isPremium,
-      loan_mode: scenario.loanMode ?? 'standard',
-      system: scenario.system,
+      scenario_count: nextList.length,
+      ...getScenarioAnalyticsContext(scenario, schedule.length),
     });
     void maybeShowInterstitial(existingIndex >= 0 ? 'scenario_updated' : 'scenario_saved');
   };
@@ -355,6 +386,11 @@ export default function CalculatorScreen() {
   };
 
   const handleLoadScenario = (target: Scenario) => {
+    const targetScheduleLength = generateAmortizationSchedule(target).length;
+
+    trackEvent('scenario_loaded', {
+      ...getScenarioAnalyticsContext(target, targetScheduleLength),
+    });
     setScenario(target);
     setPrincipalText(formatCurrencyValue(target.principal));
     setPropertyValueText(formatCurrencyValue(target.propertyValue));
@@ -382,6 +418,9 @@ export default function CalculatorScreen() {
         onPress: async () => {
           const nextList = scenarios.filter((s) => s.id !== id);
           await persistScenarios(nextList);
+          trackEvent('scenario_deleted', {
+            remaining_scenarios: nextList.length,
+          });
         },
       },
     ]);
@@ -413,14 +452,21 @@ export default function CalculatorScreen() {
     trackEvent('prepayment_added', {
       type: next.type,
       strategy: next.strategy,
+      ...getScenarioAnalyticsContext(scenario, schedule.length),
+      prepayment_count_after: (scenario.prepayments?.length ?? 0) + 1,
     });
   };
 
   const handleRemovePrepayment = (id: string) => {
+    const nextPrepayments = (scenario.prepayments ?? []).filter((p) => p.id !== id);
     setScenario((prev) => ({
       ...prev,
-      prepayments: (prev.prepayments ?? []).filter((p) => p.id !== id),
+      prepayments: nextPrepayments,
     }));
+    trackEvent('prepayment_removed', {
+      remaining_prepayments: nextPrepayments.length,
+      ...getScenarioAnalyticsContext(scenario, schedule.length),
+    });
   };
 
   const handleAddFgts = () => {
@@ -449,14 +495,21 @@ export default function CalculatorScreen() {
     trackEvent('fgts_added', {
       usage: next.usage,
       strategy: next.strategy ?? null,
+      ...getScenarioAnalyticsContext(scenario, schedule.length),
+      fgts_event_count_after: (scenario.fgtsEvents?.length ?? 0) + 1,
     });
   };
 
   const handleRemoveFgts = (id: string) => {
+    const nextFgtsEvents = (scenario.fgtsEvents ?? []).filter((event) => event.id !== id);
     setScenario((prev) => ({
       ...prev,
-      fgtsEvents: (prev.fgtsEvents ?? []).filter((event) => event.id !== id),
+      fgtsEvents: nextFgtsEvents,
     }));
+    trackEvent('fgts_removed', {
+      remaining_fgts_events: nextFgtsEvents.length,
+      ...getScenarioAnalyticsContext(scenario, schedule.length),
+    });
   };
 
   const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -528,10 +581,24 @@ export default function CalculatorScreen() {
           });
         }
 
-        trackEvent('export_success', { format, source });
+        trackEvent('export_success', {
+          format,
+          source,
+          access,
+          table_only: tableOnly,
+          is_premium: isPremium,
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+        });
         requestReviewIfAppropriate().catch(() => {});
       } catch {
-        trackEvent('export_failed', { format, source });
+        trackEvent('export_failed', {
+          format,
+          source,
+          access,
+          table_only: tableOnly,
+          is_premium: isPremium,
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+        });
         Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
       } finally {
         setExporting(false);
@@ -587,7 +654,16 @@ export default function CalculatorScreen() {
         'Assista a um anúncio para liberar esta exportação ou assine o Premium para exportar sem limites e sem anúncios.',
         [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
+          {
+            text: 'Ver Premium',
+            onPress: () => {
+              trackEvent('export_upgrade_clicked', {
+                source,
+                placement: tableOnly ? 'table_only_rewarded_prompt' : 'rewarded_prompt',
+              });
+              router.push('/(tabs)/premium');
+            },
+          },
           {
             text: 'Assistir anúncio',
             onPress: () => {
@@ -602,7 +678,14 @@ export default function CalculatorScreen() {
 
   const handleExportTableOnly = useCallback(
     async (format: ExportFormat) => {
-      trackEvent('export_clicked', { format, source: 'table_only' });
+      trackEvent('export_clicked', {
+        format,
+        source: 'table_only',
+        table_only: true,
+        is_premium: isPremium,
+        rewarded_available: canUseRewardedExport,
+        ...getScenarioAnalyticsContext(scenario, schedule.length),
+      });
 
       if (exporting || rewardedExportFormat !== null) return;
 
@@ -612,13 +695,27 @@ export default function CalculatorScreen() {
           return;
         }
 
-        trackEvent('export_blocked_premium', { format, source: 'table_only' });
+        trackEvent('export_blocked_premium', {
+          format,
+          source: 'table_only',
+          rewarded_available: canUseRewardedExport,
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+        });
         Alert.alert(
           'Premium',
           'Exportação disponível apenas para assinantes. Assine o Premium para liberar exportações ilimitadas.',
           [
             { text: 'Cancelar', style: 'cancel' },
-            { text: 'Ver Premium', onPress: () => router.push('/(tabs)/premium') },
+            {
+              text: 'Ver Premium',
+              onPress: () => {
+                trackEvent('export_upgrade_clicked', {
+                  source: 'table_only',
+                  placement: 'blocked_alert',
+                });
+                router.push('/(tabs)/premium');
+              },
+            },
           ],
         );
         return;
@@ -634,6 +731,8 @@ export default function CalculatorScreen() {
       rewardedExportFormat,
       router,
       runExport,
+      scenario,
+      schedule.length,
     ],
   );
 
@@ -680,7 +779,14 @@ export default function CalculatorScreen() {
   // Callback for the export context (used by tab bar action sheet)
   const handleExportFromContext = useCallback(
     async (format: ExportFormat) => {
-      trackEvent('export_clicked', { format, source: 'tab_action' });
+      trackEvent('export_clicked', {
+        format,
+        source: 'tab_action',
+        table_only: false,
+        is_premium: isPremium,
+        rewarded_available: canUseRewardedExport,
+        ...getScenarioAnalyticsContext(scenario, schedule.length),
+      });
 
       if (exporting || rewardedExportFormat !== null) return;
 
@@ -690,8 +796,17 @@ export default function CalculatorScreen() {
           return;
         }
 
-        trackEvent('export_blocked_premium', { format, source: 'tab_action' });
+        trackEvent('export_blocked_premium', {
+          format,
+          source: 'tab_action',
+          rewarded_available: canUseRewardedExport,
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+        });
         Alert.alert('Premium', 'Exportação disponível apenas para assinantes.');
+        trackEvent('export_upgrade_clicked', {
+          source: 'tab_action',
+          placement: 'blocked_redirect',
+        });
         router.push('/(tabs)/premium');
         return;
       }
@@ -705,9 +820,20 @@ export default function CalculatorScreen() {
       rewardedExportFormat,
       router,
       runExport,
+      scenario,
+      schedule.length,
       startRewardedExportFlow,
     ],
   );
+
+  const handleNewScenario = () => {
+    trackEvent('scenario_new_started', {
+      source: 'calculator',
+      scenario_count: scenarios.length,
+      ...getScenarioAnalyticsContext(DEFAULT_SCENARIO),
+    });
+    handleLoadScenario({ ...DEFAULT_SCENARIO, id: Date.now().toString() });
+  };
 
   useEffect(() => {
     if (
@@ -767,7 +893,7 @@ export default function CalculatorScreen() {
             scenarios={scenarios}
             onNameChange={(name) => setScenario((prev) => ({ ...prev, name }))}
             onSave={handleSaveScenario}
-            onNew={() => handleLoadScenario({ ...DEFAULT_SCENARIO, id: Date.now().toString() })}
+            onNew={handleNewScenario}
             onLoad={handleLoadScenario}
             onDelete={handleDeleteScenario}
           />
@@ -1121,6 +1247,8 @@ export default function CalculatorScreen() {
             isCalculating={isCalculating}
           />
 
+          <AdBanner enabled={showAds} />
+
           {/* On mobile, show charts and table here; on tablet, they go below columns */}
           {!isTablet && (
             <>
@@ -1133,8 +1261,11 @@ export default function CalculatorScreen() {
                   Tabela de Amortização
                 </Text>
                 {totalInstallments > 0 && (
-                  <View style={styles.tableMetaRow}>
-                    <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
+                  <View style={styles.tableMetaRow} testID={`table-meta-row-${totalInstallments}`}>
+                    <Text
+                      style={[styles.tableMetaText, { color: colors.textTertiary }]}
+                      testID="text-table-visible-range"
+                    >
                       Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments}{' '}
                       parcelas
                     </Text>
@@ -1646,8 +1777,11 @@ export default function CalculatorScreen() {
               Tabela de Amortização
             </Text>
             {totalInstallments > 0 && (
-              <View style={styles.tableMetaRow}>
-                <Text style={[styles.tableMetaText, { color: colors.textTertiary }]}>
+              <View style={styles.tableMetaRow} testID={`table-meta-row-${totalInstallments}`}>
+                <Text
+                  style={[styles.tableMetaText, { color: colors.textTertiary }]}
+                  testID="text-table-visible-range"
+                >
                   Mostrando {Math.min(MAX_TABLE_ROWS, totalInstallments)} de {totalInstallments}{' '}
                   parcelas
                 </Text>

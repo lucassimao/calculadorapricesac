@@ -13,6 +13,7 @@
 ### Task 1: Extend types
 
 **Files:**
+
 - Modify: `mobile/src/types/loan.ts`
 
 - [ ] **Step 1: Add fields to `Scenario`**
@@ -52,6 +53,7 @@ git commit -m "feat(types): add indexType, indexRate, indexCorrection for moneta
 ### Task 2: BACEN API client
 
 **Files:**
+
 - Create: `mobile/src/lib/bacen.ts`
 - Create: `mobile/src/lib/__tests__/bacen.test.ts`
 
@@ -69,9 +71,12 @@ afterEach(() => {
 
 describe('fetchLatestTR', () => {
   it('parses rate and label from BACEN response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
-      json: async () => [{ data: '01/03/2026', valor: '0.01723' }],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        json: async () => [{ data: '01/03/2026', valor: '0.01723' }],
+      }),
+    );
     const result = await fetchLatestTR();
     expect(result.rate).toBeCloseTo(0.01723, 5);
     expect(result.label).toBe('TR (mar/2026)');
@@ -85,9 +90,12 @@ describe('fetchLatestTR', () => {
 
 describe('fetchLatestIPCA', () => {
   it('parses rate and label from BACEN response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
-      json: async () => [{ data: '01/02/2026', valor: '1.31' }],
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        json: async () => [{ data: '01/02/2026', valor: '1.31' }],
+      }),
+    );
     const result = await fetchLatestIPCA();
     expect(result.rate).toBeCloseTo(1.31, 2);
     expect(result.label).toBe('IPCA (fev/2026)');
@@ -108,11 +116,24 @@ Expected: FAIL — `Cannot find module '../bacen'`
 Create `mobile/src/lib/bacen.ts`:
 
 ```ts
-const MONTH_NAMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MONTH_NAMES = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
 
 export interface BacenResult {
-  rate: number;   // monthly %, e.g. 0.01723 for TR or 1.31 for IPCA
-  label: string;  // e.g. "TR (mar/2026)" or "IPCA (fev/2026)"
+  rate: number; // monthly %, e.g. 0.01723 for TR or 1.31 for IPCA
+  label: string; // e.g. "TR (mar/2026)" or "IPCA (fev/2026)"
 }
 
 function parseResult(prefix: string, json: Array<{ data: string; valor: string }>): BacenResult {
@@ -159,6 +180,7 @@ git commit -m "feat(bacen): add TR and IPCA rate fetch from BACEN open API"
 ### Task 3: Update amortization engine
 
 **Files:**
+
 - Modify: `mobile/src/lib/calculations.ts`
 - Modify: `mobile/src/lib/__tests__/calculations.test.ts`
 
@@ -272,24 +294,24 @@ with:
 In the same PRICE block, find the `schedule.push({` call and add `indexCorrection` after `netPayment`:
 
 ```ts
-      schedule.push({
-        installmentNumber: i,
-        date: installmentDate,
-        payment: roundCents(payment),
-        interest: roundCents(interest),
-        amortization: roundCents(amortization),
-        balance: roundCents(balance < 0 ? 0 : balance),
-        prepaymentAmount: prepaymentAmount > 0 ? roundCents(prepaymentAmount) : undefined,
-        prepaymentDescription,
-        insurance: insurance > 0 ? roundCents(insurance) : undefined,
-        adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
-        extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
-        totalCost: roundCents(payment + extraCosts),
-        fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
-        fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
-        netPayment: roundCents(netPayment),
-        indexCorrection,
-      });
+schedule.push({
+  installmentNumber: i,
+  date: installmentDate,
+  payment: roundCents(payment),
+  interest: roundCents(interest),
+  amortization: roundCents(amortization),
+  balance: roundCents(balance < 0 ? 0 : balance),
+  prepaymentAmount: prepaymentAmount > 0 ? roundCents(prepaymentAmount) : undefined,
+  prepaymentDescription,
+  insurance: insurance > 0 ? roundCents(insurance) : undefined,
+  adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
+  extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
+  totalCost: roundCents(payment + extraCosts),
+  fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
+  fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
+  netPayment: roundCents(netPayment),
+  indexCorrection,
+});
 ```
 
 - [ ] **Step 5: Update the SAC loop in `calculations.ts`**
@@ -347,6 +369,7 @@ git commit -m "feat(calc): apply TR/IPCA balance correction per period in PRICE 
 ### Task 4: IndexSelector component
 
 **Files:**
+
 - Create: `mobile/src/components/calculator/IndexSelector.tsx`
 - Modify: `mobile/src/components/calculator/index.ts`
 
@@ -529,6 +552,7 @@ git commit -m "feat(ui): add IndexSelector component for TR/IPCA correction pick
 ### Task 5: Wire IndexSelector into calculator screen
 
 **Files:**
+
 - Modify: `mobile/app/(tabs)/calculator.tsx`
 
 - [ ] **Step 1: Import BACEN functions and IndexSelector**
@@ -637,6 +661,7 @@ git commit -m "feat(calculator): wire IndexSelector with BACEN auto-fetch for TR
 ### Task 6: Add correction column to exports
 
 **Files:**
+
 - Modify: `mobile/src/lib/exports/csv.ts`
 - Modify: `mobile/src/lib/exports/xlsx.ts`
 - Modify: `mobile/src/lib/exports/pdf.ts`
@@ -646,38 +671,38 @@ git commit -m "feat(calculator): wire IndexSelector with BACEN auto-fetch for TR
 In `mobile/src/lib/exports/csv.ts`, replace the `header` array definition:
 
 ```ts
-  const header = [
-    'N°',
-    'Data',
-    'Valor Parcela',
-    'Juros',
-    'Amortização',
-    'Saldo',
-    'Custos',
-    'Extra',
-    'FGTS Amortização',
-    'FGTS Parcela',
-    'Líquido',
-  ];
+const header = [
+  'N°',
+  'Data',
+  'Valor Parcela',
+  'Juros',
+  'Amortização',
+  'Saldo',
+  'Custos',
+  'Extra',
+  'FGTS Amortização',
+  'FGTS Parcela',
+  'Líquido',
+];
 ```
 
 with:
 
 ```ts
-  const header = [
-    'N°',
-    'Data',
-    'Valor Parcela',
-    'Juros',
-    'Amortização',
-    'Saldo',
-    'Custos',
-    'Extra',
-    'FGTS Amortização',
-    'FGTS Parcela',
-    'Líquido',
-    ...(scenario.indexType ? ['Correção'] : []),
-  ];
+const header = [
+  'N°',
+  'Data',
+  'Valor Parcela',
+  'Juros',
+  'Amortização',
+  'Saldo',
+  'Custos',
+  'Extra',
+  'FGTS Amortização',
+  'FGTS Parcela',
+  'Líquido',
+  ...(scenario.indexType ? ['Correção'] : []),
+];
 ```
 
 Replace the `buildCsvLine([` row mapping:
@@ -720,15 +745,12 @@ with:
 After the `lines.push(buildCsvLine(['Prazo', ...]))` line in the summary section, add:
 
 ```ts
-    if (scenario.indexType) {
-      lines.push(buildCsvLine(['Índice de Correção', scenario.indexType]));
-      lines.push(
-        buildCsvLine([
-          'Taxa de Correção (% a.m.)',
-          `${formatCsvNumber(scenario.indexRate ?? 0)}%`,
-        ]),
-      );
-    }
+if (scenario.indexType) {
+  lines.push(buildCsvLine(['Índice de Correção', scenario.indexType]));
+  lines.push(
+    buildCsvLine(['Taxa de Correção (% a.m.)', `${formatCsvNumber(scenario.indexRate ?? 0)}%`]),
+  );
+}
 ```
 
 - [ ] **Step 2: Update `xlsx.ts`**
@@ -823,19 +845,19 @@ After the `['Prazo', formatExportTerm(...)]` line in the summary push, add:
 In `mobile/src/lib/exports/pdf.ts`, replace the `<thead>` row:
 
 ```html
-            <tr>
-              <th>N°</th>
-              <th>Data</th>
-              <th>Valor Parcela</th>
-              <th>Juros</th>
-              <th>Amortização</th>
-              <th>Saldo</th>
-              <th>Custos</th>
-              <th>Extra</th>
-              <th>FGTS Amort.</th>
-              <th>FGTS Parcela</th>
-              <th>Líquido</th>
-            </tr>
+<tr>
+  <th>N°</th>
+  <th>Data</th>
+  <th>Valor Parcela</th>
+  <th>Juros</th>
+  <th>Amortização</th>
+  <th>Saldo</th>
+  <th>Custos</th>
+  <th>Extra</th>
+  <th>FGTS Amort.</th>
+  <th>FGTS Parcela</th>
+  <th>Líquido</th>
+</tr>
 ```
 
 with:

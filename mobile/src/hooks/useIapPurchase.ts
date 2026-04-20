@@ -34,7 +34,7 @@ export function useIapPurchase({
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       if (purchase.productId !== IAP_PRODUCT_ID) return;
-      trackEvent('purchase_success', { source });
+      trackEvent('purchase_success', getPurchaseEventProps('purchase'));
       setRecentPurchaseAt(Date.now());
       try {
         await finishTransaction({ purchase, isConsumable: false });
@@ -46,7 +46,7 @@ export function useIapPurchase({
       onPremiumActivated?.();
     },
     onPurchaseError: () => {
-      trackEvent('purchase_failed', { source });
+      trackEvent('purchase_failed', getPurchaseEventProps('purchase'));
       Alert.alert('Erro', 'Não foi possível concluir a compra.');
     },
   });
@@ -60,6 +60,18 @@ export function useIapPurchase({
   const isStoreReady = connected && !!product;
   const restoreInProgress = restoreRequestedAt !== null;
   const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
+  const getPurchaseEventProps = useCallback(
+    (flow?: 'purchase' | 'restore') => ({
+      source,
+      flow,
+      connected,
+      store_ready: isStoreReady,
+      product_loaded: !!product,
+      is_premium: isPremium,
+      price_label: priceLabel,
+    }),
+    [connected, isPremium, isStoreReady, priceLabel, product, source],
+  );
 
   useEffect(() => {
     if (!connected) return;
@@ -86,28 +98,31 @@ export function useIapPurchase({
   useEffect(() => {
     if (restoreRequestedAt === null) return;
     if (hasEntitlement) {
+      trackEvent('purchase_restore_success', getPurchaseEventProps('restore'));
       markPremium(true)
         .then(() => Alert.alert('Restaurado', 'Compra restaurada com sucesso.'))
         .catch(() => {});
       setRestoreRequestedAt(null);
     }
-  }, [restoreRequestedAt, hasEntitlement, markPremium]);
+  }, [restoreRequestedAt, hasEntitlement, getPurchaseEventProps, markPremium]);
 
   useEffect(() => {
     if (restoreRequestedAt === null) return;
     const timeout = setTimeout(() => {
       if (!hasEntitlement) {
+        trackEvent('purchase_restore_empty', getPurchaseEventProps('restore'));
         Alert.alert('Nada para restaurar', 'Nenhuma compra encontrada.');
         setRestoreRequestedAt(null);
       }
     }, 2000);
     return () => clearTimeout(timeout);
-  }, [restoreRequestedAt, hasEntitlement]);
+  }, [restoreRequestedAt, hasEntitlement, getPurchaseEventProps]);
 
   const handlePurchase = useCallback(async () => {
     try {
-      trackEvent('purchase_started', { source });
+      trackEvent('purchase_started', getPurchaseEventProps('purchase'));
       if (!connected) {
+        trackEvent('purchase_store_unavailable', getPurchaseEventProps('purchase'));
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para comprar.');
         return;
       }
@@ -135,12 +150,13 @@ export function useIapPurchase({
     } finally {
       setPurchaseInProgress(false);
     }
-  }, [connected, isPremium, product, requestPurchase, source]);
+  }, [connected, getPurchaseEventProps, isPremium, product, requestPurchase]);
 
   const handleRestore = useCallback(async () => {
     try {
-      trackEvent('purchase_restore_started', { source });
+      trackEvent('purchase_restore_started', getPurchaseEventProps('restore'));
       if (!connected) {
+        trackEvent('purchase_store_unavailable', getPurchaseEventProps('restore'));
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para restaurar.');
         return;
       }
@@ -148,9 +164,10 @@ export function useIapPurchase({
       await restorePurchases();
       await getAvailablePurchases();
     } catch {
+      trackEvent('purchase_restore_failed', getPurchaseEventProps('restore'));
       Alert.alert('Erro', 'Não foi possível restaurar a compra.');
     }
-  }, [connected, getAvailablePurchases, restorePurchases, source]);
+  }, [connected, getAvailablePurchases, getPurchaseEventProps, restorePurchases]);
 
   return {
     connected,

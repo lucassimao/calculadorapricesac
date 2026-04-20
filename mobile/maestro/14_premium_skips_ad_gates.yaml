@@ -1,21 +1,41 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Ativar ads stub (dev)'
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible: 'Plano Premium'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: 'Preparar exportação grátis (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar exportação grátis (dev)'
 - scrollUntilVisible:
     element:
       text: 'Ativar app open stub (dev)'
     timeout: 8000
     speed: 80
     visibilityPercentage: 10
+- scrollUntilVisible:
+    element:
+      text: 'Ativar interstitial stub (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
 - tapOn: 'Ativar interstitial stub (dev)'
 - tapOn: 'Ativar app open stub (dev)'
+- scrollUntilVisible:
+    element:
+      text: 'Ativar premium (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
 - tapOn: 'Ativar premium (dev)'
-- assertVisible: 'Stub: ativo | Interstitial: ativo | App open: ativo'
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-calculator'
 - tapOn: 'Salvar cenário'
 - assertNotVisible: 'Interstitial de Teste'
 - killApp
@@ -27,8 +47,14 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn:
     text: 'Go home'
     optional: true
+- tapOn:
+    text: 'Fechar anúncio'
+    optional: true
 - extendedWaitUntil:
     visible:
-      id: 'input-scenario-name'
+      id: 'screen-calculator'
     timeout: 30000
+- tapOn:
+    text: 'Fechar anúncio'
+    optional: true
 - assertNotVisible: 'App Open de Teste'

@@ -1,19 +1,27 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Desativar premium (dev)'
-- tapOn: 'Ativar ads stub (dev)'
-- assertVisible: 'Stub: ativo | Interstitial: inativo | App open: inativo'
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible: 'Plano Premium'
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: 'Preparar exportação grátis (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar exportação grátis (dev)'
+- tapOn:
+    id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
 - extendedWaitUntil:
     visible:
       id: 'label-seed-export-extras-dev'
     timeout: 5000
-- tapOn: 'Aba Exportar'
+- tapOn:
+    id: 'tab-export'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'Exportar PDF'
 - assertVisible: 'Anúncio Rewarded de Teste'

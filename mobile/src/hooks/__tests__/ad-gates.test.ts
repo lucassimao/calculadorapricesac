@@ -59,8 +59,8 @@ vi.mock('../../contexts/AdTestContext', () => ({
   useAdTest: () => adTestState,
 }));
 
-vi.mock('../../hooks/usePremium', () => ({
-  usePremium: () => premiumState,
+vi.mock('../../contexts/PremiumContext', () => ({
+  usePremiumContext: () => premiumState,
 }));
 
 vi.mock('react-native-google-mobile-ads', () => ({

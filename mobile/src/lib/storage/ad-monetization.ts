@@ -29,3 +29,7 @@ export function loadLastAppOpenShownAt() {
 export function saveLastAppOpenShownAt(value: number) {
   return saveTimestamp(APP_OPEN_LAST_SHOWN_KEY, value);
 }
+
+export async function resetAdMonetizationTimestamps() {
+  await AsyncStorage.multiRemove([INTERSTITIAL_LAST_SHOWN_KEY, APP_OPEN_LAST_SHOWN_KEY]);
+}

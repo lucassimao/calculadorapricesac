@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
-import { usePremium } from '../../src/hooks/usePremium';
+import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { PremiumPill } from '../../src/components/PremiumPill';
 import { AdBanner } from '../../src/components/AdBanner';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
@@ -24,7 +24,7 @@ const getWhatsAppUrl = () =>
 
 export default function FeedbackScreen() {
   const { colors } = useTheme();
-  const { isPremium, loading: premiumLoading } = usePremium();
+  const { isPremium, loading: premiumLoading } = usePremiumContext();
   const showAds = shouldShowAds(isPremium, premiumLoading);
   const [attempted, setAttempted] = useState(false);
   const [copied, setCopied] = useState(false);

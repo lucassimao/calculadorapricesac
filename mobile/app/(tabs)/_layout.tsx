@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
-import { usePremium } from '../../src/hooks/usePremium';
+import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useExport } from '../../src/contexts/ExportContext';
 import type { ExportFormat } from '../../src/lib/exports/access';
+import { trackEvent } from '../../src/lib/analytics';
 
 function ExportTabIcon({
   color,
@@ -40,7 +41,7 @@ function ExportTabIcon({
 export default function TabsLayout() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { isPremium } = usePremium();
+  const { isPremium } = usePremiumContext();
   const {
     isExporting,
     isPremium: contextPremium,
@@ -52,6 +53,12 @@ export default function TabsLayout() {
 
   const showExportActionSheet = () => {
     if (isExporting) return;
+
+    trackEvent('export_sheet_opened', {
+      is_premium: contextPremium,
+      rewarded_available: canUseRewardedExport,
+      platform: Platform.OS,
+    });
 
     const options = contextPremium
       ? ['Exportar PDF', 'Exportar XLSX', 'Exportar CSV', 'Cancelar']
@@ -84,6 +91,7 @@ export default function TabsLayout() {
           else if (buttonIndex === 1) triggerExport('xlsx');
           else if (buttonIndex === 2) triggerExport('csv');
           else if (!contextPremium && buttonIndex === premiumButtonIndex) {
+            trackEvent('export_upgrade_clicked', { source: 'tab_export_sheet', platform: 'ios' });
             router.push('/(tabs)/premium');
           }
         },
@@ -134,7 +142,13 @@ export default function TabsLayout() {
                   styles.headerChip,
                   { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
                 ]}
-                onPress={() => router.push('/(tabs)/premium')}
+                onPress={() => {
+                  trackEvent('premium_entry_clicked', {
+                    source: 'header_chip',
+                    from_tab_layout: true,
+                  });
+                  router.push('/(tabs)/premium');
+                }}
                 accessibilityRole="button"
                 accessibilityLabel="Abrir Premium"
               >
@@ -188,6 +202,7 @@ export default function TabsLayout() {
           name="premium"
           options={{
             title: 'Premium',
+            unmountOnBlur: true,
             tabBarButtonTestID: 'tab-premium',
             tabBarAccessibilityLabel: 'Aba Premium',
             tabBarIcon: ({ color, size }) => (
@@ -305,6 +320,10 @@ export default function TabsLayout() {
                 ]}
                 onPress={() => {
                   if (!isExporting) {
+                    trackEvent('export_upgrade_clicked', {
+                      source: 'tab_export_sheet',
+                      platform: 'android',
+                    });
                     setAndroidExportModalVisible(false);
                     setAndroidExportFormat(null);
                     router.push('/(tabs)/premium');

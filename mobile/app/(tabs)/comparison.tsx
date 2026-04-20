@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Scenario } from '../../src/types/loan';
 import {
@@ -9,9 +9,9 @@ import {
 import { buildQuickComparisonScenario } from '../../src/lib/comparison';
 import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
-import { usePremium } from '../../src/hooks/usePremium';
+import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useTheme } from '../../src/lib/theme';
-import { trackScreen } from '../../src/lib/analytics';
+import { trackEvent, trackScreen } from '../../src/lib/analytics';
 import { shouldShowAds } from '../../src/lib/premium';
 
 const BASE_SCENARIO: Scenario = {
@@ -40,12 +40,59 @@ export default function ComparisonScreen() {
   const [principalText, setPrincipalText] = useState('300000');
   const [rateText, setRateText] = useState('1,2');
   const [termText, setTermText] = useState('360');
-  const { isPremium, loading: premiumLoading } = usePremium();
+  const { isPremium, loading: premiumLoading } = usePremiumContext();
   const showAds = shouldShowAds(isPremium, premiumLoading);
+  const hasTrackedComparisonUpdate = useRef(false);
 
   useEffect(() => {
     trackScreen('comparison');
   }, []);
+
+  const comparisonConfigSignature = useMemo(
+    () =>
+      JSON.stringify({
+        principal: base.principal,
+        rate: base.rate,
+        term: base.term,
+        quickCases: quickCases.map((item) => ({
+          id: item.id,
+          rate: item.rate,
+          term: item.term,
+          downPayment: item.downPayment ?? 0,
+        })),
+      }),
+    [base.principal, base.rate, base.term, quickCases],
+  );
+
+  useEffect(() => {
+    if (!hasTrackedComparisonUpdate.current) {
+      hasTrackedComparisonUpdate.current = true;
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      trackEvent('comparison_configuration_updated', {
+        principal: base.principal,
+        rate: base.rate,
+        term: base.term,
+        base_system: base.system,
+        loan_mode: base.loanMode ?? 'standard',
+        is_premium: isPremium,
+        quick_case_count: quickCases.length,
+      });
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, [
+    comparisonConfigSignature,
+    base.loanMode,
+    base.principal,
+    base.rate,
+    base.system,
+    base.term,
+    isPremium,
+    quickCases.length,
+  ]);
 
   const themedStyles = useMemo(
     () => ({

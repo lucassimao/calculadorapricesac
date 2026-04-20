@@ -1,44 +1,65 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Ativar premium (dev)'
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-premium'
+- scrollUntilVisible:
+    element:
+      text: 'Preparar premium (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
 - extendedWaitUntil:
     visible:
       id: 'label-seed-export-extras-dev'
     timeout: 5000
-- tapOn: 'Aba Exportar'
+- tapOn:
+    id: 'tab-export'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'PDF'
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Ativar premium (dev)'
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-premium'
+- scrollUntilVisible:
+    element:
+      text: 'Preparar premium (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
 - extendedWaitUntil:
     visible:
       id: 'label-seed-export-extras-dev'
     timeout: 5000
-- tapOn: 'Aba Exportar'
+- tapOn:
+    id: 'tab-export'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'XLSX'
 - runFlow: helpers/launch_dev_client.yaml
-- tapOn: 'Aba Premium'
-- assertVisible:
-    id: 'screen-premium-title'
-- tapOn: 'Ativar premium (dev)'
-- tapOn: 'Aba Calculadora'
+- tapOn:
+    id: 'tab-premium'
+- scrollUntilVisible:
+    element:
+      text: 'Preparar premium (dev)'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn: 'Preparar premium (dev)'
+- tapOn:
+    id: 'tab-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
 - extendedWaitUntil:
     visible:
       id: 'label-seed-export-extras-dev'
     timeout: 5000
-- tapOn: 'Aba Exportar'
+- tapOn:
+    id: 'tab-export'
 - assertVisible: 'Exportar Simulação'
 - tapOn: 'CSV'
