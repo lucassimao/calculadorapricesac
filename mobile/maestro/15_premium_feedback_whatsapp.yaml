@@ -15,16 +15,20 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - tapOn:
     id: 'btn-dev-prepare-free-rewarded'
+- tapOn:
+    id: 'tab-feedback'
 - assertVisible:
     id: 'ad-banner-stub'
+- tapOn:
+    id: 'tab-premium'
 - scrollUntilVisible:
     element:
-      id: 'btn-dev-enable-premium'
+      id: 'btn-dev-prepare-premium'
     timeout: 8000
-    speed: 80
+    speed: 60
     visibilityPercentage: 10
 - tapOn:
-    id: 'btn-dev-enable-premium'
+    id: 'btn-dev-prepare-premium'
 - tapOn:
     id: 'tab-feedback'
 - assertVisible:

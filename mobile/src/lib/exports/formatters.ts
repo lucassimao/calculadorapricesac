@@ -12,3 +12,7 @@ export function formatExportTerm(term: number, termUnit: Scenario['termUnit']) {
 export function formatEffectiveInstallmentCount(installmentCount: number) {
   return `${installmentCount} parcelas`;
 }
+
+export function formatCorrectionRate(rate: number | undefined) {
+  return `${(rate ?? 0).toFixed(5).replace('.', ',')}% a.m.`;
+}

@@ -11,6 +11,7 @@ type ColumnKey =
   | 'interest'
   | 'amortization'
   | 'balance'
+  | 'correction'
   | 'extra'
   | 'fgts';
 
@@ -62,12 +63,18 @@ export function AmortizationTable({
         payment: acc.payment + row.payment,
         interest: acc.interest + row.interest,
         amortization: acc.amortization + row.amortization,
+        correction: acc.correction + (row.indexCorrection ?? 0),
         prepayment: acc.prepayment + (row.prepaymentAmount ?? 0),
         fgts: acc.fgts + (row.fgtsAmortization ?? 0) + (row.fgtsSubsidy ?? 0),
       }),
-      { payment: 0, interest: 0, amortization: 0, prepayment: 0, fgts: 0 },
+      { payment: 0, interest: 0, amortization: 0, correction: 0, prepayment: 0, fgts: 0 },
     );
   }, [schedule, totalSchedule]);
+
+  const hasCorrection = useMemo(
+    () => schedule.some((row) => row.indexCorrection !== undefined),
+    [schedule],
+  );
 
   // Check if there are any extras to show
   const hasExtras = useMemo(() => {
@@ -80,7 +87,11 @@ export function AmortizationTable({
   }, [schedule]);
 
   const displayExtras = showExtras && hasExtras;
-  const visibleColumns = columns.filter((col) => {
+  const columnsWithCorrection =
+    hasCorrection && !columns.includes('correction')
+      ? columns.flatMap((col) => (col === 'balance' ? (['correction', col] as const) : [col]))
+      : columns;
+  const visibleColumns = columnsWithCorrection.filter((col) => {
     if ((col === 'extra' || col === 'fgts') && !displayExtras) return false;
     return true;
   });
@@ -92,6 +103,7 @@ export function AmortizationTable({
     interest: showCumulative ? 'Juros Acum.' : 'Juros',
     amortization: showCumulative ? 'Amort. Acum.' : 'Amort.',
     balance: 'Saldo',
+    correction: 'Correção',
     extra: 'Extra',
     fgts: 'FGTS',
   };
@@ -113,7 +125,6 @@ export function AmortizationTable({
   return (
     <View
       style={[styles.container, themedStyles.container]}
-      accessible={true}
       accessibilityLabel="Tabela de amortização"
     >
       <View style={[styles.headerRow, themedStyles.headerRow]} accessibilityRole="header">
@@ -125,9 +136,11 @@ export function AmortizationTable({
               themedStyles.cell,
               col === 'installment' ? styles.cellSmall : null,
               col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
-              col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
+              col === 'extra' || col === 'fgts' || col === 'correction' ? styles.cellExtra : null,
             ]}
             accessibilityLabel={`Coluna ${headerLabels[col]}`}
+            testID={`table-header-${col}`}
+            collapsable={false}
           >
             {headerLabels[col]}
           </Text>
@@ -153,6 +166,7 @@ export function AmortizationTable({
                 if (col === 'interest') value = formatCurrency(interestValue);
                 if (col === 'amortization') value = formatCurrency(amortValue);
                 if (col === 'balance') value = formatCurrency(item.balance);
+                if (col === 'correction') value = formatCurrency(item.indexCorrection ?? 0);
                 if (col === 'extra')
                   value = item.prepaymentAmount ? formatCurrency(item.prepaymentAmount) : '-';
                 if (col === 'fgts') value = fgtsValue > 0 ? formatCurrency(fgtsValue) : '-';
@@ -169,9 +183,12 @@ export function AmortizationTable({
                         : col !== 'date'
                           ? styles.cellRight
                           : null,
-                      col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
+                      col === 'extra' || col === 'fgts' || col === 'correction'
+                        ? styles.cellExtra
+                        : null,
                       (col === 'extra' && item.prepaymentAmount) ||
-                      (col === 'fgts' && fgtsValue > 0)
+                      (col === 'fgts' && fgtsValue > 0) ||
+                      (col === 'correction' && item.indexCorrection)
                         ? themedStyles.cellHighlight
                         : null,
                     ]}
@@ -191,6 +208,7 @@ export function AmortizationTable({
             if (col === 'payment') value = formatCurrency(totals.payment);
             if (col === 'interest') value = formatCurrency(totals.interest);
             if (col === 'amortization') value = formatCurrency(totals.amortization);
+            if (col === 'correction') value = formatCurrency(totals.correction);
             if (col === 'extra')
               value = totals.prepayment > 0 ? formatCurrency(totals.prepayment) : '-';
             if (col === 'fgts') value = totals.fgts > 0 ? formatCurrency(totals.fgts) : '-';
@@ -206,7 +224,9 @@ export function AmortizationTable({
                     : col !== 'date'
                       ? styles.cellRight
                       : null,
-                  col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
+                  col === 'extra' || col === 'fgts' || col === 'correction'
+                    ? styles.cellExtra
+                    : null,
                 ]}
                 accessibilityLabel={`Total ${headerLabels[col]}: ${value}`}
               >

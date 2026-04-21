@@ -4,11 +4,72 @@
 
 - App rodando no emulador/dispositivo (recomendado: dev build).
 - Maestro instalado localmente.
+- Emulador Android visivel. Evite headless para esses flows, porque parte da suite depende de rolagem e layout real.
+
+## Emulador recomendado
+
+A suite foi estabilizada no AVD `Small_Phone_360x640`:
+
+- Device: `pixel_2`
+- Target: Android 14 / API 34
+- System image: `google_apis_playstore/x86_64`
+
+Para criar do zero:
+
+```bash
+export ANDROID_HOME="$HOME/ProgrammingTools/Android"
+
+"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+  "platform-tools" \
+  "emulator" \
+  "platforms;android-34" \
+  "system-images;android-34;google_apis_playstore;x86_64"
+
+echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+  --name Small_Phone_360x640 \
+  --package "system-images;android-34;google_apis_playstore;x86_64" \
+  --device "pixel_2"
+```
+
+Para iniciar visivel:
+
+```bash
+"$ANDROID_HOME/emulator/emulator" @Small_Phone_360x640 \
+  -gpu swiftshader_indirect \
+  -no-snapshot-load \
+  -no-snapshot-save
+```
+
+`swiftshader_indirect` evita falhas de host GPU/Mesa observadas em alguns AVDs. Nao use `-no-window`.
+
+Com o emulador aberto, instale o dev build se necessario:
+
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Em outro terminal, inicie o Metro para dev client:
+
+```bash
+npx expo start --dev-client --host localhost --port 8081
+```
 
 ## Como rodar
 
-- Android:
+- Suite principal:
   - `npm run ui:maestro:android`
+- Suite de readback/export:
+  - `npm run ui:maestro:readback`
+- Tudo:
+  - `npm run ui:maestro:all`
+
+O runner executa os arquivos `.yaml` em ordem lexicografica e limpa os dados do app antes de cada flow:
+
+```bash
+bash scripts/run-maestro-suite.sh all
+```
+
+Nao use `maestro test maestro` como comando canonico local em um unico device. Ele pode intercalar flows stateful e produzir falsos negativos. Use o runner sequencial acima.
 
 Os flows usam `appId: com.lsimaocosta.calculadorapricesac`.
 
@@ -27,10 +88,11 @@ appId: com.lsimaocosta.calculadorapricesac
 O helper centraliza:
 
 - `killApp`
-- `clearState`
 - `openLink` para o dev client
 - waits opcionais do onboarding (`Continue` / `Go home`)
 - uma asserção de tela carregada via `id`
+
+A limpeza de estado deve acontecer no runner antes de cada flow. Nao coloque `clearState` no helper de launch: alguns flows reiniciam o app no meio do teste e precisam preservar estado dentro do proprio flow.
 
 ### 2) Seletores recomendados
 
@@ -131,6 +193,7 @@ Os flows de anúncios usam o modo stub interno do app para evitar depender do cr
 - `15_premium_feedback_whatsapp.yaml`
 - `16_app_open_warm_resume_no_show.yaml`
 - `17_free_feedback_upsell.yaml`
+- `18_tr_ipca_correction.yaml`
 
 Ative os toggles de dev na aba `Premium`:
 

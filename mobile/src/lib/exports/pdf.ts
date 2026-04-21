@@ -13,7 +13,11 @@ import {
   isFreeRewardedExport,
   type ExportOptions,
 } from './access';
-import { formatEffectiveInstallmentCount, formatExportTerm } from './formatters';
+import {
+  formatCorrectionRate,
+  formatEffectiveInstallmentCount,
+  formatExportTerm,
+} from './formatters';
 
 const PDF_READY_TIMEOUT_MS = 5000;
 const PDF_READY_POLL_MS = 100;
@@ -60,7 +64,7 @@ async function waitForPdfFile(uri: string) {
   throw new Error('Generated PDF file is empty.');
 }
 
-function buildTableRows(rows: ScheduleRow[]) {
+function buildTableRows(rows: ScheduleRow[], hasCorrection: boolean) {
   return rows
     .map(
       (row) => `
@@ -76,13 +80,14 @@ function buildTableRows(rows: ScheduleRow[]) {
         <td>${formatCurrency(row.fgtsAmortization ?? 0)}</td>
         <td>${formatCurrency(row.fgtsSubsidy ?? 0)}</td>
         <td>${formatCurrency(row.netPayment ?? row.payment)}</td>
+        ${hasCorrection ? `<td>${formatCurrency(row.indexCorrection ?? 0)}</td>` : ''}
       </tr>
     `,
     )
     .join('');
 }
 
-function buildTableHead() {
+function buildTableHead(hasCorrection: boolean) {
   return `
     <thead>
       <tr>
@@ -97,6 +102,7 @@ function buildTableHead() {
         <th>FGTS Amort.</th>
         <th>FGTS Parcela</th>
         <th>Líquido</th>
+        ${hasCorrection ? '<th>Correção</th>' : ''}
       </tr>
     </thead>
   `;
@@ -108,9 +114,11 @@ function buildPremiumHtml(
   rows: ScheduleRow[],
   options?: ExportOptions,
 ) {
-  const tableRows = buildTableRows(rows);
+  const hasCorrection = Boolean(scenario.indexType);
+  const tableRows = buildTableRows(rows, hasCorrection);
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
+  const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
 
   const overviewSection = options?.tableOnly
     ? ''
@@ -133,6 +141,17 @@ function buildPremiumHtml(
           <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
           <p><strong>Prazo original:</strong> ${originalTerm}</p>
           <p><strong>Prazo efetivo:</strong> ${effectiveTerm}</p>
+          ${
+            hasCorrection
+              ? `<p><strong>Índice de Correção:</strong> ${scenario.indexType}</p>
+          <p><strong>Taxa de Correção:</strong> ${formatCorrectionRate(scenario.indexRate)}</p>
+          ${
+            hasTotalIndexCorrection
+              ? `<p><strong>Correção Total:</strong> ${formatCurrency(summary.totalIndexCorrection)}</p>`
+              : ''
+          }`
+              : ''
+          }
         </div>
         <div class="overviewCard">
           <h2>Resumo</h2>
@@ -181,7 +200,7 @@ function buildPremiumHtml(
         ${overviewSection}
         <div class="tableWrap">
           <table>
-            ${buildTableHead()}
+            ${buildTableHead(hasCorrection)}
             <tbody>
               ${tableRows}
             </tbody>
@@ -203,6 +222,7 @@ function buildFreeRewardedHtml(
   const visibleRows = rows.slice(0, visibleLimit);
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
+  const hasCorrection = Boolean(scenario.indexType);
 
   const summarySection = options?.tableOnly
     ? ''
@@ -215,6 +235,11 @@ function buildFreeRewardedHtml(
         <span><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</span>
         <span><strong>Prazo original:</strong> ${originalTerm}</span>
         <span><strong>Prazo efetivo:</strong> ${effectiveTerm}</span>
+        ${
+          hasCorrection
+            ? `<span><strong>Correção:</strong> ${scenario.indexType} ${formatCorrectionRate(scenario.indexRate)}</span>`
+            : ''
+        }
       </div>
     `;
 
@@ -267,9 +292,9 @@ function buildFreeRewardedHtml(
           ${limitedNotice}
           <div class="tableWrap">
             <table>
-              ${buildTableHead()}
+              ${buildTableHead(hasCorrection)}
               <tbody>
-                ${buildTableRows(visibleRows)}
+                ${buildTableRows(visibleRows, hasCorrection)}
               </tbody>
             </table>
           </div>

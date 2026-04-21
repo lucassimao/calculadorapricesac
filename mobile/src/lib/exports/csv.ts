@@ -9,7 +9,11 @@ import {
   isFreeRewardedExport,
   type ExportOptions,
 } from './access';
-import { formatEffectiveInstallmentCount, formatExportTerm } from './formatters';
+import {
+  formatCorrectionRate,
+  formatEffectiveInstallmentCount,
+  formatExportTerm,
+} from './formatters';
 
 const CSV_SEPARATOR = ';';
 
@@ -36,6 +40,8 @@ const buildCsv = (
   const visibleRows = isFreeExport ? rows.slice(0, FREE_EXPORT_ROW_LIMIT) : rows;
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
+  const hasCorrection = Boolean(scenario.indexType);
+  const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
   const header = [
     'N°',
     'Data',
@@ -48,6 +54,7 @@ const buildCsv = (
     'FGTS Amortização',
     'FGTS Parcela',
     'Líquido',
+    ...(hasCorrection ? ['Correção'] : []),
   ];
   const lines = [
     buildCsvLine(header),
@@ -64,6 +71,7 @@ const buildCsv = (
         formatCsvNumber(row.fgtsAmortization ?? 0),
         formatCsvNumber(row.fgtsSubsidy ?? 0),
         formatCsvNumber(row.netPayment ?? row.payment),
+        ...(hasCorrection ? [formatCsvNumber(row.indexCorrection ?? 0)] : []),
       ]),
     ),
   ];
@@ -95,6 +103,13 @@ const buildCsv = (
     );
     lines.push(buildCsvLine(['Prazo original', originalTerm]));
     lines.push(buildCsvLine(['Prazo efetivo', effectiveTerm]));
+    if (hasCorrection) {
+      lines.push(buildCsvLine(['Índice de Correção', scenario.indexType ?? '']));
+      lines.push(buildCsvLine(['Taxa de Correção', formatCorrectionRate(scenario.indexRate)]));
+      if (hasTotalIndexCorrection) {
+        lines.push(buildCsvLine(['Correção Total', formatCsvNumber(summary.totalIndexCorrection)]));
+      }
+    }
     lines.push(
       buildCsvLine(['CET (a.a.)', `${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%`]),
     );

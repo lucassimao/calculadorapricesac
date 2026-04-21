@@ -91,6 +91,90 @@ describe('generateAmortizationSchedule', () => {
   });
 });
 
+describe('generateAmortizationSchedule with monetary correction', () => {
+  const indexedBase: Scenario = {
+    ...baseScenario,
+    name: 'Indexado',
+    indexType: 'TR',
+    indexRate: 0.5,
+  };
+
+  it('applies PRICE correction before interest and recalculates payment', () => {
+    const schedule = generateAmortizationSchedule(indexedBase);
+
+    expect(schedule[1].indexCorrection).toBeCloseTo(50, 2);
+    expect(schedule[1].interest).toBeCloseTo(100.5, 2);
+    expect(schedule[1].payment).toBeGreaterThan(
+      generateAmortizationSchedule(baseScenario)[1].payment,
+    );
+    expect(schedule[schedule.length - 1].balance).toBeCloseTo(0, 1);
+  });
+
+  it('applies SAC correction before interest and recalculates amortization', () => {
+    const schedule = generateAmortizationSchedule({
+      ...indexedBase,
+      system: 'SAC',
+      indexType: 'IPCA',
+    });
+
+    expect(schedule[1].indexCorrection).toBeCloseTo(50, 2);
+    expect(schedule[1].interest).toBeCloseTo(100.5, 2);
+    expect(schedule[1].amortization).toBeCloseTo(837.5, 2);
+    expect(schedule[schedule.length - 1].balance).toBeCloseTo(0, 1);
+  });
+
+  it('supports negative correction rates as balance reductions', () => {
+    const schedule = generateAmortizationSchedule({
+      ...indexedBase,
+      indexType: 'IPCA',
+      indexRate: -0.25,
+    });
+
+    expect(schedule[1].indexCorrection).toBeCloseTo(-25, 2);
+    expect(schedule[1].interest).toBeCloseTo(99.75, 2);
+  });
+
+  it('reports clamped correction when a negative rate floors balance at zero', () => {
+    const schedule = generateAmortizationSchedule({
+      ...indexedBase,
+      principal: 10000,
+      indexRate: -150,
+    });
+
+    expect(schedule[1].balance).toBeCloseTo(0, 2);
+    expect(schedule[1].indexCorrection).toBeCloseTo(-10000, 2);
+  });
+
+  it('omits indexCorrection when no index is active', () => {
+    const schedule = generateAmortizationSchedule({
+      ...indexedBase,
+      indexType: undefined,
+      indexRate: undefined,
+    });
+
+    expect(schedule[1].indexCorrection).toBeUndefined();
+  });
+
+  it('applies prepayments against the corrected balance', () => {
+    const schedule = generateAmortizationSchedule({
+      ...indexedBase,
+      prepayments: [
+        {
+          id: 'p-index',
+          date: new Date(2026, 0, 5),
+          amount: 100,
+          type: 'percentage',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    expect(schedule[1].indexCorrection).toBeCloseTo(50, 2);
+    expect(schedule[1].prepaymentAmount).toBeCloseTo(9257.57, 2);
+    expect(schedule.at(-1)?.balance).toBeCloseTo(0, 2);
+  });
+});
+
 describe('calculateLoanSummary', () => {
   it('computes summary totals from schedule', () => {
     const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
@@ -98,8 +182,29 @@ describe('calculateLoanSummary', () => {
 
     expect(summary.totalPayment).toBeGreaterThan(0);
     expect(summary.totalInterest).toBeGreaterThan(0);
+    expect(summary.totalIndexCorrection).toBe(0);
     expect(summary.firstPayment).toBeCloseTo(schedule[1].payment, 2);
     expect(summary.lastPayment).toBeCloseTo(schedule[schedule.length - 1].payment, 2);
+  });
+
+  it('aggregates total monetary correction', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      indexType: 'TR',
+      indexRate: 0.5,
+    });
+    const summary = calculateLoanSummary(schedule, {
+      ...baseScenario,
+      indexType: 'TR',
+      indexRate: 0.5,
+    });
+    const expectedCorrection = schedule.reduce(
+      (total, row) => total + (row.indexCorrection ?? 0),
+      0,
+    );
+
+    expect(summary.totalIndexCorrection).toBeCloseTo(expectedCorrection, 2);
+    expect(summary.totalIndexCorrection).toBeGreaterThan(0);
   });
 
   it('includes upfront and monthly costs in totals', () => {
@@ -227,6 +332,48 @@ describe('validateScenario', () => {
     });
 
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('requires a correction rate when an index is selected', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      indexType: 'TR',
+      indexRate: undefined,
+    });
+
+    expect(result.errors).toContain('Informe a taxa mensal do índice de correção.');
+  });
+
+  it('allows negative correction rates above -100%', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      indexType: 'IPCA',
+      indexRate: -0.25,
+    });
+
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('blocks correction rates at or below -100%', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      indexType: 'IPCA',
+      indexRate: -100,
+    });
+
+    expect(result.errors).toContain('Taxa de correção deve ser maior que -100% a.m.');
+  });
+
+  it('warns when correction rate looks unusually high', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      indexType: 'IPCA',
+      indexRate: 5.5,
+    });
+
+    expect(result.warnings).toContain(
+      'Taxa mensal de correção parece alta. Verifique o valor informado.',
+    );
   });
 });
 

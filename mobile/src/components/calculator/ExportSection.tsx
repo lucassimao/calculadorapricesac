@@ -44,7 +44,6 @@ export function ExportSection({
           accessibilityState={{ disabled: exporting }}
           accessibilityLabel="Exportar PDF"
           testID="btn-export-pdf"
-          nativeID="btn-export-pdf"
         >
           <View style={styles.buttonContent}>
             {isLoading('pdf') ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
@@ -59,7 +58,6 @@ export function ExportSection({
           accessibilityState={{ disabled: exporting }}
           accessibilityLabel="Exportar XLSX"
           testID="btn-export-xlsx"
-          nativeID="btn-export-xlsx"
         >
           <View style={styles.buttonContent}>
             {isLoading('xlsx') ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
@@ -76,7 +74,6 @@ export function ExportSection({
           accessibilityState={{ disabled: exporting }}
           accessibilityLabel="Exportar CSV"
           testID="btn-export-csv"
-          nativeID="btn-export-csv"
         >
           <View style={styles.buttonContent}>
             {isLoading('csv') ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}

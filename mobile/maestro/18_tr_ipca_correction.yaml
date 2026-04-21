@@ -1,0 +1,70 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: 'tab-calculator'
+- scrollUntilVisible:
+    element:
+      id: 'input-rate'
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- tapOn:
+    id: 'input-rate'
+- eraseText
+- inputText: '1'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'input-term'
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- tapOn:
+    id: 'input-term'
+- eraseText
+- inputText: '12'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'chip-index-tr'
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- tapOn:
+    id: 'chip-index-tr'
+- assertVisible:
+    id: 'input-index-rate'
+- tapOn:
+    id: 'chip-index-ipca'
+- assertVisible:
+    id: 'input-index-rate'
+- tapOn:
+    id: 'input-index-rate'
+- eraseText
+- inputText: '0,5'
+- hideKeyboard
+- assertVisible: '0,5'
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 50%, 82%
+          end: 50%, 32%
+- assertVisible:
+    id: 'summary-index-type-ipca'
+- assertVisible:
+    id: 'summary-total-index-correction'
+- assertVisible: '0,50000% a.m.'
+- scrollUntilVisible:
+    element:
+      id: 'table-header-correction'
+    centerElement: false
+    timeout: 30000
+    speed: 70
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'table-header-correction'

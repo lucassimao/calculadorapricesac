@@ -1,4 +1,5 @@
 export { ExportSection } from './ExportSection';
+export { IndexSelector } from './IndexSelector';
 export { ScenarioSection } from './ScenarioSection';
 export { SummarySection } from './SummarySection';
 export { SystemSelector } from './SystemSelector';

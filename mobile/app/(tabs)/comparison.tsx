@@ -322,7 +322,6 @@ export default function ComparisonScreen() {
                   placeholderTextColor={colors.textTertiary}
                   accessibilityLabel={`Juros condição ${item.name}`}
                   testID={`quick-rate-${index}`}
-                  nativeID={`quick-rate-${index}`}
                 />
                 <TextInput
                   value={String(item.term)}
@@ -340,7 +339,6 @@ export default function ComparisonScreen() {
                   placeholderTextColor={colors.textTertiary}
                   accessibilityLabel={`Prazo condição ${item.name}`}
                   testID={`quick-term-${index}`}
-                  nativeID={`quick-term-${index}`}
                 />
                 <TextInput
                   value={String(item.downPayment ?? 0)}
@@ -363,7 +361,6 @@ export default function ComparisonScreen() {
                   placeholderTextColor={colors.textTertiary}
                   accessibilityLabel={`Entrada condição ${item.name}`}
                   testID={`quick-down-${index}`}
-                  nativeID={`quick-down-${index}`}
                 />
               </View>
               <View style={styles.quickRow}>

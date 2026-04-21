@@ -4,16 +4,13 @@ appId: com.lsimaocosta.calculadorapricesac
 - assertVisible:
     id: 'screen-calculator'
 - runFlow: helpers/seed_export_extras_dev.yaml
-- extendedWaitUntil:
-    visible:
-      id: 'label-seed-export-extras-dev'
-    timeout: 5000
 - scrollUntilVisible:
     element:
       id: 'table-meta-row-331'
-    timeout: 30000
-    speed: 30
+    timeout: 60000
+    speed: 70
     waitToSettleTimeoutMs: 500
+    centerElement: false
     visibilityPercentage: 10
 - assertVisible:
     id: 'table-meta-row-331'

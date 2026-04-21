@@ -19,6 +19,28 @@ type MonthlyAmortization = PrepaymentEvent & {
   source: 'prepayment' | 'fgts';
 };
 
+function getMonthlyCorrectionRate(scenario: Scenario): number | null {
+  if (!scenario.indexType) return null;
+  const rate = scenario.indexRate;
+  return typeof rate === 'number' && Number.isFinite(rate) ? rate / 100 : 0;
+}
+
+function applyBalanceCorrection(
+  balance: number,
+  monthlyCorrectionRate: number | null,
+): { balance: number; indexCorrection?: number } {
+  if (monthlyCorrectionRate === null) {
+    return { balance };
+  }
+
+  const originalBalance = balance;
+  const correctedBalance = Math.max(balance + roundCents(balance * monthlyCorrectionRate), 0);
+  return {
+    balance: correctedBalance,
+    indexCorrection: roundCents(correctedBalance - originalBalance),
+  };
+}
+
 function getFinancedPrincipal(scenario: Scenario): number {
   const propertyValue = scenario.propertyValue ?? 0;
   const downPayment = scenario.downPayment ?? 0;
@@ -155,6 +177,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   const fgtsEvents = scenario.fgtsEvents ?? [];
   const sortedPrepayments = [...prepayments].sort((a, b) => a.date.getTime() - b.date.getTime());
   const sortedFgts = [...fgtsEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const monthlyCorrectionRate = getMonthlyCorrectionRate(scenario);
 
   // Row 0 (spreadsheet parity)
   schedule.push({
@@ -195,6 +218,13 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   if (scenario.system === 'PRICE') {
     let fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths);
     for (let i = 1; i <= termMonths; i++) {
+      const corrected = applyBalanceCorrection(balance, monthlyCorrectionRate);
+      balance = corrected.balance;
+      const indexCorrection = corrected.indexCorrection;
+      if (monthlyCorrectionRate !== null) {
+        fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths - i + 1);
+      }
+
       const interest = balance * monthlyRate;
       let amortization = fixedPayment - interest;
       let payment = fixedPayment;
@@ -269,6 +299,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
         fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
         netPayment: roundCents(netPayment),
+        indexCorrection,
       });
 
       if (isPaidOff) {
@@ -280,6 +311,13 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   } else {
     let fixedAmortization = calculateSacAmortization(balance, termMonths);
     for (let i = 1; i <= termMonths; i++) {
+      const corrected = applyBalanceCorrection(balance, monthlyCorrectionRate);
+      balance = corrected.balance;
+      const indexCorrection = corrected.indexCorrection;
+      if (monthlyCorrectionRate !== null) {
+        fixedAmortization = calculateSacAmortization(balance, termMonths - i + 1);
+      }
+
       const interest = balance * monthlyRate;
       let amortization = fixedAmortization;
       let payment = fixedAmortization + interest;
@@ -354,6 +392,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
         fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
         netPayment: roundCents(netPayment),
+        indexCorrection,
       });
 
       if (isPaidOff) {
@@ -376,8 +415,17 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
       netPayment: acc.netPayment + (row.netPayment ?? row.payment),
       fgtsAmortization: acc.fgtsAmortization + (row.fgtsAmortization ?? 0),
       fgtsSubsidy: acc.fgtsSubsidy + (row.fgtsSubsidy ?? 0),
+      indexCorrection: acc.indexCorrection + (row.indexCorrection ?? 0),
     }),
-    { payment: 0, interest: 0, extraCosts: 0, netPayment: 0, fgtsAmortization: 0, fgtsSubsidy: 0 },
+    {
+      payment: 0,
+      interest: 0,
+      extraCosts: 0,
+      netPayment: 0,
+      fgtsAmortization: 0,
+      fgtsSubsidy: 0,
+      indexCorrection: 0,
+    },
   );
 
   const payments = schedule.map((row) => row.payment).filter((p) => p > 0);
@@ -459,6 +507,7 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
     propertyTotalCost: roundCents(propertyTotalCost),
     totalFgtsUsed: roundCents(fgtsDownPayment + totals.fgtsAmortization + totals.fgtsSubsidy),
     totalPaymentNet: roundCents(totals.netPayment),
+    totalIndexCorrection: roundCents(totals.indexCorrection),
   };
 }
 
@@ -479,6 +528,18 @@ export function validateScenario(scenario: Scenario): ValidationResult {
   }
   if (scenario.rate < 0) {
     errors.push('Taxa de juros não pode ser negativa.');
+  }
+  if (scenario.indexType) {
+    if (typeof scenario.indexRate !== 'number' || !Number.isFinite(scenario.indexRate)) {
+      errors.push('Informe a taxa mensal do índice de correção.');
+    } else {
+      if (scenario.indexRate <= -100) {
+        errors.push('Taxa de correção deve ser maior que -100% a.m.');
+      }
+      if (Math.abs(scenario.indexRate) > 5) {
+        warnings.push('Taxa mensal de correção parece alta. Verifique o valor informado.');
+      }
+    }
   }
   if (scenario.term <= 0) {
     errors.push('Prazo deve ser maior que zero.');

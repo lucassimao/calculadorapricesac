@@ -10,10 +10,14 @@ import {
   isFreeRewardedExport,
   type ExportOptions,
 } from './access';
-import { formatEffectiveInstallmentCount, formatExportTerm } from './formatters';
+import {
+  formatCorrectionRate,
+  formatEffectiveInstallmentCount,
+  formatExportTerm,
+} from './formatters';
 
 const CURRENCY_FORMAT = '"R$" #,##0.00';
-const TABLE_CURRENCY_COLUMN_INDEXES = [2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+const BASE_TABLE_CURRENCY_COLUMN_INDEXES = [2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 const SUMMARY_CURRENCY_LABELS = new Set([
   'Principal financiado',
   'Valor do imóvel',
@@ -23,6 +27,7 @@ const SUMMARY_CURRENCY_LABELS = new Set([
   'Total com Custos',
   'FGTS Usado',
   'Total Pago Líquido',
+  'Correção Total',
 ]);
 
 function applyCurrencyFormatToCell(sheet: XLSX.WorkSheet, rowIndex: number, columnIndex: number) {
@@ -44,6 +49,11 @@ export async function exportXlsx(
   const visibleRows = isFreeExport ? rows.slice(0, FREE_EXPORT_ROW_LIMIT) : rows;
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
+  const hasCorrection = Boolean(scenario.indexType);
+  const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
+  const tableCurrencyColumnIndexes = hasCorrection
+    ? [...BASE_TABLE_CURRENCY_COLUMN_INDEXES, 11]
+    : BASE_TABLE_CURRENCY_COLUMN_INDEXES;
   const data: (string | number)[][] = [
     [
       'N°',
@@ -57,6 +67,7 @@ export async function exportXlsx(
       'FGTS Amortização',
       'FGTS Parcela',
       'Líquido',
+      ...(hasCorrection ? ['Correção'] : []),
     ],
     ...visibleRows.map((row) => [
       row.installmentNumber,
@@ -70,6 +81,7 @@ export async function exportXlsx(
       row.fgtsAmortization ?? 0,
       row.fgtsSubsidy ?? 0,
       row.netPayment ?? row.payment,
+      ...(hasCorrection ? [row.indexCorrection ?? 0] : []),
     ]),
   ];
 
@@ -93,6 +105,15 @@ export async function exportXlsx(
       ['Taxa', `${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}`],
       ['Prazo original', originalTerm],
       ['Prazo efetivo', effectiveTerm],
+      ...(hasCorrection
+        ? ([
+            ['Índice de Correção', scenario.indexType ?? ''],
+            ['Taxa de Correção', formatCorrectionRate(scenario.indexRate)],
+            ...(hasTotalIndexCorrection
+              ? ([['Correção Total', summary.totalIndexCorrection]] as (string | number)[][])
+              : []),
+          ] as (string | number)[][])
+        : []),
       ['CET (a.a.)', `${summary.cetAnnualRate.toFixed(2)}%`],
       ['Custos Iniciais', summary.totalUpfrontCosts],
       ['Custos Mensais', summary.totalMonthlyCosts],
@@ -106,7 +127,7 @@ export async function exportXlsx(
   const sheet = XLSX.utils.aoa_to_sheet(data);
 
   for (let rowIndex = 1; rowIndex <= visibleRows.length; rowIndex += 1) {
-    for (const columnIndex of TABLE_CURRENCY_COLUMN_INDEXES) {
+    for (const columnIndex of tableCurrencyColumnIndexes) {
       applyCurrencyFormatToCell(sheet, rowIndex, columnIndex);
     }
   }
@@ -131,6 +152,7 @@ export async function exportXlsx(
     { wch: 16 },
     { wch: 14 },
     { wch: 14 },
+    ...(hasCorrection ? [{ wch: 14 }] : []),
   ];
 
   XLSX.utils.book_append_sheet(workbook, sheet, 'Amortizacao');

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,17 +13,24 @@ import {
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../src/types/loan';
+import type {
+  CorrectionIndexType,
+  FgtsEvent,
+  PrepaymentEvent,
+  Scenario,
+} from '../../src/types/loan';
 import {
   calculateLoanSummary,
   formatCurrency,
   generateAmortizationSchedule,
   validateScenario,
 } from '../../src/lib/calculations';
+import { fetchLatestIndexRate } from '../../src/lib/bacen';
 import { formatDateBR, maskCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import {
+  IndexSelector,
   ScenarioSection,
   SummarySection,
   SystemSelector,
@@ -80,6 +87,7 @@ function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?: number
     system: scenario.system,
     loan_mode: scenario.loanMode ?? 'standard',
     rate_type: scenario.rateType,
+    index_type: scenario.indexType ?? 'none',
     term_unit: scenario.termUnit,
     term_value: scenario.term,
     term_months: termMonths,
@@ -231,6 +239,12 @@ export default function CalculatorScreen() {
   const [propertyValueText, setPropertyValueText] = useState('');
   const [downPaymentText, setDownPaymentText] = useState('');
   const [rateText, setRateText] = useState('1,2');
+  const [indexRateText, setIndexRateText] = useState('');
+  const [indexRateLabel, setIndexRateLabel] = useState<string | null>(null);
+  const [indexRateHelper, setIndexRateHelper] = useState<string | null>(null);
+  const [indexRateLoading, setIndexRateLoading] = useState(false);
+  const lastAutoFetchIndexType = useRef<CorrectionIndexType | null>(null);
+  const manualIndexRateEdited = useRef(false);
   const [termText, setTermText] = useState('360');
   const [startDateText, setStartDateText] = useState(formatDateBR(new Date()));
   const [dueDayText, setDueDayText] = useState('5');
@@ -291,6 +305,67 @@ export default function CalculatorScreen() {
       setScenario((prev) => ({ ...prev, principal: computed }));
     }
   }, [isPropertyMode, scenario.propertyValue, scenario.downPayment]);
+
+  const activeIndexType = scenario.indexType;
+  const activeIndexRate = scenario.indexRate;
+
+  useEffect(() => {
+    if (!activeIndexType) {
+      setIndexRateLabel(null);
+      setIndexRateHelper(null);
+      setIndexRateLoading(false);
+      lastAutoFetchIndexType.current = null;
+      manualIndexRateEdited.current = false;
+      return;
+    }
+
+    if (typeof activeIndexRate === 'number' && Number.isFinite(activeIndexRate)) {
+      if (!manualIndexRateEdited.current) {
+        setIndexRateHelper('Taxa salva ou informada manualmente.');
+      }
+      setIndexRateLoading(false);
+      return;
+    }
+
+    if (lastAutoFetchIndexType.current === activeIndexType) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let didCancel = false;
+    lastAutoFetchIndexType.current = activeIndexType;
+    setIndexRateLoading(true);
+    setIndexRateLabel(null);
+    setIndexRateHelper(null);
+
+    fetchLatestIndexRate(activeIndexType, { signal: controller.signal })
+      .then(({ rate, label }) => {
+        if (didCancel || manualIndexRateEdited.current) {
+          return;
+        }
+        setScenario((prev) =>
+          prev.indexType === activeIndexType && prev.indexRate === undefined
+            ? { ...prev, indexRate: rate }
+            : prev,
+        );
+        setIndexRateText(String(rate).replace('.', ','));
+        setIndexRateLabel(label);
+      })
+      .catch((error) => {
+        if (didCancel || (error instanceof Error && error.name === 'AbortError')) return;
+        setIndexRateHelper('Não foi possível buscar no BACEN. Informe a taxa mensal manualmente.');
+      })
+      .finally(() => {
+        if (!didCancel) {
+          setIndexRateLoading(false);
+        }
+      });
+
+    return () => {
+      didCancel = true;
+      controller.abort();
+    };
+  }, [activeIndexRate, activeIndexType]);
 
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
   const scheduleForTable = useMemo(() => schedule.slice(0, MAX_TABLE_ROWS + 1), [schedule]);
@@ -396,6 +471,12 @@ export default function CalculatorScreen() {
     setPropertyValueText(formatCurrencyValue(target.propertyValue));
     setDownPaymentText(formatCurrencyValue(target.downPayment));
     setRateText(String(target.rate).replace('.', ','));
+    setIndexRateText(
+      target.indexRate !== undefined ? String(target.indexRate).replace('.', ',') : '',
+    );
+    setIndexRateLabel(null);
+    setIndexRateHelper(target.indexType ? 'Taxa salva ou informada manualmente.' : null);
+    manualIndexRateEdited.current = Boolean(target.indexType && target.indexRate !== undefined);
     setTermText(String(target.term));
     setStartDateText(formatDateBR(target.startDate));
     setDueDayText(String(target.dueDay));
@@ -553,6 +634,10 @@ export default function CalculatorScreen() {
       access?: ExportAccess;
     }) => {
       if (exporting) return;
+      if (validation.errors.length > 0) {
+        Alert.alert('Revise os dados', 'Corrija os erros do cenário antes de exportar.');
+        return;
+      }
 
       setExporting(true);
       setExportingFormat(format);
@@ -609,7 +694,15 @@ export default function CalculatorScreen() {
         }
       }
     },
-    [exporting, requestReviewIfAppropriate, scenario, schedule, summary],
+    [
+      exporting,
+      isPremium,
+      requestReviewIfAppropriate,
+      scenario,
+      schedule,
+      summary,
+      validation.errors.length,
+    ],
   );
 
   const startRewardedExportFlow = useCallback(
@@ -951,7 +1044,6 @@ export default function CalculatorScreen() {
               placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Valor do financiamento"
               testID="input-principal"
-              nativeID="input-principal"
             />
 
             {isPropertyMode && (
@@ -1002,7 +1094,6 @@ export default function CalculatorScreen() {
                 placeholderTextColor={colors.textTertiary}
                 accessibilityLabel="Taxa de juros"
                 testID="input-rate"
-                nativeID="input-rate"
               />
               <View style={styles.toggleRow}>
                 {(['monthly', 'annual'] as const).map((rateType) => (
@@ -1032,6 +1123,38 @@ export default function CalculatorScreen() {
               </View>
             </View>
 
+            <IndexSelector
+              indexType={scenario.indexType}
+              indexRateText={indexRateText}
+              referenceLabel={indexRateLabel}
+              helperText={indexRateHelper}
+              loading={indexRateLoading}
+              onIndexTypeChange={(type) => {
+                lastAutoFetchIndexType.current = null;
+                manualIndexRateEdited.current = false;
+                setIndexRateText('');
+                setIndexRateLabel(null);
+                setIndexRateHelper(null);
+                setScenario((prev) => ({
+                  ...prev,
+                  indexType: type,
+                  indexRate: undefined,
+                }));
+              }}
+              onIndexRateTextChange={(text) => {
+                manualIndexRateEdited.current = true;
+                setIndexRateText(text);
+                setIndexRateLabel(null);
+                setIndexRateHelper(text.trim() ? 'Taxa informada manualmente.' : null);
+                const normalized = text.trim().replace(',', '.');
+                const value = Number.parseFloat(normalized);
+                setScenario((prev) => ({
+                  ...prev,
+                  indexRate: normalized === '' || Number.isNaN(value) ? undefined : value,
+                }));
+              }}
+            />
+
             <Text style={[styles.label, themedStyles.label]}>Prazo</Text>
             <View style={styles.rowWrap}>
               <TextInput
@@ -1047,7 +1170,6 @@ export default function CalculatorScreen() {
                 placeholderTextColor={colors.textTertiary}
                 accessibilityLabel="Prazo"
                 testID="input-term"
-                nativeID="input-term"
               />
               <View style={styles.toggleRow}>
                 {(['months', 'years'] as const).map((termUnit) => (
@@ -1111,7 +1233,6 @@ export default function CalculatorScreen() {
               placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Dia de vencimento"
               testID="input-due-day"
-              nativeID="input-due-day"
             />
           </View>
 
@@ -1245,6 +1366,8 @@ export default function CalculatorScreen() {
             principal={scenario.principal}
             isPremium={isPremium}
             isCalculating={isCalculating}
+            indexType={scenario.indexType}
+            indexRate={scenario.indexRate}
           />
 
           <AdBanner enabled={showAds} />
@@ -1299,7 +1422,6 @@ export default function CalculatorScreen() {
                     accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em PDF"
                     testID="btn-export-table-pdf"
-                    nativeID="btn-export-table-pdf"
                   >
                     <View style={styles.buttonContent}>
                       {exportFlowBusy &&
@@ -1322,7 +1444,6 @@ export default function CalculatorScreen() {
                     accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em XLSX"
                     testID="btn-export-table-xlsx"
-                    nativeID="btn-export-table-xlsx"
                   >
                     <View style={styles.buttonContent}>
                       {exportFlowBusy &&
@@ -1345,7 +1466,6 @@ export default function CalculatorScreen() {
                     accessibilityState={{ disabled: exportFlowBusy }}
                     accessibilityLabel="Gerar tabela completa em CSV"
                     testID="btn-export-table-csv"
-                    nativeID="btn-export-table-csv"
                   >
                     <View style={styles.buttonContent}>
                       {exportFlowBusy &&
@@ -1387,7 +1507,6 @@ export default function CalculatorScreen() {
               accessibilityRole="button"
               accessibilityLabel="Selecionar data da amortização extra"
               testID="input-prepayment-date"
-              nativeID="input-prepayment-date"
             >
               <Text style={[styles.inputText, { color: colors.text }]}>
                 {newPrepayment.date ? formatDateBR(newPrepayment.date) : ''}
@@ -1418,7 +1537,6 @@ export default function CalculatorScreen() {
               placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Valor da amortização extra"
               testID="input-prepayment-amount"
-              nativeID="input-prepayment-amount"
             />
             <View style={styles.row}>
               <Pressable
@@ -1525,7 +1643,6 @@ export default function CalculatorScreen() {
               accessibilityRole="button"
               accessibilityLabel="Adicionar amortização extra"
               testID="btn-add-prepayment"
-              nativeID="btn-add-prepayment"
             >
               <Text style={styles.primaryButtonText} testID="label-add-prepayment">
                 Adicionar amortização
@@ -1571,7 +1688,6 @@ export default function CalculatorScreen() {
               accessibilityRole="button"
               accessibilityLabel="Selecionar data do FGTS"
               testID="input-fgts-date"
-              nativeID="input-fgts-date"
             >
               <Text style={[styles.inputText, { color: colors.text }]}>
                 {newFgts.date ? formatDateBR(newFgts.date) : ''}
@@ -1602,7 +1718,6 @@ export default function CalculatorScreen() {
               placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Valor do FGTS"
               testID="input-fgts-amount"
-              nativeID="input-fgts-amount"
             />
             <View style={styles.row}>
               <Pressable
@@ -1731,7 +1846,6 @@ export default function CalculatorScreen() {
               accessibilityRole="button"
               accessibilityLabel="Adicionar FGTS"
               testID="btn-add-fgts"
-              nativeID="btn-add-fgts"
             >
               <Text style={styles.primaryButtonText} testID="label-add-fgts">
                 Adicionar FGTS
@@ -1821,7 +1935,6 @@ export default function CalculatorScreen() {
                 accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em PDF"
                 testID="btn-export-table-pdf"
-                nativeID="btn-export-table-pdf"
               >
                 <View style={styles.buttonContent}>
                   {exportFlowBusy &&
@@ -1843,7 +1956,6 @@ export default function CalculatorScreen() {
                 accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em XLSX"
                 testID="btn-export-table-xlsx"
-                nativeID="btn-export-table-xlsx"
               >
                 <View style={styles.buttonContent}>
                   {exportFlowBusy &&
@@ -1866,7 +1978,6 @@ export default function CalculatorScreen() {
                 accessibilityState={{ disabled: exportFlowBusy }}
                 accessibilityLabel="Gerar tabela completa em CSV"
                 testID="btn-export-table-csv"
-                nativeID="btn-export-table-csv"
               >
                 <View style={styles.buttonContent}>
                   {exportFlowBusy &&

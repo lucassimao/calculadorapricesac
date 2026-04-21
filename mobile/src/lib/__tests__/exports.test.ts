@@ -98,6 +98,7 @@ const summary: LoanSummary = {
   propertyTotalCost: 0,
   totalFgtsUsed: 0,
   totalPaymentNet: 120000,
+  totalIndexCorrection: 802.2,
 };
 
 const schedule: ScheduleRow[] = [
@@ -136,6 +137,17 @@ const schedule: ScheduleRow[] = [
     netPayment: 9900,
   },
 ];
+
+const indexedScenario: Scenario = {
+  ...scenario,
+  indexType: 'IPCA',
+  indexRate: 0.42,
+};
+
+const indexedSchedule: ScheduleRow[] = schedule.map((row, index) => ({
+  ...row,
+  indexCorrection: index === 0 ? undefined : index === 1 ? 420 : 382.2,
+}));
 
 function buildLongSchedule(installments: number): ScheduleRow[] {
   return [
@@ -307,6 +319,81 @@ describe('exports', () => {
       expect.stringContaining('relatorio_financiamento.pdf'),
       expect.objectContaining({ mimeType: 'application/pdf' }),
     );
+  });
+
+  it('exports correction columns and index metadata when monetary correction is active', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await exportCsv(indexedSchedule, indexedScenario, summary);
+    await exportXlsx(indexedSchedule, indexedScenario, summary);
+    await exportPdf(indexedScenario, summary, indexedSchedule);
+
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
+    const csvRows = parseCsv(csvFile?.writes[0] as string);
+    const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array', cellNF: true });
+    const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(
+      workbook.Sheets.Amortizacao,
+      { header: 1 },
+    );
+    const worksheet = workbook.Sheets.Amortizacao;
+    const correctionSummaryRowIndex = worksheetRows.findIndex((row) => row[0] === 'Correção Total');
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+    const headers = extractTableCells(html, 'th');
+    const pdfCells = extractTableCells(html, 'td');
+
+    expect(csvRows[0]).toContain('Correção');
+    expect(csvRows[1]).toContain('420,00');
+    expect(csvRows).toContainEqual(['Índice de Correção', 'IPCA']);
+    expect(csvRows).toContainEqual(['Taxa de Correção', '0,42000% a.m.']);
+    expect(csvRows).toContainEqual(['Correção Total', '802,20']);
+    expect(worksheetRows[0]).toContain('Correção');
+    expect(worksheetRows[1]).toContain(420);
+    expect(worksheetRows).toContainEqual(['Índice de Correção', 'IPCA']);
+    expect(worksheetRows).toContainEqual(['Taxa de Correção', '0,42000% a.m.']);
+    expect(worksheetRows).toContainEqual(['Correção Total', 802.2]);
+    expect(worksheet.L2?.v).toBe(420);
+    expect(worksheet.L2?.z).toBe('"R$" #,##0.00');
+    expect(worksheet[XLSX.utils.encode_cell({ r: correctionSummaryRowIndex, c: 1 })]?.z).toBe(
+      '"R$" #,##0.00',
+    );
+    expect(headers).toContain('Correção');
+    expect(pdfCells).toContain('R$ 420,00');
+    expect(html).toContain('<strong>Índice de Correção:</strong> IPCA');
+    expect(html).toContain('<strong>Taxa de Correção:</strong> 0,42000% a.m.');
+    expect(html).toContain('<strong>Correção Total:</strong> R$ 802,20');
+  });
+
+  it('omits zero correction total metadata from indexed exports', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+    const zeroCorrectionSummary = { ...summary, totalIndexCorrection: 0 };
+
+    await exportCsv(indexedSchedule, indexedScenario, zeroCorrectionSummary);
+    await exportXlsx(indexedSchedule, indexedScenario, zeroCorrectionSummary);
+    await exportPdf(indexedScenario, zeroCorrectionSummary, indexedSchedule);
+
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
+    const csvRows = parseCsv(csvFile?.writes[0] as string);
+    const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array' });
+    const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(
+      workbook.Sheets.Amortizacao,
+      { header: 1 },
+    );
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(csvRows).toContainEqual(['Índice de Correção', 'IPCA']);
+    expect(csvRows).not.toContainEqual(['Correção Total', '0,00']);
+    expect(worksheetRows).toContainEqual(['Índice de Correção', 'IPCA']);
+    expect(worksheetRows.some((row) => row[0] === 'Correção Total')).toBe(false);
+    expect(html).toContain('<strong>Índice de Correção:</strong> IPCA');
+    expect(html).not.toContain('<strong>Correção Total:</strong> R$ 0,00');
   });
 
   it('exports table-only variants without summary metadata', async () => {

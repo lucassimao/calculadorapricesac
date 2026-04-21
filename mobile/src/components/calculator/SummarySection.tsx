@@ -1,27 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native';
+import type { CorrectionIndexType, LoanSummary } from '../../types/loan';
 import { formatCurrency } from '../../lib/calculations';
+import { formatCorrectionRate } from '../../lib/exports/formatters';
 import { useTheme } from '../../lib/theme';
-
-interface LoanSummary {
-  financedPrincipal: number;
-  totalPayment: number;
-  totalInterest: number;
-  firstPayment: number;
-  lastPayment: number;
-  totalUpfrontCosts: number;
-  totalMonthlyCosts: number;
-  totalPaymentWithCosts: number;
-  cetAnnualRate: number;
-  propertyTotalCost: number;
-  totalFgtsUsed: number;
-  totalPaymentNet: number;
-}
 
 interface SummarySectionProps {
   summary: LoanSummary;
   principal: number;
   isPremium: boolean;
   isCalculating: boolean;
+  indexType?: CorrectionIndexType;
+  indexRate?: number;
 }
 
 export function SummarySection({
@@ -29,8 +18,11 @@ export function SummarySection({
   principal,
   isPremium,
   isCalculating,
+  indexType,
+  indexRate,
 }: SummarySectionProps) {
   const { colors } = useTheme();
+  const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
 
   return (
     <View
@@ -115,6 +107,30 @@ export function SummarySection({
         />
       )}
 
+      {indexType && (
+        <>
+          <SummaryRow
+            label="Índice de Correção"
+            value={indexType}
+            colors={colors}
+            testID={`summary-index-type-${indexType.toLowerCase()}`}
+          />
+          <SummaryRow
+            label="Taxa de Correção"
+            value={formatCorrectionRate(indexRate)}
+            colors={colors}
+          />
+          {hasTotalIndexCorrection && (
+            <SummaryRow
+              label="Correção Total"
+              value={formatCurrency(summary.totalIndexCorrection)}
+              colors={colors}
+              testID="summary-total-index-correction"
+            />
+          )}
+        </>
+      )}
+
       <SummaryRow
         label="Total de Juros"
         value={formatCurrency(summary.totalInterest)}
@@ -134,13 +150,30 @@ interface SummaryRowProps {
   label: string;
   value: string;
   colors: { textSecondary: string; text: string; borderLight: string };
+  testID?: string;
 }
 
-function SummaryRow({ label, value, colors }: SummaryRowProps) {
+function SummaryRow({ label, value, colors, testID }: SummaryRowProps) {
   return (
-    <View style={[styles.summaryRow, { borderBottomColor: colors.borderLight }]}>
-      <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{label}</Text>
-      <Text style={[styles.summaryValue, { color: colors.text }]}>{value}</Text>
+    <View
+      style={[styles.summaryRow, { borderBottomColor: colors.borderLight }]}
+      accessible={Boolean(testID)}
+      accessibilityLabel={testID ? `${label}: ${value}` : undefined}
+      testID={testID}
+      collapsable={false}
+    >
+      <Text
+        style={[styles.summaryLabel, { color: colors.textSecondary }]}
+        testID={testID ? `${testID}-label` : undefined}
+      >
+        {label}
+      </Text>
+      <Text
+        style={[styles.summaryValue, { color: colors.text }]}
+        testID={testID ? `${testID}-value` : undefined}
+      >
+        {value}
+      </Text>
     </View>
   );
 }

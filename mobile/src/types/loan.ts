@@ -10,6 +10,8 @@ export type PrepaymentType = 'fixed_amount' | 'percentage';
 
 export type FgtsUsage = 'down_payment' | 'amortization' | 'installment';
 
+export type CorrectionIndexType = 'TR' | 'IPCA';
+
 export interface Scenario {
   id: string;
   name: string;
@@ -36,6 +38,8 @@ export interface Scenario {
   openingFee?: number;
   itbiRate?: number;
   registryFee?: number;
+  indexType?: CorrectionIndexType;
+  indexRate?: number;
 }
 
 export interface PrepaymentEvent {
@@ -72,6 +76,7 @@ export interface ScheduleRow {
   fgtsAmortization?: number;
   fgtsSubsidy?: number;
   netPayment?: number;
+  indexCorrection?: number;
 }
 
 export interface LoanSummary {
@@ -89,4 +94,5 @@ export interface LoanSummary {
   propertyTotalCost: number;
   totalFgtsUsed: number;
   totalPaymentNet: number;
+  totalIndexCorrection: number;
 }
