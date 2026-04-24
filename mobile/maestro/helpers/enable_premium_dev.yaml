@@ -1,0 +1,38 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-premium'
+    timeout: 5000
+- evalScript: ${output.premiumButtonVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'btn-dev-enable-premium'
+    commands:
+      - evalScript: ${output.premiumButtonVisible = true}
+- repeat:
+    while:
+      true: ${output.premiumButtonVisible == false}
+    times: 8
+    commands:
+      - swipe:
+          start: 50%, 84%
+          end: 50%, 34%
+      - runFlow:
+          when:
+            visible:
+              id: 'btn-dev-enable-premium'
+          commands:
+            - evalScript: ${output.premiumButtonVisible = true}
+- tapOn:
+    id: 'btn-dev-enable-premium'
+- scrollUntilVisible:
+    element:
+      id: 'premium-status-card'
+    direction: UP
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10

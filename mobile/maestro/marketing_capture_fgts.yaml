@@ -1,0 +1,45 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: 'tab-calculator'
+- assertVisible:
+    id: 'screen-calculator'
+- tapOn:
+    text: 'OK'
+    optional: true
+- evalScript: ${output.fgtsVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'input-fgts-amount'
+    commands:
+      - evalScript: ${output.fgtsVisible = true}
+- repeat:
+    while:
+      true: ${output.fgtsVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'input-fgts-amount'
+          commands:
+            - evalScript: ${output.fgtsVisible = true}
+- tapOn:
+    id: 'input-fgts-amount'
+- eraseText
+- inputText: '50000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'btn-add-fgts'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'btn-add-fgts'

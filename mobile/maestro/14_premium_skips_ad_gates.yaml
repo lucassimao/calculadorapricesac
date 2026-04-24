@@ -32,10 +32,13 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - tapOn:
     id: 'btn-dev-enable-premium'
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       id: 'premium-status-card'
-    timeout: 15000
+    direction: UP
+    timeout: 12000
+    speed: 80
+    visibilityPercentage: 10
 - tapOn:
     id: 'tab-calculator'
 - scrollUntilVisible:

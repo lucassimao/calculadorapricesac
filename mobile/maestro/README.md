@@ -34,19 +34,40 @@ echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
 Para iniciar visivel:
 
 ```bash
-"$ANDROID_HOME/emulator/emulator" @Small_Phone_360x640 \
-  -gpu swiftshader_indirect \
-  -no-snapshot-load \
-  -no-snapshot-save
+npm run avd:maestro:cold
 ```
 
-`swiftshader_indirect` evita falhas de host GPU/Mesa observadas em alguns AVDs. Nao use `-no-window`.
+Esse comando usa o AVD visivel com `-gpu swiftshader`, `-no-boot-anim`, `-no-audio`, `-netfast`, `-no-snapshot-load` e `-no-snapshot-save`.
+
+Se `swiftshader` falhar no host local, teste o fallback:
+
+```bash
+GPU_MODE=software npm run avd:maestro:cold
+```
+
+`-gpu swiftshader_indirect` foi usado antes como workaround para falhas de host GPU/Mesa, mas o modo esta deprecated no emulador atual. Nao use `-no-window`.
 
 Com o emulador aberto, instale o dev build se necessario:
 
 ```bash
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+npm run avd:maestro:prepare
 ```
+
+O prepare espera o boot, desbloqueia o emulador, desabilita animacoes do Android e instala o dev build se ele ainda nao estiver instalado.
+
+Para acelerar boots repetidos, crie um snapshot depois do prepare:
+
+```bash
+npm run avd:maestro:snapshot
+```
+
+Depois, inicie pelo snapshot:
+
+```bash
+npm run avd:maestro:fast
+```
+
+O snapshot acelera o boot do emulador, mas o runner continua limpando os dados do app antes de cada flow com `adb shell pm clear`, entao os testes continuam isolados.
 
 Em outro terminal, inicie o Metro para dev client:
 

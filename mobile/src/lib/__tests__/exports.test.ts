@@ -321,6 +321,59 @@ describe('exports', () => {
     );
   });
 
+  it('exports professional PDF with brand cover, contact footer, logo, and client name', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await exportPdf(scenario, summary, schedule, {
+      professional: true,
+      clientName: 'Cliente Teste',
+      brandProfile: {
+        nameOrCompany: 'Prime Crédito',
+        registration: 'CRECI 12345',
+        phone: '(11) 99999-0000',
+        email: 'contato@prime.example',
+        website: 'prime.example',
+        accentColor: '#047857',
+        logoDataUri: 'data:image/png;base64,abc123',
+      },
+    });
+
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(html).toContain('Relatório profissional');
+    expect(html).toContain('Cliente:');
+    expect(html).toContain('Cliente Teste');
+    expect(html).toContain('Prime Crédito');
+    expect(html).toContain('CRECI 12345');
+    expect(html).toContain('(11) 99999-0000 | contato@prime.example | prime.example');
+    expect(html).toContain('data:image/png;base64,abc123');
+    expect(html).toContain('#047857');
+    expect(html).toContain('Simulação meramente informativa');
+    expect(shareAsync).toHaveBeenCalledWith(
+      expect.stringContaining('relatorio_profissional_financiamento.pdf'),
+      expect.objectContaining({ mimeType: 'application/pdf' }),
+    );
+  });
+
+  it('rejects professional PDF export without brand profile', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await expect(
+      exportPdf(scenario, summary, schedule, {
+        professional: true,
+      }),
+    ).rejects.toThrow('Professional PDF export requires a brand profile.');
+
+    expect(printToFileAsync).not.toHaveBeenCalled();
+    expect(shareAsync).not.toHaveBeenCalled();
+  });
+
   it('exports correction columns and index metadata when monetary correction is active', async () => {
     printToFileAsync.mockResolvedValue({
       uri: 'file:///cache/relatorio.pdf',
@@ -360,6 +413,32 @@ describe('exports', () => {
     expect(worksheet[XLSX.utils.encode_cell({ r: correctionSummaryRowIndex, c: 1 })]?.z).toBe(
       '"R$" #,##0.00',
     );
+    expect(headers).toContain('Correção');
+    expect(pdfCells).toContain('R$ 420,00');
+    expect(html).toContain('<strong>Índice de Correção:</strong> IPCA');
+    expect(html).toContain('<strong>Taxa de Correção:</strong> 0,42000% a.m.');
+    expect(html).toContain('<strong>Correção Total:</strong> R$ 802,20');
+  });
+
+  it('keeps correction metadata in professional PDF exports', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await exportPdf(indexedScenario, summary, indexedSchedule, {
+      professional: true,
+      brandProfile: {
+        nameOrCompany: 'Prime Crédito',
+        phone: '(11) 99999-0000',
+        accentColor: '#047857',
+      },
+    });
+
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+    const headers = extractTableCells(html, 'th');
+    const pdfCells = extractTableCells(html, 'td');
+
     expect(headers).toContain('Correção');
     expect(pdfCells).toContain('R$ 420,00');
     expect(html).toContain('<strong>Índice de Correção:</strong> IPCA');

@@ -17,6 +17,10 @@ import { useExport } from '../../src/contexts/ExportContext';
 import type { ExportFormat } from '../../src/lib/exports/access';
 import { trackEvent } from '../../src/lib/analytics';
 
+type AndroidExportAction = ExportFormat | 'pdf_professional';
+
+const PREMIUM_GOLD = '#D97706';
+
 function ExportTabIcon({
   color,
   size,
@@ -49,7 +53,7 @@ export default function TabsLayout() {
     triggerExport,
   } = useExport();
   const [androidExportModalVisible, setAndroidExportModalVisible] = useState(false);
-  const [androidExportFormat, setAndroidExportFormat] = useState<ExportFormat | null>(null);
+  const [androidExportFormat, setAndroidExportFormat] = useState<AndroidExportAction | null>(null);
 
   const showExportActionSheet = () => {
     if (isExporting) return;
@@ -61,7 +65,7 @@ export default function TabsLayout() {
     });
 
     const options = contextPremium
-      ? ['Exportar PDF', 'Exportar XLSX', 'Exportar CSV', 'Cancelar']
+      ? ['Exportar PDF', 'Exportar PDF Profissional', 'Exportar XLSX', 'Exportar CSV', 'Cancelar']
       : canUseRewardedExport
         ? [
             'Ver anúncio e exportar PDF',
@@ -87,10 +91,18 @@ export default function TabsLayout() {
               : 'Recurso disponível para assinantes Premium',
         },
         (buttonIndex) => {
+          if (contextPremium) {
+            if (buttonIndex === 0) triggerExport('pdf');
+            else if (buttonIndex === 1) triggerExport('pdf', { professional: true });
+            else if (buttonIndex === 2) triggerExport('xlsx');
+            else if (buttonIndex === 3) triggerExport('csv');
+            return;
+          }
+
           if (buttonIndex === 0) triggerExport('pdf');
           else if (buttonIndex === 1) triggerExport('xlsx');
           else if (buttonIndex === 2) triggerExport('csv');
-          else if (!contextPremium && buttonIndex === premiumButtonIndex) {
+          else if (buttonIndex === premiumButtonIndex) {
             trackEvent('export_upgrade_clicked', { source: 'tab_export_sheet', platform: 'ios' });
             router.push('/(tabs)/premium');
           }
@@ -101,11 +113,15 @@ export default function TabsLayout() {
     }
   };
 
-  const handleAndroidExport = (format: 'pdf' | 'xlsx' | 'csv') => {
+  const handleAndroidExport = (format: ExportFormat, options?: { professional?: boolean }) => {
     if (isExporting) return;
 
-    setAndroidExportFormat(format);
-    void triggerExport(format);
+    const action = options?.professional ? 'pdf_professional' : format;
+    setAndroidExportFormat(action);
+    if (options?.professional) {
+      setAndroidExportModalVisible(false);
+    }
+    void triggerExport(format, options);
   };
 
   useEffect(() => {
@@ -202,11 +218,14 @@ export default function TabsLayout() {
           name="premium"
           options={{
             title: 'Premium',
-            unmountOnBlur: true,
             tabBarButtonTestID: 'tab-premium',
             tabBarAccessibilityLabel: 'Aba Premium',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="star-outline" size={size} color={color} />
+              <Ionicons
+                name={isPremium ? 'star' : 'star-outline'}
+                size={size}
+                color={isPremium ? PREMIUM_GOLD : color}
+              />
             ),
           }}
         />
@@ -280,6 +299,31 @@ export default function TabsLayout() {
                   </Text>
                 </View>
               </Pressable>
+              {contextPremium ? (
+                <Pressable
+                  style={[
+                    styles.modalPrimaryButton,
+                    { backgroundColor: '#047857' },
+                    isExporting && styles.modalPrimaryButtonDisabled,
+                  ]}
+                  onPress={() => handleAndroidExport('pdf', { professional: true })}
+                  disabled={isExporting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Exportar PDF Profissional"
+                  testID="android-export-modal-pdf-professional"
+                >
+                  <View style={styles.modalButtonContent}>
+                    {isExporting && androidExportFormat === 'pdf_professional' ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : null}
+                    <Text style={styles.modalPrimaryButtonText}>
+                      {isExporting && androidExportFormat === 'pdf_professional'
+                        ? 'Gerando...'
+                        : 'PDF Profissional'}
+                    </Text>
+                  </View>
+                </Pressable>
+              ) : null}
               <Pressable
                 style={[
                   styles.modalPrimaryButton,

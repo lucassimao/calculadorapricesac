@@ -1,0 +1,19 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: 'tab-comparison'
+- assertVisible:
+    id: 'screen-comparison'
+- scrollUntilVisible:
+    element:
+      id: 'section-comparison-summary'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'section-comparison-summary'
+- swipe:
+    start: 50%, 76%
+    end: 50%, 45%

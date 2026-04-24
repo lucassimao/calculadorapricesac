@@ -1,7 +1,7 @@
 import React from 'react';
 
 function createHostComponent(name: string) {
-  return function HostComponent(props: Record<string, unknown>) {
+  return function HostComponent(props: React.PropsWithChildren<Record<string, unknown>>) {
     return React.createElement(name, props, props.children);
   };
 }
@@ -17,7 +17,11 @@ export const Platform = {
   },
 };
 
-export const Modal = ({ visible = true, children, ...props }: Record<string, unknown>) =>
+export const Modal = ({
+  visible = true,
+  children,
+  ...props
+}: React.PropsWithChildren<{ visible?: boolean } & Record<string, unknown>>) =>
   visible ? React.createElement('Modal', props, children) : null;
 
 export const Pressable = createHostComponent('Pressable');

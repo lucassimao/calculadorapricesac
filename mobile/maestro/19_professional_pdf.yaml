@@ -1,0 +1,101 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 50%, 25%
+          end: 50%, 80%
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-name'
+    timeout: 12000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: 'professional-profile-name'
+- eraseText
+- inputText: 'Prime Credito'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-registration'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- tapOn:
+    id: 'professional-profile-registration'
+- eraseText
+- inputText: 'CRECI 12345'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-phone'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- tapOn:
+    id: 'professional-profile-phone'
+- eraseText
+- inputText: '11999990000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-email'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- tapOn:
+    id: 'professional-profile-email'
+- eraseText
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-website'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- tapOn:
+    id: 'professional-profile-website'
+- eraseText
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-save'
+    timeout: 8000
+    speed: 50
+    visibilityPercentage: 10
+- tapOn:
+    id: 'professional-profile-save'
+- extendedWaitUntil:
+    visible:
+      id: 'professional-profile-message'
+    timeout: 8000
+- tapOn:
+    id: 'tab-calculator'
+- runFlow: helpers/seed_export_extras_dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: 'label-seed-export-extras-dev'
+    timeout: 5000
+- tapOn:
+    id: 'tab-export'
+- assertVisible:
+    id: 'android-export-modal-card'
+- assertVisible:
+    id: 'android-export-modal-pdf-professional'
+- tapOn:
+    id: 'android-export-modal-pdf-professional'
+- assertVisible:
+    id: 'professional-export-modal'
+- tapOn:
+    id: 'professional-export-client-name'
+- inputText: 'Cliente Maestro'
+- hideKeyboard
+- tapOn:
+    id: 'professional-export-confirm'
+- extendedWaitUntil:
+    visible: 'relatorio_profissional_financiamento.pdf'
+    timeout: 20000

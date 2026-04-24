@@ -9,7 +9,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import XLSX from 'xlsx';
+import { read, utils } from 'xlsx';
 import { normalizeWorksheetRows } from '../src/lib/exports/worksheet-normalizer.mjs';
 
 const ROOT = path.resolve(new URL('..', import.meta.url).pathname);
@@ -104,8 +104,8 @@ function verifyCsv(localPath) {
 }
 
 function verifyXlsx(localPath) {
-  const workbook = XLSX.read(readFileSync(localPath), { type: 'buffer' });
-  const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Amortizacao, { header: 1 });
+  const workbook = read(readFileSync(localPath), { type: 'buffer' });
+  const rows = utils.sheet_to_json(workbook.Sheets.Amortizacao, { header: 1 });
   const normalizedRows = normalizeWorksheetRows(rows);
   verifyTabularExport(normalizedRows, 'XLSX');
 }

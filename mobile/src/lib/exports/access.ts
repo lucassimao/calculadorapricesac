@@ -5,6 +5,7 @@ export type ExportAccess = 'premium' | 'free_rewarded';
 export interface ExportOptions {
   tableOnly?: boolean;
   access?: ExportAccess;
+  professional?: boolean;
 }
 
 export const FREE_EXPORT_ROW_LIMIT = 10;
@@ -24,6 +25,7 @@ export function isFreeRewardedExport(options?: ExportOptions) {
 }
 
 export function getExportFileStem(options?: ExportOptions) {
+  if (options?.professional) return 'relatorio_profissional_financiamento';
   return options?.tableOnly ? 'tabela_amortizacao' : 'relatorio_financiamento';
 }
 

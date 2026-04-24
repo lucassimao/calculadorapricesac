@@ -61,7 +61,7 @@ export function useIapPurchase({
   const restoreInProgress = restoreRequestedAt !== null;
   const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
   const getPurchaseEventProps = useCallback(
-    (flow?: 'purchase' | 'restore') => ({
+    (flow: 'purchase' | 'restore') => ({
       source,
       flow,
       connected,

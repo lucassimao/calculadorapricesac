@@ -13,7 +13,7 @@ import {
 const state = {
   availability: 'supported' as 'checking' | 'supported' | 'unsupported',
   initConnectionResult: true,
-  purchases: [] as Array<{ productId: string }>,
+  purchases: [] as { productId: string }[],
 };
 
 const initConnectionMock = vi.fn(async () => state.initConnectionResult);
@@ -50,6 +50,11 @@ async function flushEffects() {
   await act(async () => {
     await Promise.resolve();
   });
+}
+
+function getSnapshot(snapshot: PremiumContextValue | null) {
+  if (!snapshot) throw new Error('Premium context was not captured');
+  return snapshot;
 }
 
 describe('PremiumProvider', () => {
@@ -115,8 +120,8 @@ describe('PremiumProvider', () => {
       );
     });
 
-    expect(snapshot?.loading).toBe(false);
-    expect(snapshot?.isPremium).toBe(false);
+    expect(getSnapshot(snapshot).loading).toBe(false);
+    expect(getSnapshot(snapshot).isPremium).toBe(false);
     expect(initConnectionMock).not.toHaveBeenCalled();
     expect(getAvailablePurchasesMock).not.toHaveBeenCalled();
   });
@@ -138,16 +143,16 @@ describe('PremiumProvider', () => {
 
     expect(initConnectionMock).toHaveBeenCalledTimes(1);
     expect(getAvailablePurchasesMock).toHaveBeenCalledTimes(1);
-    expect(snapshot?.loading).toBe(false);
-    expect(snapshot?.isPremium).toBe(true);
-    expect(snapshot?.diagnostics.iapAvailability).toBe('supported');
-    expect(snapshot?.diagnostics.purchasedProductIds).toEqual(['remove_ads']);
-    expect(snapshot?.diagnostics.premiumPurchaseDetails).toMatchObject({
+    expect(getSnapshot(snapshot).loading).toBe(false);
+    expect(getSnapshot(snapshot).isPremium).toBe(true);
+    expect(getSnapshot(snapshot).diagnostics.iapAvailability).toBe('supported');
+    expect(getSnapshot(snapshot).diagnostics.purchasedProductIds).toEqual(['remove_ads']);
+    expect(getSnapshot(snapshot).diagnostics.premiumPurchaseDetails).toMatchObject({
       productId: 'remove_ads',
     });
-    expect(snapshot?.diagnostics.refreshAttemptedAt).not.toBeNull();
-    expect(snapshot?.diagnostics.refreshCompletedAt).not.toBeNull();
-    expect(snapshot?.diagnostics.refreshError).toBeNull();
+    expect(getSnapshot(snapshot).diagnostics.refreshAttemptedAt).not.toBeNull();
+    expect(getSnapshot(snapshot).diagnostics.refreshCompletedAt).not.toBeNull();
+    expect(getSnapshot(snapshot).diagnostics.refreshError).toBeNull();
   });
 
   it('renders premium UI state on cold start when store entitlement exists', async () => {
@@ -166,7 +171,7 @@ describe('PremiumProvider', () => {
     await flushEffects();
 
     const premiumLabels = renderer!.root.findAll(
-      (node) => node.type === 'Text' && node.props.children === 'premium-ready',
+      (node) => String(node.type) === 'Text' && node.props.children === 'premium-ready',
     );
 
     expect(initConnectionMock).toHaveBeenCalledTimes(1);
@@ -189,12 +194,12 @@ describe('PremiumProvider', () => {
     });
 
     await flushEffects();
-    expect(snapshot?.isPremium).toBe(false);
+    expect(getSnapshot(snapshot).isPremium).toBe(false);
 
     await act(async () => {
-      await snapshot?.markPremium(true);
+      await getSnapshot(snapshot).markPremium(true);
     });
-    expect(snapshot?.isPremium).toBe(true);
+    expect(getSnapshot(snapshot).isPremium).toBe(true);
 
     await act(async () => {
       renderer!.unmount();
@@ -212,8 +217,8 @@ describe('PremiumProvider', () => {
 
     await flushEffects();
 
-    expect(snapshot?.loading).toBe(false);
-    expect(snapshot?.isPremium).toBe(false);
+    expect(getSnapshot(snapshot).loading).toBe(false);
+    expect(getSnapshot(snapshot).isPremium).toBe(false);
   });
 
   it('falls back to free mode when the store connection fails', async () => {
@@ -233,10 +238,10 @@ describe('PremiumProvider', () => {
 
     expect(initConnectionMock).toHaveBeenCalledTimes(1);
     expect(getAvailablePurchasesMock).not.toHaveBeenCalled();
-    expect(snapshot?.loading).toBe(false);
-    expect(snapshot?.isPremium).toBe(false);
-    expect(snapshot?.diagnostics.purchasedProductIds).toEqual([]);
-    expect(snapshot?.diagnostics.premiumPurchaseDetails).toBeNull();
-    expect(snapshot?.diagnostics.refreshError).toBe('store_connection_failed');
+    expect(getSnapshot(snapshot).loading).toBe(false);
+    expect(getSnapshot(snapshot).isPremium).toBe(false);
+    expect(getSnapshot(snapshot).diagnostics.purchasedProductIds).toEqual([]);
+    expect(getSnapshot(snapshot).diagnostics.premiumPurchaseDetails).toBeNull();
+    expect(getSnapshot(snapshot).diagnostics.refreshError).toBe('store_connection_failed');
   });
 });

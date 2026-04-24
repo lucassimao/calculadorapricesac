@@ -32,7 +32,7 @@ interface AdTestConfig {
   appOpenStubEnabled: boolean;
 }
 
-interface AdTestContextValue extends AdTestConfig {
+export interface AdTestContextValue extends AdTestConfig {
   loading: boolean;
   setStubModeEnabled: (value: boolean) => Promise<void>;
   setInterstitialStubEnabled: (value: boolean) => Promise<void>;

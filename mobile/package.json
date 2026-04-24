@@ -1,6 +1,6 @@
 {
   "name": "calculadora-price-sac",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -11,9 +11,14 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:exports:android": "node scripts/test-export-readback-android.mjs",
+    "avd:maestro:cold": "bash scripts/start-maestro-avd.sh cold",
+    "avd:maestro:fast": "bash scripts/start-maestro-avd.sh fast",
+    "avd:maestro:prepare": "bash scripts/prepare-maestro-avd.sh",
+    "avd:maestro:snapshot": "bash scripts/prepare-maestro-avd.sh --save-snapshot",
     "ui:maestro": "bash scripts/run-maestro-suite.sh top-level",
     "ui:maestro:android": "bash scripts/run-maestro-suite.sh top-level",
     "ui:maestro:readback": "bash scripts/run-maestro-suite.sh readback",
+    "ui:maestro:captures": "bash scripts/run-maestro-suite.sh captures",
     "ui:maestro:all": "bash scripts/run-maestro-suite.sh all",
     "ota:preview": "RELEASE_TARGET=preview npx eas-cli@latest update --channel preview --environment preview",
     "ota:production": "RELEASE_TARGET=production npx eas-cli@latest update --channel production --environment production",
@@ -31,6 +36,7 @@
     "expo-dev-client": "~6.0.20",
     "expo-file-system": "~19.0.21",
     "expo-iap": "^3.4.0",
+    "expo-image-picker": "~17.0.10",
     "expo-insights": "~0.10.8",
     "expo-linking": "~8.0.11",
     "expo-print": "~15.0.8",
@@ -55,6 +61,7 @@
   "devDependencies": {
     "@types/node": "^25.0.3",
     "@types/react": "~19.1.0",
+    "@types/react-test-renderer": "^19.1.0",
     "babel-preset-expo": "^54.0.9",
     "eslint": "^9.39.2",
     "eslint-config-expo": "^10.0.0",

@@ -1,7 +1,11 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { ExportFormat } from '../lib/exports/access';
 
-type ExportHandler = (format: ExportFormat) => Promise<void>;
+export interface ExportTriggerOptions {
+  professional?: boolean;
+}
+
+type ExportHandler = (format: ExportFormat, options?: ExportTriggerOptions) => Promise<void>;
 
 interface ExportContextValue {
   /** Whether export is available (calculator has data loaded) */
@@ -20,7 +24,7 @@ interface ExportContextValue {
   /** Unregister the export handler */
   unregisterExportHandler: () => void;
   /** Trigger an export with the specified format */
-  triggerExport: (format: ExportFormat) => Promise<void>;
+  triggerExport: (format: ExportFormat, options?: ExportTriggerOptions) => Promise<void>;
   /** Set exporting state */
   setIsExporting: (value: boolean) => void;
 }
@@ -48,9 +52,9 @@ export function ExportProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const triggerExport = useCallback(
-    async (format: ExportFormat) => {
+    async (format: ExportFormat, options?: ExportTriggerOptions) => {
       if (exportHandler) {
-        await exportHandler(format);
+        await exportHandler(format, options);
       }
     },
     [exportHandler],

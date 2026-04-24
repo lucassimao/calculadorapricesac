@@ -117,6 +117,7 @@ export function useInterstitialGate(isPremium: boolean) {
       activeSource,
       enabled,
       storageReady,
+      canUseRealInterstitial,
       isLoaded,
       isPremium,
       lastShownAt,

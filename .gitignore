@@ -51,3 +51,4 @@ mobile/credentials/
 # build artifacts
 *.apk
 /mobile/tmp/
+/output/

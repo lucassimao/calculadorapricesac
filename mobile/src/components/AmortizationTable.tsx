@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import type { ScheduleRow } from '../types/loan';
 import { formatCurrency } from '../lib/calculations';
 import { useTheme } from '../lib/theme';
@@ -40,6 +40,7 @@ export function AmortizationTable({
   ],
 }: AmortizationTableProps) {
   const { colors } = useTheme();
+  const [tableWidth, setTableWidth] = useState(0);
 
   const rows = useMemo(() => {
     const filtered = schedule.filter((row) => row.installmentNumber > 0);
@@ -91,10 +92,46 @@ export function AmortizationTable({
     hasCorrection && !columns.includes('correction')
       ? columns.flatMap((col) => (col === 'balance' ? (['correction', col] as const) : [col]))
       : columns;
-  const visibleColumns = columnsWithCorrection.filter((col) => {
+  const availableColumns = columnsWithCorrection.filter((col) => {
     if ((col === 'extra' || col === 'fgts') && !displayExtras) return false;
     return true;
   });
+
+  const responsiveColumns = useMemo(() => {
+    const width = tableWidth || 360;
+    const allowedColumns =
+      width < 330
+        ? ['installment', 'payment', 'balance']
+        : width < 430
+          ? ['installment', 'date', 'payment', 'balance']
+          : width < 620
+            ? ['installment', 'date', 'payment', 'interest', 'amortization', 'balance']
+            : width < 760
+              ? [
+                  'installment',
+                  'date',
+                  'payment',
+                  'interest',
+                  'amortization',
+                  'correction',
+                  'balance',
+                ]
+              : [
+                  'installment',
+                  'date',
+                  'payment',
+                  'interest',
+                  'amortization',
+                  'correction',
+                  'balance',
+                  'extra',
+                  'fgts',
+                ];
+
+    return availableColumns.filter((col) => allowedColumns.includes(col));
+  }, [availableColumns, tableWidth]);
+
+  const visibleColumns = responsiveColumns.length > 0 ? responsiveColumns : availableColumns;
 
   const headerLabels: Record<ColumnKey, string> = {
     installment: '#',
@@ -122,25 +159,37 @@ export function AmortizationTable({
     [colors],
   );
 
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const nextWidth = Math.round(event.nativeEvent.layout.width);
+    setTableWidth((currentWidth) =>
+      Math.abs(currentWidth - nextWidth) > 1 ? nextWidth : currentWidth,
+    );
+  };
+
+  const getCellStyle = (col: ColumnKey) => [
+    styles.cell,
+    themedStyles.cell,
+    col === 'installment' ? styles.cellInstallment : null,
+    col === 'date' ? styles.cellDate : null,
+    col === 'payment' || col === 'balance' ? styles.cellPrimaryMoney : null,
+    col === 'interest' || col === 'amortization' ? styles.cellSecondaryMoney : null,
+    col === 'correction' || col === 'extra' || col === 'fgts' ? styles.cellExtra : null,
+    col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
+  ];
+
   return (
     <View
       style={[styles.container, themedStyles.container]}
       accessibilityLabel="Tabela de amortização"
+      onLayout={handleLayout}
     >
       <View style={[styles.headerRow, themedStyles.headerRow]} accessibilityRole="header">
         {visibleColumns.map((col) => (
           <Text
             key={`header-${col}`}
-            style={[
-              styles.cell,
-              themedStyles.cell,
-              col === 'installment' ? styles.cellSmall : null,
-              col === 'installment' ? styles.cellLeft : col !== 'date' ? styles.cellRight : null,
-              col === 'extra' || col === 'fgts' || col === 'correction' ? styles.cellExtra : null,
-            ]}
+            style={[...getCellStyle(col), styles.headerCell]}
             accessibilityLabel={`Coluna ${headerLabels[col]}`}
             testID={`table-header-${col}`}
-            collapsable={false}
           >
             {headerLabels[col]}
           </Text>
@@ -175,17 +224,7 @@ export function AmortizationTable({
                   <Text
                     key={`${item.installmentNumber}-${col}`}
                     style={[
-                      styles.cell,
-                      themedStyles.cell,
-                      col === 'installment' ? styles.cellSmall : null,
-                      col === 'installment'
-                        ? styles.cellLeft
-                        : col !== 'date'
-                          ? styles.cellRight
-                          : null,
-                      col === 'extra' || col === 'fgts' || col === 'correction'
-                        ? styles.cellExtra
-                        : null,
+                      ...getCellStyle(col),
                       (col === 'extra' && item.prepaymentAmount) ||
                       (col === 'fgts' && fgtsValue > 0) ||
                       (col === 'correction' && item.indexCorrection)
@@ -215,19 +254,7 @@ export function AmortizationTable({
             return (
               <Text
                 key={`footer-${col}`}
-                style={[
-                  styles.cell,
-                  themedStyles.cell,
-                  col === 'installment' ? styles.cellSmall : null,
-                  col === 'installment'
-                    ? styles.cellLeft
-                    : col !== 'date'
-                      ? styles.cellRight
-                      : null,
-                  col === 'extra' || col === 'fgts' || col === 'correction'
-                    ? styles.cellExtra
-                    : null,
-                ]}
+                style={[...getCellStyle(col), styles.footerCell]}
                 accessibilityLabel={`Total ${headerLabels[col]}: ${value}`}
               >
                 {value}
@@ -264,9 +291,25 @@ const styles = StyleSheet.create({
   cell: {
     flex: 1,
     fontSize: 12,
+    paddingHorizontal: 3,
   },
-  cellSmall: {
-    flex: 0.5,
+  headerCell: {
+    fontSize: 11,
+  },
+  footerCell: {
+    fontWeight: '500',
+  },
+  cellInstallment: {
+    flex: 0.45,
+  },
+  cellDate: {
+    flex: 0.95,
+  },
+  cellPrimaryMoney: {
+    flex: 1.25,
+  },
+  cellSecondaryMoney: {
+    flex: 1.1,
   },
   cellRight: {
     textAlign: 'right',
@@ -275,7 +318,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   cellExtra: {
-    flex: 0.8,
+    flex: 0.95,
     fontSize: 11,
   },
 });

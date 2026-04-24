@@ -1,5 +1,6 @@
+/* eslint-disable import/first */
 import React, { useEffect } from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REWARDED_EXPORT_TIMEOUT_MS } from '../rewarded-export-state';
 
@@ -68,7 +69,7 @@ function HookHarness({
 }
 
 describe('useRewardedExport', () => {
-  let renderer: TestRenderer.ReactTestRenderer | null = null;
+  let renderer: ReactTestRenderer | null = null;
   let latestValue: ReturnType<typeof useRewardedExport> | null = null;
 
   async function renderHook(isPremium = false) {

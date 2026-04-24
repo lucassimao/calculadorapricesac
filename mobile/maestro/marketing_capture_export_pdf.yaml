@@ -1,0 +1,14 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: 'tab-calculator'
+- tapOn:
+    id: 'tab-export'
+- assertVisible:
+    id: 'android-export-modal-card'
+- assertVisible:
+    id: 'android-export-modal-pdf'
+- assertVisible:
+    id: 'android-export-modal-pdf-professional'

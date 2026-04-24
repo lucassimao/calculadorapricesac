@@ -1,5 +1,6 @@
+/* eslint-disable import/first */
 import React from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -110,7 +111,7 @@ function InterstitialHarness({
 }
 
 describe('ad gate integrations', () => {
-  let renderer: TestRenderer.ReactTestRenderer | null = null;
+  let renderer: ReactTestRenderer | null = null;
   let latestInterstitial: ReturnType<typeof useInterstitialGate> | null = null;
   const originalDev = globalThis.__DEV__;
 

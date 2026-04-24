@@ -1,0 +1,20 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: 'tab-calculator'
+- swipe:
+    start: 50%, 20%
+    end: 50%, 88%
+- swipe:
+    start: 50%, 20%
+    end: 50%, 88%
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: 50%, 82%
+          end: 50%, 35%
+- assertVisible:
+    text: 'Resumo'

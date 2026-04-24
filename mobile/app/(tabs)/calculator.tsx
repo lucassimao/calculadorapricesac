@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -48,6 +49,7 @@ import { IAP_FALLBACK_PRICE } from '../../src/lib/iap';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { useTheme } from '../../src/lib/theme';
 import { useExport } from '../../src/contexts/ExportContext';
+import type { ExportTriggerOptions } from '../../src/contexts/ExportContext';
 import { useStoreReview } from '../../src/hooks/useStoreReview';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
@@ -59,6 +61,9 @@ import {
   shouldResetTabActionExportPhase,
   type TabActionExportPhase,
 } from '../../src/hooks/rewarded-export-state';
+import type { BrandProfile } from '../../src/types/brand-profile';
+import { getBrandProfileCompletion, isBrandProfileComplete } from '../../src/types/brand-profile';
+import { loadBrandProfile } from '../../src/lib/storage/brand-profile';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -77,6 +82,11 @@ const DEFAULT_SCENARIO: Scenario = {
 
 const MAX_TABLE_ROWS = 10;
 const FREE_SCENARIO_LIMIT = 1;
+
+interface PendingProfessionalExport {
+  source: string;
+  brandProfile: BrandProfile;
+}
 
 function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?: number) {
   const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
@@ -111,6 +121,44 @@ function getExportProgressText({
   if (exporting) return 'Gerando arquivo...';
   if (rewardedExportFormat !== null) return 'Abrindo anúncio...';
   return '';
+}
+
+function getExportProgressTitle(format: ExportFormat | null) {
+  if (format === 'pdf') return 'Gerando PDF...';
+  if (format === 'xlsx') return 'Gerando XLSX...';
+  if (format === 'csv') return 'Gerando CSV...';
+  return 'Gerando arquivo...';
+}
+
+function getProfessionalExportAnalytics({
+  clientName,
+}: {
+  clientName?: string;
+}): Record<string, string | boolean> {
+  const trimmedClientName = clientName?.trim() ?? '';
+  if (trimmedClientName.length === 0) return {};
+
+  return {
+    professional_client_name: trimmedClientName,
+    professional_has_client_name: true,
+  };
+}
+
+function getProfessionalProfileSnapshot(profile: BrandProfile) {
+  const completion = getBrandProfileCompletion(profile);
+
+  return {
+    professional_profile_complete: completion.isComplete,
+    professional_profile_has_name: completion.hasName,
+    professional_profile_has_contact: completion.hasContact,
+    professional_profile_has_phone: completion.hasPhone,
+    professional_profile_has_email: completion.hasEmail,
+    professional_profile_has_website: completion.hasWebsite,
+    professional_profile_has_registration: completion.hasRegistration,
+    professional_profile_has_logo: completion.hasLogo,
+    professional_profile_has_custom_accent_color: completion.hasCustomAccentColor,
+    professional_profile_contact_field_count: completion.contactFieldCount,
+  };
 }
 
 function waitForNextPaint() {
@@ -270,6 +318,9 @@ export default function CalculatorScreen() {
   const { requestReviewIfAppropriate } = useStoreReview();
   const [exporting, setExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(null);
+  const [pendingProfessionalExport, setPendingProfessionalExport] =
+    useState<PendingProfessionalExport | null>(null);
+  const [professionalClientName, setProfessionalClientName] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const { canUseRewardedExport, requestRewardedExport, rewardedExportFormat } =
     useRewardedExport(isPremium);
@@ -627,11 +678,17 @@ export default function CalculatorScreen() {
       source,
       tableOnly = false,
       access = 'premium',
+      professional = false,
+      brandProfile,
+      clientName,
     }: {
       format: ExportFormat;
       source: string;
       tableOnly?: boolean;
       access?: ExportAccess;
+      professional?: boolean;
+      brandProfile?: BrandProfile;
+      clientName?: string;
     }) => {
       if (exporting) return;
       if (validation.errors.length > 0) {
@@ -651,8 +708,11 @@ export default function CalculatorScreen() {
       try {
         if (format === 'pdf') {
           await exportPdf(scenario, summary, schedule, {
-            tableOnly,
+            tableOnly: professional ? false : tableOnly,
             access,
+            professional,
+            brandProfile,
+            clientName,
           });
         } else if (format === 'xlsx') {
           await exportXlsx(schedule, scenario, summary, {
@@ -670,8 +730,12 @@ export default function CalculatorScreen() {
           format,
           source,
           access,
-          table_only: tableOnly,
+          table_only: professional ? false : tableOnly,
+          professional,
           is_premium: isPremium,
+          ...getProfessionalExportAnalytics({
+            clientName: professional ? clientName : undefined,
+          }),
           ...getScenarioAnalyticsContext(scenario, schedule.length),
         });
         requestReviewIfAppropriate().catch(() => {});
@@ -680,8 +744,12 @@ export default function CalculatorScreen() {
           format,
           source,
           access,
-          table_only: tableOnly,
+          table_only: professional ? false : tableOnly,
+          professional,
           is_premium: isPremium,
+          ...getProfessionalExportAnalytics({
+            clientName: professional ? clientName : undefined,
+          }),
           ...getScenarioAnalyticsContext(scenario, schedule.length),
         });
         Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
@@ -869,19 +937,74 @@ export default function CalculatorScreen() {
   const hasDevSeedExtras =
     (scenario.prepayments?.length ?? 0) > 0 && (scenario.fgtsEvents?.length ?? 0) > 0;
 
+  const startProfessionalExportFlow = useCallback(
+    async (source: string) => {
+      let brandProfile: BrandProfile;
+
+      try {
+        brandProfile = await loadBrandProfile();
+      } catch {
+        Alert.alert('Erro', 'Não foi possível carregar o perfil profissional.');
+        return;
+      }
+
+      if (!isBrandProfileComplete(brandProfile)) {
+        trackEvent('professional_export_profile_incomplete', {
+          source,
+          ...getProfessionalProfileSnapshot(brandProfile),
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+        });
+        Alert.alert(
+          'Complete o perfil profissional',
+          'Preencha nome ou empresa e pelo menos um contato para gerar o PDF Profissional.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Completar perfil',
+              onPress: () => router.push('/(tabs)/premium'),
+            },
+          ],
+        );
+        return;
+      }
+
+      trackEvent('professional_export_profile_ready', {
+        source,
+        ...getProfessionalProfileSnapshot(brandProfile),
+        ...getScenarioAnalyticsContext(scenario, schedule.length),
+      });
+      trackEvent('professional_export_client_modal_opened', {
+        source,
+        ...getProfessionalProfileSnapshot(brandProfile),
+        ...getScenarioAnalyticsContext(scenario, schedule.length),
+      });
+      setProfessionalClientName('');
+      setPendingProfessionalExport({ source, brandProfile });
+    },
+    [router, scenario, schedule.length],
+  );
+
   // Callback for the export context (used by tab bar action sheet)
   const handleExportFromContext = useCallback(
-    async (format: ExportFormat) => {
+    async (format: ExportFormat, options?: ExportTriggerOptions) => {
+      const professional = Boolean(options?.professional);
       trackEvent('export_clicked', {
         format,
         source: 'tab_action',
         table_only: false,
+        professional,
         is_premium: isPremium,
         rewarded_available: canUseRewardedExport,
         ...getScenarioAnalyticsContext(scenario, schedule.length),
       });
 
       if (exporting || rewardedExportFormat !== null) return;
+
+      if (professional && !isPremium) {
+        Alert.alert('Premium', 'PDF Profissional disponível apenas para assinantes.');
+        router.push('/(tabs)/premium');
+        return;
+      }
 
       if (!isPremium) {
         if (canUseRewardedExport) {
@@ -904,6 +1027,11 @@ export default function CalculatorScreen() {
         return;
       }
 
+      if (professional) {
+        await startProfessionalExportFlow('tab_action');
+        return;
+      }
+
       await runExport({ format, source: 'tab_action' });
     },
     [
@@ -915,9 +1043,48 @@ export default function CalculatorScreen() {
       runExport,
       scenario,
       schedule.length,
+      startProfessionalExportFlow,
       startRewardedExportFlow,
     ],
   );
+
+  const cancelProfessionalExport = useCallback(() => {
+    if (pendingProfessionalExport) {
+      trackEvent('professional_export_client_modal_cancelled', {
+        source: pendingProfessionalExport.source,
+        ...getProfessionalProfileSnapshot(pendingProfessionalExport.brandProfile),
+        ...getProfessionalExportAnalytics({
+          clientName: professionalClientName,
+        }),
+        ...getScenarioAnalyticsContext(scenario, schedule.length),
+      });
+    }
+    setPendingProfessionalExport(null);
+    setProfessionalClientName('');
+  }, [pendingProfessionalExport, professionalClientName, scenario, schedule.length]);
+
+  const confirmProfessionalExport = useCallback(async () => {
+    if (!pendingProfessionalExport) return;
+    const pending = pendingProfessionalExport;
+    const clientName = professionalClientName.trim();
+    trackEvent('professional_export_started', {
+      source: pending.source,
+      ...getProfessionalProfileSnapshot(pending.brandProfile),
+      ...getProfessionalExportAnalytics({
+        clientName,
+      }),
+      ...getScenarioAnalyticsContext(scenario, schedule.length),
+    });
+    setPendingProfessionalExport(null);
+    await runExport({
+      format: 'pdf',
+      source: pending.source,
+      professional: true,
+      brandProfile: pending.brandProfile,
+      clientName,
+    });
+    setProfessionalClientName('');
+  }, [pendingProfessionalExport, professionalClientName, runExport, scenario, schedule.length]);
 
   const handleNewScenario = () => {
     trackEvent('scenario_new_started', {
@@ -1398,7 +1565,6 @@ export default function CalculatorScreen() {
                   schedule={scheduleForTable}
                   totalSchedule={schedule}
                   showExtras
-                  columns={['installment', 'date', 'payment', 'balance']}
                 />
                 <View style={styles.subsectionTitleRow}>
                   <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>
@@ -1907,12 +2073,7 @@ export default function CalculatorScreen() {
                 </Text>
               </View>
             )}
-            <AmortizationTable
-              schedule={scheduleForTable}
-              totalSchedule={schedule}
-              showExtras
-              columns={['installment', 'date', 'payment', 'interest', 'amortization', 'balance']}
-            />
+            <AmortizationTable schedule={scheduleForTable} totalSchedule={schedule} showExtras />
             <View style={styles.subsectionTitleRow}>
               <Text style={[styles.subsectionTitle, { color: colors.textSecondary }]}>
                 Gerar tabela completa
@@ -2005,6 +2166,86 @@ export default function CalculatorScreen() {
       )}
 
       <AdBanner enabled={showAds} />
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={pendingProfessionalExport !== null}
+        onRequestClose={cancelProfessionalExport}
+      >
+        <View style={styles.professionalModalBackdrop} testID="professional-export-modal">
+          <View style={styles.professionalModalCard}>
+            <Text style={styles.professionalModalTitle}>PDF Profissional</Text>
+            <Text style={styles.professionalModalText}>
+              Informe o nome do cliente se quiser exibi-lo na capa do relatório.
+            </Text>
+            <TextInput
+              value={professionalClientName}
+              onChangeText={setProfessionalClientName}
+              placeholder="Nome do cliente (opcional)"
+              style={styles.professionalModalInput}
+              testID="professional-export-client-name"
+              accessibilityLabel="Nome do cliente para PDF Profissional"
+            />
+            <View style={styles.professionalModalActions}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={cancelProfessionalExport}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar PDF Profissional"
+                testID="professional-export-cancel"
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={styles.primaryButton}
+                onPress={() => {
+                  void confirmProfessionalExport();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Gerar PDF Profissional"
+                testID="professional-export-confirm"
+              >
+                <Text style={styles.primaryButtonText}>Gerar PDF</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={exporting}
+        statusBarTranslucent
+        accessibilityViewIsModal
+      >
+        <View
+          style={styles.exportProgressBackdrop}
+          testID="export-progress-modal"
+          accessibilityLiveRegion="polite"
+        >
+          <View
+            style={[
+              styles.exportProgressCard,
+              { backgroundColor: colors.background, borderColor: colors.border },
+            ]}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text
+              style={[styles.exportProgressTitle, { color: colors.text }]}
+              testID="export-progress-title"
+            >
+              {getExportProgressTitle(exportingFormat)}
+            </Text>
+            <Text style={[styles.exportProgressText, { color: colors.textSecondary }]}>
+              {Platform.OS === 'android'
+                ? 'Preparando o arquivo. Escolha onde salvar ou compartilhar em seguida.'
+                : 'Preparando o arquivo. A tela de compartilhamento vai abrir em seguida.'}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -2219,6 +2460,64 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#374151',
     fontWeight: '600',
+  },
+  professionalModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.45)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  professionalModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 18,
+    gap: 12,
+  },
+  professionalModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  professionalModalText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#4B5563',
+  },
+  professionalModalInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    color: '#111827',
+  },
+  professionalModalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  exportProgressBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.55)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  exportProgressCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 22,
+    alignItems: 'center',
+    gap: 12,
+  },
+  exportProgressTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  exportProgressText: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   list: {
     gap: 8,

@@ -6,8 +6,8 @@ appId: com.lsimaocosta.calculadorapricesac
 - scrollUntilVisible:
     element:
       id: 'btn-dev-prepare-free-rewarded'
-    timeout: 8000
-    speed: 80
+    timeout: 12000
+    speed: 60
     visibilityPercentage: 10
 - tapOn:
     id: 'btn-dev-prepare-free-rewarded'

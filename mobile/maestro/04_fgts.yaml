@@ -48,10 +48,12 @@ appId: com.lsimaocosta.calculadorapricesac
 - eraseText
 - inputText: '800'
 - hideKeyboard
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       id: 'chip-fgts-usage-installment'
-    timeout: 5000
+    timeout: 8000
+    speed: 50
+    visibilityPercentage: 10
 - tapOn:
     id: 'chip-fgts-usage-installment'
 - scrollUntilVisible:

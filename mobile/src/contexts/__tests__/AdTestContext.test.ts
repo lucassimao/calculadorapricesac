@@ -1,5 +1,6 @@
+/* eslint-disable import/first */
 import React, { useEffect } from 'react';
-import TestRenderer, { act } from 'react-test-renderer';
+import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { storage } = vi.hoisted(() => ({
@@ -31,7 +32,7 @@ vi.mock('../../lib/theme', () => ({
   }),
 }));
 
-import { AdTestProvider, useAdTest } from '../AdTestContext';
+import { AdTestProvider, useAdTest, type AdTestContextValue } from '../AdTestContext';
 
 function flushMicrotasks() {
   return Promise.resolve().then(() => Promise.resolve());
@@ -48,8 +49,13 @@ function Harness({ onChange }: { onChange: (value: ReturnType<typeof useAdTest>)
 }
 
 describe('AdTestProvider', () => {
-  let renderer: TestRenderer.ReactTestRenderer | null = null;
-  let latestValue: ReturnType<typeof useAdTest> | null = null;
+  let renderer: ReactTestRenderer | null = null;
+  let latestValue: AdTestContextValue | null = null;
+
+  function getLatestValue() {
+    if (!latestValue) throw new Error('AdTest context was not captured');
+    return latestValue;
+  }
 
   async function renderProvider() {
     await act(async () => {
@@ -84,13 +90,13 @@ describe('AdTestProvider', () => {
     await renderProvider();
 
     await act(async () => {
-      await latestValue?.setStubModeEnabled(true);
-      await latestValue?.setInterstitialStubEnabled(true);
+      await getLatestValue().setStubModeEnabled(true);
+      await getLatestValue().setInterstitialStubEnabled(true);
       await flushMicrotasks();
     });
 
-    expect(latestValue?.stubModeEnabled).toBe(true);
-    expect(latestValue?.interstitialStubEnabled).toBe(true);
+    expect(getLatestValue().stubModeEnabled).toBe(true);
+    expect(getLatestValue().interstitialStubEnabled).toBe(true);
 
     await act(async () => {
       renderer?.unmount();
@@ -102,22 +108,22 @@ describe('AdTestProvider', () => {
 
     await renderProvider();
 
-    expect(latestValue?.stubModeEnabled).toBe(true);
-    expect(latestValue?.interstitialStubEnabled).toBe(true);
+    expect(getLatestValue().stubModeEnabled).toBe(true);
+    expect(getLatestValue().interstitialStubEnabled).toBe(true);
   });
 
   it('resolves rewarded and interstitial stub flows through the rendered modal actions', async () => {
     await renderProvider();
 
     await act(async () => {
-      await latestValue?.setStubModeEnabled(true);
-      await latestValue?.setInterstitialStubEnabled(true);
+      await getLatestValue().setStubModeEnabled(true);
+      await getLatestValue().setInterstitialStubEnabled(true);
       await flushMicrotasks();
     });
 
     let rewardedResult: Promise<'earned' | 'cancelled' | 'error' | false> | undefined;
     await act(async () => {
-      rewardedResult = latestValue?.showRewardedStub();
+      rewardedResult = getLatestValue().showRewardedStub();
       await flushMicrotasks();
     });
 
@@ -134,7 +140,7 @@ describe('AdTestProvider', () => {
 
     let interstitialResult: Promise<boolean> | undefined;
     await act(async () => {
-      interstitialResult = latestValue?.showInterstitialStub();
+      interstitialResult = getLatestValue().showInterstitialStub();
       await flushMicrotasks();
     });
 

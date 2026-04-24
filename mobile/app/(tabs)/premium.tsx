@@ -9,6 +9,7 @@ import { IAP_FALLBACK_PRICE } from '../../src/lib/iap';
 import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
+import { BrandProfileCard } from '../../src/components/premium/BrandProfileCard';
 import { trackEvent, trackScreen } from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
@@ -454,6 +455,8 @@ function PremiumIapScreen() {
             description="Sua compra foi reconhecida neste dispositivo. Todos os recursos pagos já estão liberados."
           />
 
+          <BrandProfileCard isPremium={isPremium} />
+
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Tudo liberado na sua conta</Text>
             <View style={styles.benefitsList}>
@@ -558,6 +561,8 @@ function PremiumIapScreen() {
               />
             </View>
           </View>
+
+          <BrandProfileCard isPremium={isPremium} />
 
           <View style={styles.card}>
             <Text style={styles.priceLabel}>Pagamento único</Text>
@@ -727,18 +732,25 @@ function PremiumUnsupportedScreen() {
       </Text>
       <AdBanner enabled={showAds} />
       {isPremium ? (
-        <PremiumStatusCard
-          title="Premium ativo"
-          description="Mesmo nesta build sem suporte a compras, o app reconheceu que sua conta já tem o Premium liberado."
-        />
+        <>
+          <PremiumStatusCard
+            title="Premium ativo"
+            description="Mesmo nesta build sem suporte a compras, o app reconheceu que sua conta já tem o Premium liberado."
+          />
+          <BrandProfileCard isPremium={isPremium} />
+        </>
       ) : (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pagamento único</Text>
-          <Text style={styles.price}>{IAP_FALLBACK_PRICE}</Text>
-          <Text style={styles.helper}>
-            Faça o teste em uma build instalada com App Store ou Play Store para concluir a compra.
-          </Text>
-        </View>
+        <>
+          <BrandProfileCard isPremium={isPremium} />
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Pagamento único</Text>
+            <Text style={styles.price}>{IAP_FALLBACK_PRICE}</Text>
+            <Text style={styles.helper}>
+              Faça o teste em uma build instalada com App Store ou Play Store para concluir a
+              compra.
+            </Text>
+          </View>
+        </>
       )}
       {__DEV__ ? (
         <View style={styles.card}>

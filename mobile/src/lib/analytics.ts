@@ -16,8 +16,9 @@ const host =
     : 'https://us.i.posthog.com';
 
 let posthogClient: PostHog | null = null;
+const posthogEnabled = !__DEV__ && apiKey.length > 0;
 
-if (apiKey) {
+if (posthogEnabled) {
   posthogClient = new PostHog(apiKey, {
     host,
     captureAppLifecycleEvents: true,
@@ -36,6 +37,10 @@ export function analyticsEnabled() {
 
 export function trackEvent(event: string, properties?: AnalyticsProperties) {
   posthogClient?.capture(event, properties);
+}
+
+export function registerAnalyticsProperties(properties: AnalyticsProperties) {
+  posthogClient?.register(properties);
 }
 
 export function trackScreen(screen: string, properties?: AnalyticsProperties) {
