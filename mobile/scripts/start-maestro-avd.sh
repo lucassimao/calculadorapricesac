@@ -3,8 +3,8 @@ set -euo pipefail
 
 MODE="${1:-cold}"
 ANDROID_HOME="${ANDROID_HOME:-$HOME/ProgrammingTools/Android}"
-AVD_NAME="${AVD_NAME:-Small_Phone_360x640}"
-GPU_MODE="${GPU_MODE:-swiftshader}"
+AVD_NAME="${AVD_NAME:-Large_Phone_414x896}"
+GPU_MODE="${GPU_MODE:-swiftshader_indirect}"
 SNAPSHOT_NAME="${SNAPSHOT_NAME:-maestro-ready}"
 EMULATOR_BIN="${EMULATOR_BIN:-$ANDROID_HOME/emulator/emulator}"
 

@@ -8,9 +8,10 @@
 
 ## Emulador recomendado
 
-A suite foi estabilizada no AVD `Small_Phone_360x640`:
+A suite foi estabilizada no AVD `Large_Phone_414x896`:
 
-- Device: `pixel_2`
+- Device: `pixel_5`
+- Resolution: 414x896 dp
 - Target: Android 14 / API 34
 - System image: `google_apis_playstore/x86_64`
 
@@ -26,9 +27,9 @@ export ANDROID_HOME="$HOME/ProgrammingTools/Android"
   "system-images;android-34;google_apis_playstore;x86_64"
 
 echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
-  --name Small_Phone_360x640 \
+  --name Large_Phone_414x896 \
   --package "system-images;android-34;google_apis_playstore;x86_64" \
-  --device "pixel_2"
+  --device "pixel_5"
 ```
 
 Para iniciar visivel:
@@ -37,15 +38,15 @@ Para iniciar visivel:
 npm run avd:maestro:cold
 ```
 
-Esse comando usa o AVD visivel com `-gpu swiftshader`, `-no-boot-anim`, `-no-audio`, `-netfast`, `-no-snapshot-load` e `-no-snapshot-save`.
+Esse comando usa o AVD visivel com `-gpu swiftshader_indirect`, `-no-boot-anim`, `-no-audio`, `-netfast`, `-no-snapshot-load` e `-no-snapshot-save`.
 
-Se `swiftshader` falhar no host local, teste o fallback:
+Se `swiftshader_indirect` falhar no host local, teste o fallback:
 
 ```bash
-GPU_MODE=software npm run avd:maestro:cold
+GPU_MODE=swiftshader npm run avd:maestro:cold
 ```
 
-`-gpu swiftshader_indirect` foi usado antes como workaround para falhas de host GPU/Mesa, mas o modo esta deprecated no emulador atual. Nao use `-no-window`.
+`-gpu swiftshader_indirect` e usado aqui porque o renderer `swiftshader` falhou nesse host com erro de inicializacao OpenGLES. Nao use `-no-window`.
 
 Com o emulador aberto, instale o dev build se necessario:
 

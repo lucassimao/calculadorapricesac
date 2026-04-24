@@ -81,6 +81,8 @@ Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
 ### Eventos principais instrumentados
 
 - `app_open`
+- `app_open_ad_shown`
+- `interstitial_shown`
 - `export_sheet_opened`
 - `export_upgrade_clicked`
 - `premium_entry_clicked`
@@ -98,6 +100,22 @@ Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
 - `export_success`
 - `export_failed`
 - `export_blocked_premium`
+- `professional_export_profile_ready`
+- `professional_export_profile_incomplete`
+- `professional_export_client_modal_opened`
+- `professional_export_client_modal_cancelled`
+- `professional_export_started`
+- `professional_profile_logo_selected`
+- `professional_profile_logo_removed`
+- `professional_profile_saved`
+- `professional_profile_save_blocked_incomplete`
+- `professional_profile_save_failed`
+- `rewarded_export_requested`
+- `rewarded_export_ad_opened`
+- `rewarded_export_ad_reward_earned`
+- `rewarded_export_ad_cancelled`
+- `rewarded_export_ad_failed`
+- `rewarded_export_unlocked`
 - `premium_paywall_viewed`
 - `premium_status_viewed`
 - `premium_status_sync_requested`
@@ -112,8 +130,11 @@ Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
 - `comparison_configuration_updated`
 - `feedback_email_clicked`
 - `feedback_email_opened`
+- `feedback_email_failed`
+- `feedback_email_copied`
 - `feedback_whatsapp_clicked`
 - `feedback_whatsapp_opened`
+- `feedback_whatsapp_failed`
 
 ### Propriedades mais relevantes
 
@@ -137,6 +158,16 @@ Os eventos principais de cenário, exportação e compra carregam propriedades p
 - `store_connected`
 - `store_ready`
 - `price_label`
+- `professional`
+- `professional_client_name`
+- `professional_profile_name_or_company`
+- `professional_profile_registration`
+- `professional_profile_phone`
+- `professional_profile_email`
+- `professional_profile_website`
+- `professional_profile_complete`
+- `professional_profile_has_logo`
+- `professional_profile_contact_field_count`
 
 ## Store assets (capas/screenhots)
 
