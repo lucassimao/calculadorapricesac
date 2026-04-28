@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   StyleSheet,
@@ -14,11 +15,22 @@ import {
   EMPTY_BRAND_PROFILE,
   getBrandProfileAnalyticsProperties,
   getBrandProfileCompletion,
+  getBrandProfileIdentityProperties,
   isBrandProfileComplete,
   normalizeBrandProfile,
 } from '../../types/brand-profile';
-import { loadBrandProfile, saveBrandProfile } from '../../lib/storage/brand-profile';
-import { registerAnalyticsProperties, trackEvent } from '../../lib/analytics';
+import {
+  clearBrandProfile,
+  loadBrandProfile,
+  saveBrandProfile,
+} from '../../lib/storage/brand-profile';
+import {
+  analyticsEnabled,
+  identifyUser,
+  registerAnalyticsProperties,
+  resetAnalyticsIdentity,
+  trackEvent,
+} from '../../lib/analytics';
 
 interface BrandProfileCardProps {
   isPremium: boolean;
@@ -119,6 +131,9 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
       setMessage('Perfil profissional salvo.');
       const analyticsProperties = getBrandProfileAnalyticsProperties(saved);
       registerAnalyticsProperties(analyticsProperties);
+      if (analyticsEnabled()) {
+        await identifyUser(getBrandProfileIdentityProperties(saved)).catch(() => {});
+      }
       trackEvent('professional_profile_saved', analyticsProperties);
     } catch {
       setMessage('Não foi possível salvar o perfil profissional.');
@@ -126,6 +141,39 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
         'professional_profile_save_failed',
         getBrandProfileAnalyticsProperties(normalized),
       );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClear = () => {
+    if (!isPremium || saving) return;
+
+    Alert.alert('Limpar perfil profissional', 'Isso remove os dados salvos neste dispositivo.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Limpar',
+        style: 'destructive',
+        onPress: () => {
+          void clearProfile();
+        },
+      },
+    ]);
+  };
+
+  const clearProfile = async () => {
+    setSaving(true);
+    try {
+      const priorAnalyticsProperties = getBrandProfileAnalyticsProperties(profile);
+      const clearedProfile = await clearBrandProfile();
+      setProfile(clearedProfile);
+      setMessage('Perfil profissional removido.');
+      // Reset before tracking so the cleared event lands on a fresh anon id, not the prior identified user.
+      resetAnalyticsIdentity();
+      trackEvent('professional_profile_cleared', priorAnalyticsProperties);
+    } catch {
+      setMessage('Não foi possível limpar o perfil profissional.');
+      trackEvent('professional_profile_clear_failed');
     } finally {
       setSaving(false);
     }
@@ -294,23 +342,46 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
 
           {message ? (
             <Text
-              style={[styles.message, message.includes('salvo') && styles.successMessage]}
+              style={[
+                styles.message,
+                (message.includes('salvo') || message.includes('removido')) &&
+                  styles.successMessage,
+              ]}
               testID="professional-profile-message"
             >
               {message}
             </Text>
           ) : null}
 
-          <Pressable
-            style={[styles.primaryButton, disabled && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={disabled}
-            accessibilityRole="button"
-            accessibilityLabel="Salvar perfil profissional"
-            testID="professional-profile-save"
-          >
-            <Text style={styles.primaryButtonText}>{saving ? 'Salvando...' : 'Salvar perfil'}</Text>
-          </Pressable>
+          <View style={styles.actionRow}>
+            <Pressable
+              style={[styles.primaryButton, styles.actionButton, disabled && styles.buttonDisabled]}
+              onPress={handleSave}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityLabel="Salvar perfil profissional"
+              testID="professional-profile-save"
+            >
+              <Text style={styles.primaryButtonText}>
+                {saving ? 'Salvando...' : 'Salvar perfil'}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.secondaryButton,
+                styles.actionButton,
+                styles.dangerButton,
+                disabled && styles.buttonDisabled,
+              ]}
+              onPress={handleClear}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityLabel="Limpar perfil profissional"
+              testID="professional-profile-clear"
+            >
+              <Text style={[styles.secondaryButtonText, styles.dangerButtonText]}>Limpar</Text>
+            </Pressable>
+          </View>
         </>
       )}
     </View>
@@ -497,6 +568,21 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontWeight: '600',
     fontSize: 13,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: 132,
+  },
+  dangerButton: {
+    borderColor: '#FCA5A5',
+  },
+  dangerButtonText: {
+    color: '#B91C1C',
   },
   buttonDisabled: {
     opacity: 0.6,

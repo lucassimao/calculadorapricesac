@@ -42,3 +42,8 @@ export async function saveBrandProfile(profile: BrandProfile): Promise<BrandProf
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   return normalized;
 }
+
+export async function clearBrandProfile(): Promise<BrandProfile> {
+  await AsyncStorage.removeItem(STORAGE_KEY);
+  return EMPTY_BRAND_PROFILE;
+}

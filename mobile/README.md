@@ -80,7 +80,7 @@ Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
 
 ### Eventos principais instrumentados
 
-- `app_open`
+- `$app_opened`
 - `app_open_ad_shown`
 - `interstitial_shown`
 - `export_sheet_opened`
@@ -108,6 +108,8 @@ Sem `POSTHOG_API_KEY`, o tracking fica desativado (no-op).
 - `professional_profile_logo_selected`
 - `professional_profile_logo_removed`
 - `professional_profile_saved`
+- `professional_profile_cleared`
+- `professional_profile_clear_failed`
 - `professional_profile_save_blocked_incomplete`
 - `professional_profile_save_failed`
 - `rewarded_export_requested`
@@ -160,13 +162,15 @@ Os eventos principais de cenário, exportação e compra carregam propriedades p
 - `price_label`
 - `professional`
 - `professional_client_name`
-- `professional_profile_name_or_company`
-- `professional_profile_registration`
-- `professional_profile_phone`
-- `professional_profile_email`
-- `professional_profile_website`
 - `professional_profile_complete`
+- `professional_profile_has_name`
+- `professional_profile_has_contact`
+- `professional_profile_has_phone`
+- `professional_profile_has_email`
+- `professional_profile_has_website`
+- `professional_profile_has_registration`
 - `professional_profile_has_logo`
+- `professional_profile_has_custom_accent_color`
 - `professional_profile_contact_field_count`
 
 ## Store assets (capas/screenhots)

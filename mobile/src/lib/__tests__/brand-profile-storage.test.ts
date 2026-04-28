@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isBrandProfileComplete } from '../../types/brand-profile';
-import { loadBrandProfile, saveBrandProfile } from '../storage/brand-profile';
+import { clearBrandProfile, loadBrandProfile, saveBrandProfile } from '../storage/brand-profile';
 
 const storage = new Map<string, string>();
 
@@ -9,6 +9,9 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
     getItem: vi.fn(async (key: string) => storage.get(key) ?? null),
     setItem: vi.fn(async (key: string, value: string) => {
       storage.set(key, value);
+    }),
+    removeItem: vi.fn(async (key: string) => {
+      storage.delete(key);
     }),
   },
 }));
@@ -58,6 +61,28 @@ describe('brand profile storage', () => {
     expect(profile.nameOrCompany).toBe('');
     expect(profile.accentColor).toBe('#2563EB');
     expect(isBrandProfileComplete(profile)).toBe(false);
+  });
+
+  it('clears a saved profile', async () => {
+    await saveBrandProfile({
+      nameOrCompany: 'Prime Credito',
+      phone: '11999990000',
+    });
+
+    const cleared = await clearBrandProfile();
+    const loaded = await loadBrandProfile();
+
+    expect(cleared).toEqual({
+      nameOrCompany: '',
+      registration: '',
+      phone: '',
+      email: '',
+      website: '',
+      accentColor: '#2563EB',
+      logoDataUri: undefined,
+    });
+    expect(loaded.nameOrCompany).toBe('');
+    expect(isBrandProfileComplete(loaded)).toBe(false);
   });
 
   it('requires name or company plus at least one contact field', () => {

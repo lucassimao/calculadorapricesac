@@ -1,10 +1,15 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { Sentry, sentryInitialized } from '../src/lib/sentry';
 import { AdTestProvider } from '../src/contexts/AdTestContext';
 import { ExportProvider } from '../src/contexts/ExportContext';
 import { PremiumProvider } from '../src/contexts/PremiumContext';
-import { analyticsEnabled, registerAnalyticsProperties, trackEvent } from '../src/lib/analytics';
+import {
+  analyticsEnabled,
+  flushAnalytics,
+  registerAnalyticsProperties,
+} from '../src/lib/analytics';
 import { AppOpenAdGate } from '../src/components/AppOpenAdGate';
 import { loadBrandProfile } from '../src/lib/storage/brand-profile';
 import {
@@ -21,11 +26,22 @@ function RootLayout() {
         if (isBrandProfileComplete(profile)) {
           registerAnalyticsProperties(getBrandProfileAnalyticsProperties(profile));
         }
-        trackEvent('app_open');
       })
-      .catch(() => {
-        trackEvent('app_open');
-      });
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!analyticsEnabled()) return;
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background') {
+        void flushAnalytics().catch(() => {});
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   return (

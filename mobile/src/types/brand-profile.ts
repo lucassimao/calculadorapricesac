@@ -1,3 +1,5 @@
+import type { IdentityProperties } from '../lib/analytics';
+
 export interface BrandProfile {
   nameOrCompany: string;
   registration?: string;
@@ -73,16 +75,9 @@ export function getBrandProfileCompletion(profile: BrandProfile | null | undefin
 }
 
 export function getBrandProfileAnalyticsProperties(profile: BrandProfile | null | undefined) {
-  const normalized = normalizeBrandProfile(profile);
-  const completion = getBrandProfileCompletion(normalized);
+  const completion = getBrandProfileCompletion(profile);
 
   return {
-    professional_profile_name_or_company: normalized.nameOrCompany,
-    professional_profile_registration: normalized.registration,
-    professional_profile_phone: normalized.phone,
-    professional_profile_email: normalized.email,
-    professional_profile_website: normalized.website,
-    professional_profile_accent_color: normalized.accentColor,
     professional_profile_complete: completion.isComplete,
     professional_profile_has_name: completion.hasName,
     professional_profile_has_contact: completion.hasContact,
@@ -93,5 +88,19 @@ export function getBrandProfileAnalyticsProperties(profile: BrandProfile | null 
     professional_profile_has_logo: completion.hasLogo,
     professional_profile_has_custom_accent_color: completion.hasCustomAccentColor,
     professional_profile_contact_field_count: completion.contactFieldCount,
+  };
+}
+
+export function getBrandProfileIdentityProperties(
+  profile: BrandProfile | null | undefined,
+): IdentityProperties {
+  const normalized = normalizeBrandProfile(profile);
+
+  return {
+    email: normalized.email || undefined,
+    phone: normalized.phone || undefined,
+    name: normalized.nameOrCompany || undefined,
+    registration: normalized.registration || undefined,
+    website: normalized.website || undefined,
   };
 }
