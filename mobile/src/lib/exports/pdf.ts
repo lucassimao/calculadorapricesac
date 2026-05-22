@@ -5,6 +5,15 @@ import type { BrandProfile } from '../../types/brand-profile';
 import type { LoanSummary, Scenario, ScheduleRow } from '../../types/loan';
 import { DEFAULT_BRAND_ACCENT_COLOR, normalizeBrandProfile } from '../../types/brand-profile';
 import { formatCurrency } from '../calculations';
+import {
+  buildCompositionBars,
+  createChartAreaPath,
+  createChartLinePath,
+  formatChartCurrency,
+  formatCompactCurrency,
+  sampleChartData,
+  type ChartLayout,
+} from '../charts/loan-charting';
 import { formatDateBR } from '../utils';
 import {
   FREE_EXPORT_NOTICE_BODY,
@@ -43,6 +52,20 @@ const PDF_CHART_FULL_WIDTH = 720;
 const PDF_CHART_VERTICAL_PADDING = 24;
 const PDF_CHART_LEFT_GUTTER = 58;
 const PDF_CHART_RIGHT_PADDING = 24;
+const PDF_CHART_HALF_LAYOUT: ChartLayout = {
+  width: PDF_CHART_HALF_WIDTH,
+  height: PDF_CHART_HEIGHT,
+  verticalPadding: PDF_CHART_VERTICAL_PADDING,
+  leftGutter: PDF_CHART_LEFT_GUTTER,
+  rightPadding: PDF_CHART_RIGHT_PADDING,
+};
+const PDF_CHART_FULL_LAYOUT: ChartLayout = {
+  width: PDF_CHART_FULL_WIDTH,
+  height: PDF_CHART_HEIGHT,
+  verticalPadding: PDF_CHART_VERTICAL_PADDING,
+  leftGutter: PDF_CHART_LEFT_GUTTER,
+  rightPadding: PDF_CHART_RIGHT_PADDING,
+};
 
 export interface PdfExportOptions extends ExportOptions {
   brandProfile?: BrandProfile;
@@ -146,75 +169,6 @@ function getProfessionalContactLine(profile: BrandProfile) {
   return [profile.phone, profile.email, profile.website].filter(Boolean).join(' | ');
 }
 
-function sampleChartData(rows: ScheduleRow[], maxPoints: number) {
-  if (rows.length <= maxPoints) return rows;
-  if (maxPoints <= 1) return rows.slice(0, 1);
-
-  const lastIndex = rows.length - 1;
-  const sampledIndexes = new Set<number>();
-
-  for (let pointIndex = 0; pointIndex < maxPoints; pointIndex += 1) {
-    sampledIndexes.add(Math.round((pointIndex * lastIndex) / (maxPoints - 1)));
-  }
-
-  return [...sampledIndexes].sort((left, right) => left - right).map((index) => rows[index]);
-}
-
-function createChartLinePath(
-  values: number[],
-  width: number,
-  height: number,
-  verticalPadding: number,
-  minZero = false,
-) {
-  if (values.length === 0) return '';
-  const min = minZero ? 0 : Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min;
-  const stepX = (width - PDF_CHART_LEFT_GUTTER - PDF_CHART_RIGHT_PADDING) / (values.length - 1 || 1);
-
-  return values
-    .map((value, index) => {
-      const x = PDF_CHART_LEFT_GUTTER + index * stepX;
-      const y =
-        span === 0
-          ? verticalPadding + (height - verticalPadding * 2) / 2
-          : verticalPadding + (1 - (value - min) / span) * (height - verticalPadding * 2);
-      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(' ');
-}
-
-function createChartAreaPath(
-  values: number[],
-  width: number,
-  height: number,
-  verticalPadding: number,
-  minZero = false,
-) {
-  if (values.length === 0) return '';
-  const linePath = createChartLinePath(values, width, height, verticalPadding, minZero);
-  const stepX = (width - PDF_CHART_LEFT_GUTTER - PDF_CHART_RIGHT_PADDING) / (values.length - 1 || 1);
-  const lastX = PDF_CHART_LEFT_GUTTER + (values.length - 1) * stepX;
-  return `${linePath} L ${lastX.toFixed(2)} ${height - verticalPadding} L ${PDF_CHART_LEFT_GUTTER} ${height - verticalPadding} Z`;
-}
-
-function formatCompactCurrency(value: number) {
-  if (value >= 1000000) {
-    return `R$ ${(value / 1000000).toFixed(1)}M`;
-  }
-
-  if (value >= 1000) {
-    return `R$ ${(value / 1000).toFixed(0)}k`;
-  }
-
-  return `R$ ${value.toFixed(0)}`;
-}
-
-function formatChartCurrency(value: number) {
-  return formatCurrency(value).replace(',00', '');
-}
-
 function buildChartGridLines(width: number) {
   return [0, 0.25, 0.5, 0.75, 1]
     .map((ratio) => {
@@ -239,20 +193,9 @@ function buildLineChartSvg(
     return '';
   }
 
-  const linePath = createChartLinePath(
-    values,
-    width,
-    PDF_CHART_HEIGHT,
-    PDF_CHART_VERTICAL_PADDING,
-    minZero,
-  );
-  const areaPath = createChartAreaPath(
-    values,
-    width,
-    PDF_CHART_HEIGHT,
-    PDF_CHART_VERTICAL_PADDING,
-    minZero,
-  );
+  const layout = width === PDF_CHART_FULL_WIDTH ? PDF_CHART_FULL_LAYOUT : PDF_CHART_HALF_LAYOUT;
+  const linePath = createChartLinePath(values, layout, minZero);
+  const areaPath = createChartAreaPath(values, layout, minZero);
   const minLabel = zeroBottomLabel ? 'R$ 0' : formatCompactCurrency(Math.min(...values));
   const maxLabel = formatCompactCurrency(Math.max(...values));
   const firstLabel = formatChartCurrency(values[0] ?? 0);
@@ -282,27 +225,13 @@ function buildLineChartSvg(
 }
 
 function buildCompositionChartSvg(rows: ScheduleRow[]) {
-  const data = sampleChartData(rows, 20);
-  const totals = data.map((row) => row.interest + row.amortization);
-  const maxTotal = Math.max(...totals, 1);
-  const barWidth = Math.max(
-    (PDF_CHART_FULL_WIDTH - PDF_CHART_LEFT_GUTTER - PDF_CHART_RIGHT_PADDING) /
-      Math.max(data.length, 1),
-    8,
-  );
-  const barHeight = PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING * 2;
-  const yBase = PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING;
-  const bars = data
-    .map((row, index) => {
-      const interestHeight = (row.interest / maxTotal) * barHeight;
-      const amortizationHeight = (row.amortization / maxTotal) * barHeight;
-      const x = PDF_CHART_LEFT_GUTTER + index * barWidth + 2;
-      const width = Math.max(barWidth - 4, 4);
-      return `
-        <rect x="${x.toFixed(2)}" y="${(yBase - interestHeight - amortizationHeight).toFixed(2)}" width="${width.toFixed(2)}" height="${interestHeight.toFixed(2)}" fill="${PDF_CHART_COLORS.chartBar1}" rx="2" ry="2" />
-        <rect x="${x.toFixed(2)}" y="${(yBase - amortizationHeight).toFixed(2)}" width="${width.toFixed(2)}" height="${amortizationHeight.toFixed(2)}" fill="${PDF_CHART_COLORS.chartBar2}" rx="2" ry="2" />
-      `;
-    })
+  const bars = buildCompositionBars(rows, PDF_CHART_FULL_LAYOUT, 20)
+    .map(
+      (row) => `
+        <rect x="${row.x.toFixed(2)}" y="${(row.yBase - row.interestHeight - row.amortizationHeight).toFixed(2)}" width="${row.width.toFixed(2)}" height="${row.interestHeight.toFixed(2)}" fill="${PDF_CHART_COLORS.chartBar1}" rx="${row.cornerRadius.toFixed(2)}" ry="${row.cornerRadius.toFixed(2)}" />
+        <rect x="${row.x.toFixed(2)}" y="${(row.yBase - row.amortizationHeight).toFixed(2)}" width="${row.width.toFixed(2)}" height="${row.amortizationHeight.toFixed(2)}" fill="${PDF_CHART_COLORS.chartBar2}" rx="${row.cornerRadius.toFixed(2)}" ry="${row.cornerRadius.toFixed(2)}" />
+      `,
+    )
     .join('');
 
   return `

@@ -4,17 +4,18 @@ appId: com.lsimaocosta.calculadorapricesac
 - runFlow: helpers/enable_premium_dev.yaml
 - tapOn:
     id: 'tab-calculator'
-- swipe:
-    start: 50%, 20%
-    end: 50%, 88%
-- swipe:
-    start: 50%, 20%
-    end: 50%, 88%
 - repeat:
-    times: 4
+    times: 8
     commands:
       - swipe:
-          start: 50%, 82%
-          end: 50%, 35%
+          start: 50%, 20%
+          end: 50%, 88%
+- scrollUntilVisible:
+    element:
+      id: 'section-summary'
+    centerElement: true
+    timeout: 12000
+    speed: 60
+    visibilityPercentage: 10
 - assertVisible:
-    text: 'Resumo'
+    id: 'section-summary'

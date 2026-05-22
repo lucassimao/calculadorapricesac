@@ -13,64 +13,19 @@ import Svg, {
 import type { ScheduleRow } from '../types/loan';
 import { useTheme } from '../lib/theme';
 import { formatCurrency } from '../lib/calculations';
+import {
+  buildCompositionBars,
+  createChartAreaPath,
+  createChartLinePath,
+  formatChartCurrency,
+  formatCompactCurrency,
+  sampleChartData,
+  type ChartLayout,
+} from '../lib/charts/loan-charting';
 
 interface LoanChartsProps {
   schedule: ScheduleRow[];
 }
-
-const sampleData = (rows: ScheduleRow[], maxPoints: number) => {
-  if (rows.length <= maxPoints) return rows;
-  const step = Math.ceil(rows.length / maxPoints);
-  return rows.filter((_, index) => index % step === 0);
-};
-
-const createLinePath = (
-  values: number[],
-  width: number,
-  height: number,
-  padding: number,
-  minZero = false,
-) => {
-  if (values.length === 0) return '';
-  const min = minZero ? 0 : Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min;
-  const stepX = (width - padding * 2) / (values.length - 1 || 1);
-  return values
-    .map((value, index) => {
-      const x = padding + index * stepX;
-      const y =
-        span === 0
-          ? padding + (height - padding * 2) / 2
-          : padding + (1 - (value - min) / span) * (height - padding * 2);
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    })
-    .join(' ');
-};
-
-const createAreaPath = (
-  values: number[],
-  width: number,
-  height: number,
-  padding: number,
-  minZero = false,
-) => {
-  if (values.length === 0) return '';
-  const linePath = createLinePath(values, width, height, padding, minZero);
-  const stepX = (width - padding * 2) / (values.length - 1 || 1);
-  const lastX = padding + (values.length - 1) * stepX;
-  return `${linePath} L ${lastX} ${height - padding} L ${padding} ${height - padding} Z`;
-};
-
-const formatCompactCurrency = (value: number): string => {
-  if (value >= 1000000) {
-    return `R$ ${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `R$ ${(value / 1000).toFixed(0)}k`;
-  }
-  return `R$ ${value.toFixed(0)}`;
-};
 
 export function LoanCharts({ schedule }: LoanChartsProps) {
   const { colors } = useTheme();
@@ -84,73 +39,80 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
   const chartWidthHalf = Math.max(halfBlockWidth - 24, 240);
   const chartWidthFull = Math.max(fullBlockWidth - 24, 240);
   const chartHeight = isTablet ? 200 : 160;
-  const padding = 24;
+  const verticalPadding = 24;
+  const leftGutter = 58;
+  const rightPadding = 24;
+  const halfLayout: ChartLayout = useMemo(
+    () => ({
+      width: chartWidthHalf,
+      height: chartHeight,
+      verticalPadding,
+      leftGutter,
+      rightPadding,
+    }),
+    [chartWidthHalf, chartHeight],
+  );
+  const fullLayout: ChartLayout = useMemo(
+    () => ({
+      width: chartWidthFull,
+      height: chartHeight,
+      verticalPadding,
+      leftGutter,
+      rightPadding,
+    }),
+    [chartWidthFull, chartHeight],
+  );
 
   const data = useMemo(() => {
     const rows = schedule.filter((row) => row.installmentNumber > 0);
-    return sampleData(rows, 60);
+    return sampleChartData(rows, 60);
   }, [schedule]);
 
   const balanceValues = useMemo(() => data.map((row) => row.balance), [data]);
   const paymentValues = useMemo(() => data.map((row) => row.payment), [data]);
 
   const balancePath = useMemo(
-    () => createLinePath(balanceValues, chartWidthHalf, chartHeight, padding, true),
-    [balanceValues, chartWidthHalf, chartHeight],
+    () => createChartLinePath(balanceValues, halfLayout, true),
+    [balanceValues, halfLayout],
   );
 
   const balanceAreaPath = useMemo(
-    () => createAreaPath(balanceValues, chartWidthHalf, chartHeight, padding, true),
-    [balanceValues, chartWidthHalf, chartHeight],
+    () => createChartAreaPath(balanceValues, halfLayout, true),
+    [balanceValues, halfLayout],
   );
 
   const paymentPath = useMemo(
-    () => createLinePath(paymentValues, chartWidthHalf, chartHeight, padding, true),
-    [paymentValues, chartWidthHalf, chartHeight],
+    () => createChartLinePath(paymentValues, halfLayout, true),
+    [paymentValues, halfLayout],
   );
 
   const paymentAreaPath = useMemo(
-    () => createAreaPath(paymentValues, chartWidthHalf, chartHeight, padding, true),
-    [paymentValues, chartWidthHalf, chartHeight],
+    () => createChartAreaPath(paymentValues, halfLayout, true),
+    [paymentValues, halfLayout],
   );
 
   const barData = useMemo(() => {
-    const rows = sampleData(
-      schedule.filter((row) => row.installmentNumber > 0),
-      20,
-    );
-    const totals = rows.map((row) => row.interest + row.amortization);
-    const maxTotal = Math.max(...totals, 1);
-    return rows.map((row, index) => ({
-      index,
-      interest: row.interest,
-      amortization: row.amortization,
-      total: row.interest + row.amortization,
-      maxTotal,
-    }));
-  }, [schedule]);
+    const rows = schedule.filter((row) => row.installmentNumber > 0);
+    return buildCompositionBars(rows, fullLayout, 20);
+  }, [schedule, fullLayout]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
     const rows = schedule.filter((row) => row.installmentNumber > 0);
     if (rows.length === 0) return null;
     const totalInterest = rows.reduce((sum, row) => sum + row.interest, 0);
-    const totalAmortization = rows.reduce((sum, row) => sum + row.amortization, 0);
-    const totalPaid = totalInterest + totalAmortization;
+    const totalPaid = rows.reduce((sum, row) => sum + row.payment, 0);
     const firstPayment = rows[0]?.payment ?? 0;
     const lastPayment = rows[rows.length - 1]?.payment ?? 0;
     const interestPercent = totalPaid > 0 ? (totalInterest / totalPaid) * 100 : 0;
     return {
       totalInterest,
-      totalAmortization,
       totalPaid,
       firstPayment,
       lastPayment,
       interestPercent,
     };
   }, [schedule]);
-
-  const barWidth = Math.max((chartWidthFull - padding * 2) / Math.max(barData.length, 1), 8);
 
   // Dynamic themed styles
   const themedStyles = useMemo(
@@ -246,8 +208,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Saldo Devedor</Text>
             {balanceValues.length > 0 && (
               <Text style={[styles.chartValue, { color: colors.chartLine2 }]}>
-                {formatCompactCurrency(balanceValues[0])} →{' '}
-                {formatCompactCurrency(balanceValues[balanceValues.length - 1])}
+                {formatChartCurrency(balanceValues[0])} →{' '}
+                {formatChartCurrency(balanceValues[balanceValues.length - 1])}
               </Text>
             )}
           </View>
@@ -262,10 +224,16 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {gridLines.map((ratio) => (
               <Line
                 key={ratio}
-                x1={padding}
-                y1={padding + ratio * (chartHeight - padding * 2)}
-                x2={chartWidthHalf - padding}
-                y2={padding + ratio * (chartHeight - padding * 2)}
+                x1={halfLayout.leftGutter}
+                y1={
+                  halfLayout.verticalPadding +
+                  ratio * (halfLayout.height - halfLayout.verticalPadding * 2)
+                }
+                x2={halfLayout.width - halfLayout.rightPadding}
+                y2={
+                  halfLayout.verticalPadding +
+                  ratio * (halfLayout.height - halfLayout.verticalPadding * 2)
+                }
                 stroke={gridLineColor}
                 strokeWidth={0.5}
                 strokeDasharray="4,4"
@@ -286,8 +254,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {balanceValues.length > 0 && (
               <>
                 <SvgText
-                  x={padding - 4}
-                  y={padding + 4}
+                  x={halfLayout.leftGutter - 6}
+                  y={halfLayout.verticalPadding + 4}
                   fontSize={9}
                   fill={colors.textTertiary}
                   textAnchor="end"
@@ -295,8 +263,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
                   {formatCompactCurrency(Math.max(...balanceValues))}
                 </SvgText>
                 <SvgText
-                  x={padding - 4}
-                  y={chartHeight - padding}
+                  x={halfLayout.leftGutter - 6}
+                  y={halfLayout.height - halfLayout.verticalPadding}
                   fontSize={9}
                   fill={colors.textTertiary}
                   textAnchor="end"
@@ -318,8 +286,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             <Text style={[styles.chartLabel, themedStyles.chartLabel]}>Parcelas</Text>
             {paymentValues.length > 0 && (
               <Text style={[styles.chartValue, { color: colors.chartLine1 }]}>
-                {formatCompactCurrency(paymentValues[0])} →{' '}
-                {formatCompactCurrency(paymentValues[paymentValues.length - 1])}
+                {formatChartCurrency(paymentValues[0])} →{' '}
+                {formatChartCurrency(paymentValues[paymentValues.length - 1])}
               </Text>
             )}
           </View>
@@ -334,10 +302,16 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {gridLines.map((ratio) => (
               <Line
                 key={ratio}
-                x1={padding}
-                y1={padding + ratio * (chartHeight - padding * 2)}
-                x2={chartWidthHalf - padding}
-                y2={padding + ratio * (chartHeight - padding * 2)}
+                x1={halfLayout.leftGutter}
+                y1={
+                  halfLayout.verticalPadding +
+                  ratio * (halfLayout.height - halfLayout.verticalPadding * 2)
+                }
+                x2={halfLayout.width - halfLayout.rightPadding}
+                y2={
+                  halfLayout.verticalPadding +
+                  ratio * (halfLayout.height - halfLayout.verticalPadding * 2)
+                }
                 stroke={gridLineColor}
                 strokeWidth={0.5}
                 strokeDasharray="4,4"
@@ -358,8 +332,8 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {paymentValues.length > 0 && (
               <>
                 <SvgText
-                  x={padding - 4}
-                  y={padding + 4}
+                  x={halfLayout.leftGutter - 6}
+                  y={halfLayout.verticalPadding + 4}
                   fontSize={9}
                   fill={colors.textTertiary}
                   textAnchor="end"
@@ -367,13 +341,13 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
                   {formatCompactCurrency(Math.max(...paymentValues))}
                 </SvgText>
                 <SvgText
-                  x={padding - 4}
-                  y={chartHeight - padding}
+                  x={halfLayout.leftGutter - 6}
+                  y={halfLayout.height - halfLayout.verticalPadding}
                   fontSize={9}
                   fill={colors.textTertiary}
                   textAnchor="end"
                 >
-                  {formatCompactCurrency(Math.min(...paymentValues))}
+                  R$ 0
                 </SvgText>
               </>
             )}
@@ -407,54 +381,59 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
             {gridLines.map((ratio) => (
               <Line
                 key={ratio}
-                x1={padding}
-                y1={padding + ratio * (chartHeight - padding * 2)}
-                x2={chartWidthFull - padding}
-                y2={padding + ratio * (chartHeight - padding * 2)}
+                x1={fullLayout.leftGutter}
+                y1={
+                  fullLayout.verticalPadding +
+                  ratio * (fullLayout.height - fullLayout.verticalPadding * 2)
+                }
+                x2={fullLayout.width - fullLayout.rightPadding}
+                y2={
+                  fullLayout.verticalPadding +
+                  ratio * (fullLayout.height - fullLayout.verticalPadding * 2)
+                }
                 stroke={gridLineColor}
                 strokeWidth={0.5}
                 strokeDasharray="4,4"
               />
             ))}
             {barData.map((row) => {
-              const barH = chartHeight - padding * 2;
-              const interestHeight = (row.interest / row.maxTotal) * barH;
-              const amortHeight = (row.amortization / row.maxTotal) * barH;
-              const x = padding + row.index * barWidth + 2;
-              const yBase = chartHeight - padding;
-              const cornerRadius = Math.min(3, (barWidth - 4) / 4);
               return (
                 <G key={row.index}>
                   {/* Interest bar (bottom) */}
                   <Rect
-                    x={x}
-                    y={yBase - interestHeight - amortHeight}
-                    width={Math.max(barWidth - 4, 4)}
-                    height={interestHeight}
+                    x={row.x}
+                    y={row.yBase - row.interestHeight - row.amortizationHeight}
+                    width={row.width}
+                    height={row.interestHeight}
                     fill={colors.chartBar1}
-                    rx={cornerRadius}
-                    ry={cornerRadius}
+                    rx={row.cornerRadius}
+                    ry={row.cornerRadius}
                   />
                   {/* Amortization bar (top) */}
                   <Rect
-                    x={x}
-                    y={yBase - amortHeight}
-                    width={Math.max(barWidth - 4, 4)}
-                    height={amortHeight}
+                    x={row.x}
+                    y={row.yBase - row.amortizationHeight}
+                    width={row.width}
+                    height={row.amortizationHeight}
                     fill={colors.chartBar2}
-                    rx={cornerRadius}
-                    ry={cornerRadius}
+                    rx={row.cornerRadius}
+                    ry={row.cornerRadius}
                   />
                 </G>
               );
             })}
             {/* X-axis labels */}
-            <SvgText x={padding} y={chartHeight - 4} fontSize={9} fill={colors.textTertiary}>
+            <SvgText
+              x={fullLayout.leftGutter}
+              y={fullLayout.height - 4}
+              fontSize={9}
+              fill={colors.textTertiary}
+            >
               Início
             </SvgText>
             <SvgText
-              x={chartWidthFull - padding}
-              y={chartHeight - 4}
+              x={fullLayout.width - fullLayout.rightPadding}
+              y={fullLayout.height - 4}
               fontSize={9}
               fill={colors.textTertiary}
               textAnchor="end"

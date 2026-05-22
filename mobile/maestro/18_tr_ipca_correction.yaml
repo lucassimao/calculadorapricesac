@@ -48,12 +48,13 @@ appId: com.lsimaocosta.calculadorapricesac
 - inputText: '0,5'
 - hideKeyboard
 - assertVisible: '0,5'
-- repeat:
-    times: 3
-    commands:
-      - swipe:
-          start: 50%, 82%
-          end: 50%, 32%
+- scrollUntilVisible:
+    element:
+      id: 'summary-index-type-ipca'
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
 - assertVisible:
     id: 'summary-index-type-ipca'
 - assertVisible:
@@ -61,10 +62,10 @@ appId: com.lsimaocosta.calculadorapricesac
 - assertVisible: '0,50000% a.m.'
 - scrollUntilVisible:
     element:
-      id: 'table-header-correction'
+      id: 'table-meta-row-12'
     centerElement: false
     timeout: 30000
     speed: 70
     visibilityPercentage: 10
 - assertVisible:
-    id: 'table-header-correction'
+    id: 'table-meta-row-12'
