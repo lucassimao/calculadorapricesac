@@ -314,6 +314,11 @@ describe('exports', () => {
     expect(html).toContain('<strong>Prazo original:</strong> 12 meses');
     expect(html).toContain('<strong>Prazo efetivo:</strong> 2 parcelas');
     expect(html).toContain('class="overviewGrid"');
+    expect(html).toContain('<h2 class="sectionTitle">Gráficos</h2>');
+    expect(html).toContain('Saldo Devedor');
+    expect(html).toContain('Parcelas');
+    expect(html).toContain('Composição das Parcelas');
+    expect(html).toContain('<svg class="chartSvg"');
     expect(sharedPdf?.writes[0]).toBeInstanceOf(Uint8Array);
     expect(shareAsync).toHaveBeenCalledWith(
       expect.stringContaining('relatorio_financiamento.pdf'),
@@ -352,10 +357,36 @@ describe('exports', () => {
     expect(html).toContain('data:image/png;base64,abc123');
     expect(html).toContain('#047857');
     expect(html).toContain('Simulação meramente informativa');
+    expect(html).toContain('<h2 class="sectionTitle">Gráficos</h2>');
+    expect(html).toContain('Saldo Devedor');
+    expect(html).toContain('Composição das Parcelas');
     expect(shareAsync).toHaveBeenCalledWith(
       expect.stringContaining('relatorio_profissional_financiamento.pdf'),
       expect.objectContaining({ mimeType: 'application/pdf' }),
     );
+  });
+
+  it('keeps the real final installment in sampled PDF charts', async () => {
+    const longSchedule = buildLongSchedule(62).map((row) =>
+      row.installmentNumber === 0
+        ? row
+        : {
+            ...row,
+            payment: row.installmentNumber === 62 ? 500 : 10000,
+            balance: (62 - row.installmentNumber) * 1000,
+          },
+    );
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await exportPdf(scenario, summary, longSchedule);
+
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(html).toContain('R$ 61.000 para R$ 0');
+    expect(html).toContain('R$ 10.000 para R$ 500');
   });
 
   it('rejects professional PDF export without brand profile', async () => {
@@ -503,6 +534,7 @@ describe('exports', () => {
     expect(html).toContain('<h1>Tabela de Amortização</h1>');
     expect(html).not.toContain('<strong>Cenário:</strong>');
     expect(html).not.toContain('<h2>Resumo</h2>');
+    expect(html).not.toContain('<h2 class="sectionTitle">Gráficos</h2>');
   });
 
   it('exports rewarded CSV and XLSX with only the first 10 rows plus an upgrade notice', async () => {
@@ -565,6 +597,7 @@ describe('exports', () => {
     expect(html).toContain('Gerado na versão gratuita');
     expect(html).toContain('Assine o Premium para exportar a versão completa');
     expect(html).toContain(`Mostrando ${expectedVisibleRows} de 60 parcelas`);
+    expect(html).not.toContain('<h2 class="sectionTitle">Gráficos</h2>');
     expect(installmentCells).toHaveLength(expectedVisibleRows);
     expect(installmentCells[0]).toBe('1');
     expect(installmentCells.at(-1)).toBe(String(expectedVisibleRows));

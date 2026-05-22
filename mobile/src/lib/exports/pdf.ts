@@ -27,6 +27,22 @@ const A4_LANDSCAPE_WIDTH_PT = 842;
 const A4_LANDSCAPE_HEIGHT_PT = 595;
 const PROFESSIONAL_PDF_DISCLAIMER =
   'Simulação meramente informativa. Condições finais dependem de análise cadastral, política da instituição financeira e atualização dos encargos aplicáveis.';
+const PDF_CHART_COLORS = {
+  text: '#111827',
+  textTertiary: '#4B5563',
+  border: '#D1D5DB',
+  backgroundSecondary: '#F9FAFB',
+  chartLine1: '#1D4ED8',
+  chartLine2: '#DC2626',
+  chartBar1: '#EA580C',
+  chartBar2: '#16A34A',
+};
+const PDF_CHART_HEIGHT = 108;
+const PDF_CHART_HALF_WIDTH = 340;
+const PDF_CHART_FULL_WIDTH = 720;
+const PDF_CHART_VERTICAL_PADDING = 24;
+const PDF_CHART_LEFT_GUTTER = 58;
+const PDF_CHART_RIGHT_PADDING = 24;
 
 export interface PdfExportOptions extends ExportOptions {
   brandProfile?: BrandProfile;
@@ -130,6 +146,206 @@ function getProfessionalContactLine(profile: BrandProfile) {
   return [profile.phone, profile.email, profile.website].filter(Boolean).join(' | ');
 }
 
+function sampleChartData(rows: ScheduleRow[], maxPoints: number) {
+  if (rows.length <= maxPoints) return rows;
+  if (maxPoints <= 1) return rows.slice(0, 1);
+
+  const lastIndex = rows.length - 1;
+  const sampledIndexes = new Set<number>();
+
+  for (let pointIndex = 0; pointIndex < maxPoints; pointIndex += 1) {
+    sampledIndexes.add(Math.round((pointIndex * lastIndex) / (maxPoints - 1)));
+  }
+
+  return [...sampledIndexes].sort((left, right) => left - right).map((index) => rows[index]);
+}
+
+function createChartLinePath(
+  values: number[],
+  width: number,
+  height: number,
+  verticalPadding: number,
+  minZero = false,
+) {
+  if (values.length === 0) return '';
+  const min = minZero ? 0 : Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min;
+  const stepX = (width - PDF_CHART_LEFT_GUTTER - PDF_CHART_RIGHT_PADDING) / (values.length - 1 || 1);
+
+  return values
+    .map((value, index) => {
+      const x = PDF_CHART_LEFT_GUTTER + index * stepX;
+      const y =
+        span === 0
+          ? verticalPadding + (height - verticalPadding * 2) / 2
+          : verticalPadding + (1 - (value - min) / span) * (height - verticalPadding * 2);
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(' ');
+}
+
+function createChartAreaPath(
+  values: number[],
+  width: number,
+  height: number,
+  verticalPadding: number,
+  minZero = false,
+) {
+  if (values.length === 0) return '';
+  const linePath = createChartLinePath(values, width, height, verticalPadding, minZero);
+  const stepX = (width - PDF_CHART_LEFT_GUTTER - PDF_CHART_RIGHT_PADDING) / (values.length - 1 || 1);
+  const lastX = PDF_CHART_LEFT_GUTTER + (values.length - 1) * stepX;
+  return `${linePath} L ${lastX.toFixed(2)} ${height - verticalPadding} L ${PDF_CHART_LEFT_GUTTER} ${height - verticalPadding} Z`;
+}
+
+function formatCompactCurrency(value: number) {
+  if (value >= 1000000) {
+    return `R$ ${(value / 1000000).toFixed(1)}M`;
+  }
+
+  if (value >= 1000) {
+    return `R$ ${(value / 1000).toFixed(0)}k`;
+  }
+
+  return `R$ ${value.toFixed(0)}`;
+}
+
+function formatChartCurrency(value: number) {
+  return formatCurrency(value).replace(',00', '');
+}
+
+function buildChartGridLines(width: number) {
+  return [0, 0.25, 0.5, 0.75, 1]
+    .map((ratio) => {
+      const y =
+        PDF_CHART_VERTICAL_PADDING +
+        ratio * (PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING * 2);
+      return `<line x1="${PDF_CHART_LEFT_GUTTER}" y1="${y.toFixed(2)}" x2="${width - PDF_CHART_RIGHT_PADDING}" y2="${y.toFixed(2)}" stroke="${PDF_CHART_COLORS.border}" stroke-width="0.5" stroke-dasharray="4,4" />`;
+    })
+    .join('');
+}
+
+function buildLineChartSvg(
+  values: number[],
+  width: number,
+  title: string,
+  lineColor: string,
+  gradientId: string,
+  minZero = true,
+  zeroBottomLabel = false,
+) {
+  if (values.length === 0) {
+    return '';
+  }
+
+  const linePath = createChartLinePath(
+    values,
+    width,
+    PDF_CHART_HEIGHT,
+    PDF_CHART_VERTICAL_PADDING,
+    minZero,
+  );
+  const areaPath = createChartAreaPath(
+    values,
+    width,
+    PDF_CHART_HEIGHT,
+    PDF_CHART_VERTICAL_PADDING,
+    minZero,
+  );
+  const minLabel = zeroBottomLabel ? 'R$ 0' : formatCompactCurrency(Math.min(...values));
+  const maxLabel = formatCompactCurrency(Math.max(...values));
+  const firstLabel = formatChartCurrency(values[0] ?? 0);
+  const lastLabel = formatChartCurrency(values[values.length - 1] ?? 0);
+
+  return `
+    <div class="chartBlock">
+      <div class="chartHeader">
+        <p class="chartLabel">${title}</p>
+        <p class="chartValue" style="color: ${lineColor};">${firstLabel} para ${lastLabel}</p>
+      </div>
+      <svg class="chartSvg" viewBox="0 0 ${width} ${PDF_CHART_HEIGHT}" role="img" aria-label="Gráfico de ${title}">
+        <defs>
+          <linearGradient id="${gradientId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="${lineColor}" stop-opacity="0.05" />
+          </linearGradient>
+        </defs>
+        ${buildChartGridLines(width)}
+        <path d="${areaPath}" fill="url(#${gradientId})" />
+        <path d="${linePath}" stroke="${lineColor}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        <text x="${PDF_CHART_LEFT_GUTTER - 6}" y="${PDF_CHART_VERTICAL_PADDING + 4}" font-size="9" fill="${PDF_CHART_COLORS.textTertiary}" text-anchor="end">${maxLabel}</text>
+        <text x="${PDF_CHART_LEFT_GUTTER - 6}" y="${PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING}" font-size="9" fill="${PDF_CHART_COLORS.textTertiary}" text-anchor="end">${minLabel}</text>
+      </svg>
+    </div>
+  `;
+}
+
+function buildCompositionChartSvg(rows: ScheduleRow[]) {
+  const data = sampleChartData(rows, 20);
+  const totals = data.map((row) => row.interest + row.amortization);
+  const maxTotal = Math.max(...totals, 1);
+  const barWidth = Math.max(
+    (PDF_CHART_FULL_WIDTH - PDF_CHART_LEFT_GUTTER - PDF_CHART_RIGHT_PADDING) /
+      Math.max(data.length, 1),
+    8,
+  );
+  const barHeight = PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING * 2;
+  const yBase = PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING;
+  const bars = data
+    .map((row, index) => {
+      const interestHeight = (row.interest / maxTotal) * barHeight;
+      const amortizationHeight = (row.amortization / maxTotal) * barHeight;
+      const x = PDF_CHART_LEFT_GUTTER + index * barWidth + 2;
+      const width = Math.max(barWidth - 4, 4);
+      return `
+        <rect x="${x.toFixed(2)}" y="${(yBase - interestHeight - amortizationHeight).toFixed(2)}" width="${width.toFixed(2)}" height="${interestHeight.toFixed(2)}" fill="${PDF_CHART_COLORS.chartBar1}" rx="2" ry="2" />
+        <rect x="${x.toFixed(2)}" y="${(yBase - amortizationHeight).toFixed(2)}" width="${width.toFixed(2)}" height="${amortizationHeight.toFixed(2)}" fill="${PDF_CHART_COLORS.chartBar2}" rx="2" ry="2" />
+      `;
+    })
+    .join('');
+
+  return `
+    <div class="chartBlock chartBlockFull">
+      <div class="chartHeader">
+        <p class="chartLabel">Composição das Parcelas</p>
+      </div>
+      <div class="chartLegend">
+        <span><i style="background: ${PDF_CHART_COLORS.chartBar1};"></i>Juros</span>
+        <span><i style="background: ${PDF_CHART_COLORS.chartBar2};"></i>Amortização</span>
+      </div>
+      <svg class="chartSvg" viewBox="0 0 ${PDF_CHART_FULL_WIDTH} ${PDF_CHART_HEIGHT}" role="img" aria-label="Gráfico de composição das parcelas">
+        ${buildChartGridLines(PDF_CHART_FULL_WIDTH)}
+        ${bars}
+        <text x="${PDF_CHART_LEFT_GUTTER}" y="${PDF_CHART_HEIGHT - 4}" font-size="9" fill="${PDF_CHART_COLORS.textTertiary}">Início</text>
+        <text x="${PDF_CHART_FULL_WIDTH - PDF_CHART_RIGHT_PADDING}" y="${PDF_CHART_HEIGHT - 4}" font-size="9" fill="${PDF_CHART_COLORS.textTertiary}" text-anchor="end">Fim</text>
+      </svg>
+      <p class="chartSubtitle">No início, maior parte da parcela são juros. Com o tempo, a amortização domina.</p>
+    </div>
+  `;
+}
+
+function buildPdfChartsSection(rows: ScheduleRow[]) {
+  if (rows.length === 0) {
+    return '';
+  }
+
+  const lineData = sampleChartData(rows, 60);
+  const balanceValues = lineData.map((row) => row.balance);
+  const paymentValues = lineData.map((row) => row.payment);
+
+  return `
+    <section class="chartsSection">
+      <h2 class="sectionTitle">Gráficos</h2>
+      <div class="chartsGrid">
+        ${buildLineChartSvg(balanceValues, PDF_CHART_HALF_WIDTH, 'Saldo Devedor', PDF_CHART_COLORS.chartLine2, 'pdfBalanceGradient', true, true)}
+        ${buildLineChartSvg(paymentValues, PDF_CHART_HALF_WIDTH, 'Parcelas', PDF_CHART_COLORS.chartLine1, 'pdfPaymentGradient', true, true)}
+        ${buildCompositionChartSvg(rows)}
+      </div>
+    </section>
+  `;
+}
+
 function buildProfessionalHtml(
   scenario: Scenario,
   summary: LoanSummary,
@@ -139,6 +355,7 @@ function buildProfessionalHtml(
   const hasCorrection = Boolean(scenario.indexType);
   const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
   const tableRows = buildTableRows(rows, hasCorrection);
+  const chartsSection = buildPdfChartsSection(rows);
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
   const profile = normalizeBrandProfile(options.brandProfile);
@@ -198,8 +415,22 @@ function buildProfessionalHtml(
           .coverList li:last-child { margin-bottom: 0; }
           .coverList strong { color: #111827; }
           .sectionTitle { border-left: 4px solid ${accentColor}; padding-left: 8px; margin: 0 0 10px; }
-          .overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-          .overviewCard p { margin: 0 0 6px; font-size: 11px; line-height: 1.3; }
+          .overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+          .overviewCard { padding: 8px 10px; }
+          .overviewCard h2 { font-size: 13px; margin: 0 0 5px; }
+          .overviewCard p { margin: 0 0 3px; font-size: 9px; line-height: 1.15; }
+          .chartsSection { margin: 0 0 10px; break-inside: avoid; page-break-inside: avoid; }
+          .chartsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .chartBlock { border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; background: ${PDF_CHART_COLORS.backgroundSecondary}; break-inside: avoid; page-break-inside: avoid; }
+          .chartBlockFull { grid-column: 1 / -1; }
+          .chartHeader { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 3px; }
+          .chartLabel { margin: 0; font-size: 10px; font-weight: 700; color: ${PDF_CHART_COLORS.text}; }
+          .chartValue { margin: 0; font-size: 8px; font-weight: 700; }
+          .chartSvg { display: block; width: 100%; height: 108px; }
+          .chartLegend { display: flex; gap: 12px; margin: -1px 0 2px; font-size: 8px; color: ${PDF_CHART_COLORS.textTertiary}; }
+          .chartLegend span { display: inline-flex; align-items: center; gap: 4px; }
+          .chartLegend i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; }
+          .chartSubtitle { margin: 2px 0 0; font-size: 8px; color: ${PDF_CHART_COLORS.textTertiary}; }
           .tableTitle { margin-bottom: 10px; break-after: avoid; page-break-after: avoid; }
           table { width: 100%; border-collapse: collapse; margin-top: 0; page-break-inside: auto; }
           thead { display: table-header-group; }
@@ -373,6 +604,7 @@ function buildProfessionalHtml(
               <p><strong>Última Parcela:</strong> ${formatCurrency(summary.lastPayment)}</p>
             </div>
           </div>
+          ${chartsSection}
           <h2 class="sectionTitle tableTitle">Tabela de Amortização</h2>
           <table>
             ${buildTableHead(hasCorrection)}
@@ -394,6 +626,7 @@ function buildPremiumHtml(
 ) {
   const hasCorrection = Boolean(scenario.indexType);
   const tableRows = buildTableRows(rows, hasCorrection);
+  const chartsSection = options?.tableOnly ? '' : buildPdfChartsSection(rows);
   const originalTerm = formatExportTerm(scenario.term, scenario.termUnit);
   const effectiveTerm = formatEffectiveInstallmentCount(rows.length);
   const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
@@ -444,10 +677,10 @@ function buildPremiumHtml(
           <p><strong>1ª Parcela:</strong> ${formatCurrency(summary.firstPayment)}</p>
           <p><strong>Última Parcela:</strong> ${formatCurrency(summary.lastPayment)}</p>
         </div>
-      </section>
-      <h2 class="tableTitle">Tabela de Amortização</h2>`;
+      </section>`;
 
   const title = options?.tableOnly ? 'Tabela de Amortização' : 'Relatório de Financiamento';
+  const tableHeading = options?.tableOnly ? '' : '<h2 class="tableTitle">Tabela de Amortização</h2>';
 
   return `
     <html>
@@ -455,13 +688,27 @@ function buildPremiumHtml(
         <style>
           @page { size: A4 landscape; margin: 10mm; }
           html, body { margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; padding: 14px; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          h1 { font-size: 20px; margin: 0 0 12px; }
-          h2 { font-size: 16px; margin: 0 0 8px; }
-          .overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-          .overviewCard { border: 1px solid #E5E7EB; border-radius: 10px; padding: 10px 12px; break-inside: avoid; }
-          .overviewCard p { margin: 0 0 6px; font-size: 12px; line-height: 1.3; }
-          .tableTitle { margin-bottom: 10px; break-after: avoid; page-break-after: avoid; }
+          body { font-family: Arial, sans-serif; padding: 12px 14px; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          h1 { font-size: 18px; margin: 0 0 8px; }
+          h2 { font-size: 14px; margin: 0 0 6px; }
+          .sectionTitle { border-left: 4px solid #2563EB; padding-left: 8px; margin: 0 0 7px; }
+          .overviewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 9px; }
+          .overviewCard { border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 10px; break-inside: avoid; }
+          .overviewCard h2 { font-size: 13px; margin: 0 0 5px; }
+          .overviewCard p { margin: 0 0 3px; font-size: 9px; line-height: 1.15; }
+          .chartsSection { margin: 0 0 9px; break-inside: avoid; page-break-inside: avoid; }
+          .chartsGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .chartBlock { border: 1px solid #E5E7EB; border-radius: 8px; padding: 7px 9px; background: ${PDF_CHART_COLORS.backgroundSecondary}; break-inside: avoid; page-break-inside: avoid; }
+          .chartBlockFull { grid-column: 1 / -1; }
+          .chartHeader { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 3px; }
+          .chartLabel { margin: 0; font-size: 10px; font-weight: 700; color: ${PDF_CHART_COLORS.text}; }
+          .chartValue { margin: 0; font-size: 8px; font-weight: 700; }
+          .chartSvg { display: block; width: 100%; height: 108px; }
+          .chartLegend { display: flex; gap: 12px; margin: -1px 0 2px; font-size: 8px; color: ${PDF_CHART_COLORS.textTertiary}; }
+          .chartLegend span { display: inline-flex; align-items: center; gap: 4px; }
+          .chartLegend i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; }
+          .chartSubtitle { margin: 2px 0 0; font-size: 8px; color: ${PDF_CHART_COLORS.textTertiary}; }
+          .tableTitle { margin-bottom: 7px; break-after: avoid; page-break-after: avoid; }
           .tableWrap { break-inside: auto; page-break-inside: auto; }
           table { width: 100%; border-collapse: collapse; margin-top: 0; page-break-inside: auto; }
           thead { display: table-header-group; }
@@ -476,6 +723,8 @@ function buildPremiumHtml(
       <body>
         <h1>${title}</h1>
         ${overviewSection}
+        ${chartsSection}
+        ${tableHeading}
         <div class="tableWrap">
           <table>
             ${buildTableHead(hasCorrection)}
