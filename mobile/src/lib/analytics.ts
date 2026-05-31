@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { JsonType } from '@posthog/core';
 import { PostHog } from 'posthog-react-native';
 
@@ -25,6 +26,7 @@ const host =
 
 let posthogClient: PostHog | null = null;
 const posthogEnabled = !__DEV__ && apiKey.length > 0;
+const INSTALL_TRACKED_KEY = '@calculadora-price-sac:analytics:install_tracked:v1';
 
 function getBaseAnalyticsProperties(): AnalyticsProperties {
   return {
@@ -52,6 +54,16 @@ export function analyticsEnabled() {
 
 export function trackEvent(event: string, properties?: AnalyticsProperties) {
   posthogClient?.capture(event, properties);
+}
+
+export async function trackInstallIfNeeded() {
+  if (!posthogClient) return;
+
+  const alreadyTracked = await AsyncStorage.getItem(INSTALL_TRACKED_KEY);
+  if (alreadyTracked === 'true') return;
+
+  await AsyncStorage.setItem(INSTALL_TRACKED_KEY, 'true');
+  trackEvent('$app_installed', getBaseAnalyticsProperties());
 }
 
 export function registerAnalyticsProperties(properties: AnalyticsProperties) {

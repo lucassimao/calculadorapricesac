@@ -170,6 +170,7 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
       setMessage('Perfil profissional removido.');
       // Reset before tracking so the cleared event lands on a fresh anon id, not the prior identified user.
       resetAnalyticsIdentity();
+      registerAnalyticsProperties(getBrandProfileAnalyticsProperties(clearedProfile));
       trackEvent('professional_profile_cleared', priorAnalyticsProperties);
     } catch {
       setMessage('Não foi possível limpar o perfil profissional.');

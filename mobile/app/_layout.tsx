@@ -9,23 +9,27 @@ import {
   analyticsEnabled,
   flushAnalytics,
   registerAnalyticsProperties,
+  trackInstallIfNeeded,
+  trackEvent,
 } from '../src/lib/analytics';
 import { AppOpenAdGate } from '../src/components/AppOpenAdGate';
 import { loadBrandProfile } from '../src/lib/storage/brand-profile';
-import {
-  getBrandProfileAnalyticsProperties,
-  isBrandProfileComplete,
-} from '../src/types/brand-profile';
+import { getBrandProfileAnalyticsProperties } from '../src/types/brand-profile';
 
 function RootLayout() {
   useEffect(() => {
     if (!analyticsEnabled()) return;
 
+    trackEvent('$app_opened');
+    void trackInstallIfNeeded().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!analyticsEnabled()) return;
+
     loadBrandProfile()
       .then((profile) => {
-        if (isBrandProfileComplete(profile)) {
-          registerAnalyticsProperties(getBrandProfileAnalyticsProperties(profile));
-        }
+        registerAnalyticsProperties(getBrandProfileAnalyticsProperties(profile));
       })
       .catch(() => {});
   }, []);
