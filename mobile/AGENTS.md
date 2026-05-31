@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-- Expo 54 mobile app (iOS + Android only) for a SAC/Price loan calculator.
+- Expo 56 mobile app (iOS + Android only) for a SAC/Price loan calculator.
 - PT-BR only, offline-first; no backend or sign-in.
 - Freemium: ads for free users; one-time IAP (R$ 10,00) removes ads and unlocks exports (PDF/XLSX/CSV).
 - Premium users can also configure a professional brand profile and generate branded PDF reports.
@@ -47,7 +47,7 @@
 
 ## Tech Stack
 
-- Expo 54, TypeScript, ESLint (flat config)
+- Expo 56, TypeScript, ESLint (flat config)
 - Local storage only (no server persistence)
 
 ## Dev Commands (run in `mobile/`)
@@ -77,7 +77,7 @@
 - IAP SKU: `remove_ads` (iOS + Android).
 - IAP fallback price label: `IAP_FALLBACK_PRICE` em `src/lib/iap.ts`.
 - IAP não funciona no Expo Go (Store Client); só em builds de desenvolvimento/produção.
-- AdMob IDs ficam em `app.json` e o banner usa `src/components/AdBanner.tsx`.
+- AdMob IDs ficam em `app.config.js` e o banner usa `src/components/AdBanner.tsx`.
 - Exportadores em `src/lib/exports/` (CSV/XLSX/PDF) e usam `expo-sharing`.
 - Perfil profissional em `src/lib/storage/brand-profile.ts`; nao persistir segredo ou imagem fora do storage local.
 - EAS build: `eas.json` presente, `expo-constants` instalado, `react-native-worklets` fixado na versão do SDK.

@@ -58,10 +58,10 @@ No EAS:
 
 ## 4) Versão, ícones e assets
 
-- Atualizar `expo.version` (semver) em `app.json`.
+- Atualizar `expo.version` (semver) em `app.config.js`.
 - Garantir ícones/splash em `assets/` com dimensões corretas.
 - Conferir nome e slug do app.
-- Confirmar `android.package` em `app.json` (ex.: `com.lsimaocosta.calculadorapricesac`).
+- Confirmar `android.package` em `app.config.js` (ex.: `com.lsimaocosta.calculadorapricesac`).
 
 ## 5) Qualidade e validações
 
@@ -93,11 +93,11 @@ Submissão:
 
 ## 7) EAS Build (setup obrigatório)
 
-- Projeto EAS vinculado (ver `extra.eas.projectId` no `app.json`).
+- Projeto EAS vinculado (ver `extra.eas.projectId` no `app.config.js`).
 - Chaves Android geradas no EAS (keystore remoto).
-- `react-dom` travado em `19.1.0` para evitar conflito de peer deps no build local.
+- `react-dom` travado na versão compatível com o SDK 56.
 - `expo-constants` instalado (peer dependency do `expo-router`).
-- `react-native-worklets` na versão compatível do SDK 54 (`0.5.1`).
+- `react-native-worklets` na versão compatível do SDK 56.
 - **Sem** `googleMobileAdsAppId` em `expo.ios` e `expo.android` (o schema do Expo não aceita).
 - Build local: `eas build -p android --local`
 - Build remoto: `eas build -p android` / `eas build -p ios`
@@ -117,7 +117,7 @@ Como usamos o **Expo config plugin**, esse warning pode ser ignorado.
 
 ### Pontos críticos antes do go‑live
 
-- IDs reais de AdMob no plugin do `app.json`.
+- IDs reais de AdMob no plugin do `app.config.js`.
 - Ad Unit ID real no `AdBanner.tsx`.
 - SKU `remove_ads` criado e aprovado nas duas lojas.
 - Versão atualizada e builds testados.

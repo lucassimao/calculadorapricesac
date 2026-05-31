@@ -70,7 +70,6 @@ export default {
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: true,
     updates: {
       url: 'https://u.expo.dev/6d83845b-fcdd-4771-9479-8bbf3030c1a6',
     },
@@ -89,7 +88,6 @@ export default {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: 'com.lsimaocosta.calculadorapricesac',
     },
@@ -97,8 +95,13 @@ export default {
       favicon: './assets/favicon.png',
     },
     plugins: [
-      '@sentry/react-native/expo',
+      '@react-native-community/datetimepicker',
+      '@sentry/react-native',
       'expo-router',
+      'expo-font',
+      'expo-localization',
+      'expo-sharing',
+      'expo-status-bar',
       [
         'react-native-google-mobile-ads',
         {

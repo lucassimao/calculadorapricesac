@@ -3,6 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import {
   ActionSheetIOS,
   ActivityIndicator,
+  type ColorValue,
   Modal,
   Platform,
   Pressable,
@@ -26,7 +27,7 @@ function ExportTabIcon({
   size,
   isPremium,
 }: {
-  color: string;
+  color: ColorValue;
   size: number;
   isPremium: boolean;
 }) {
