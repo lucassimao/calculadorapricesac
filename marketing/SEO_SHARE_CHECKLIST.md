@@ -44,3 +44,8 @@ Se tiver, setar as variáveis de ambiente no Vercel:
 - `NEXT_PUBLIC_APP_STORE_URL` (custom URL scheme)
 - `NEXT_PUBLIC_PLAY_STORE_ID`
 - `NEXT_PUBLIC_PLAY_STORE_URL` (custom URL scheme)
+
+## 7) Google Ads (Search → site)
+- NEXT_PUBLIC_GADS_ID = AW-XXXXXXXXX        (loads gtag.js)
+- NEXT_PUBLIC_GADS_CONVERSION = AW-XXXXXXXXX/label   (fires on App Store click)
+Set both in Vercel env. Until set, no Google tag loads and conversions are a no-op.
