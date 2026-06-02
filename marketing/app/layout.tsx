@@ -11,7 +11,7 @@ const appStoreId = '6757717537';
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 const playStoreId = process.env.NEXT_PUBLIC_PLAY_STORE_ID;
 const playStoreUrl = process.env.NEXT_PUBLIC_PLAY_STORE_URL;
-const gadsId = 'AW-979847621'; // Google Ads tag
+const gadsId = process.env.NEXT_PUBLIC_GADS_ID || 'AW-17604353847';
 
 const manrope = Manrope({
   subsets: ['latin'],
