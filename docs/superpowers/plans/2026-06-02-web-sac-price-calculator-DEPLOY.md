@@ -1,9 +1,24 @@
 # Deploy checklist — web calculator
 
+## Engine sharing architecture (context)
+The loan engine's single source of truth is the **mobile app**
+(`mobile/src/lib/calculations.ts` + `mobile/src/types/loan.ts`), where it originated and
+where its 98-test vitest suite runs. Mobile bundles it natively — **no mobile config
+changes, EAS builds unaffected.**
+
+Neither Metro (mobile) nor Turbopack (marketing) can bundle imports from a folder outside
+its own project root, so a separate top-level `shared/` folder was abandoned. Instead,
+`marketing` generates an in-root copy at build time: `marketing/scripts/sync-loan-engine.mjs`
+(wired to `prebuild`/`predev`) copies the two engine files from `../mobile/src` into a
+gitignored `marketing/loan-engine-shim/`, rewriting the engine's `../types/loan` import to
+`./loan`. Next's `@loan-engine/*` aliases point at that copy; **tsc and vitest alias directly
+at the mobile source**, so the copy cannot silently drift (a mismatch would fail a type
+check or test). A future cleanup could promote the engine to a proper workspace package and
+drop the copy step.
+
 ## Vercel (required, dashboard)
-The marketing build needs the shared engine at `../shared/loan-engine` available at build
-time (a `prebuild` step copies it into `marketing/loan-engine-shim/`, which Turbopack can
-bundle). So the repo root must be in the build context. Do ONE of:
+Because marketing's `prebuild` reads `../mobile/src` at build time, the **repo root must be
+in the build context**. Do ONE of:
 - Set Settings → General → Root Directory to the **repo root**, with
   Build Command `cd marketing && pnpm build`, Install `cd marketing && pnpm install`,
   Output `marketing/.next`; OR
@@ -11,12 +26,6 @@ bundle). So the repo root must be in the build context. Do ONE of:
   "Include source files outside of the Root Directory in the Build Step".
 Redeploy and confirm `/` renders the calculator and the build log shows the
 `[sync-loan-engine]` line + `✓ externalDir` + `Compiled successfully`.
-
-Note: Turbopack cannot resolve imports outside the project root, so we copy
-`shared/loan-engine` into a gitignored `marketing/loan-engine-shim/` at build time
-(scripts/sync-loan-engine.mjs, wired to prebuild/predev). Source of truth stays in
-`shared/`; tests and tsc read it directly so the copy cannot drift. If we later adopt a
-proper workspace package for the engine, this copy step can be removed.
 
 ## Google Ads (required for conversion tracking)
 - Create a conversion action (Website → "App Store click").

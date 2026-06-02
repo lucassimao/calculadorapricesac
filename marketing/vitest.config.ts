@@ -6,7 +6,11 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@loan-engine': fileURLToPath(new URL('../shared/loan-engine', import.meta.url)),
+      // Tests read the engine's single source directly from the mobile app.
+      '@loan-engine/calculations': fileURLToPath(
+        new URL('../mobile/src/lib/calculations.ts', import.meta.url),
+      ),
+      '@loan-engine/loan': fileURLToPath(new URL('../mobile/src/types/loan.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./', import.meta.url)),
     },
   },
