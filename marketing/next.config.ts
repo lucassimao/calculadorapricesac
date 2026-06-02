@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   experimental: {
     externalDir: true,
   },
+  turbopack: {
+    resolveAlias: {
+      '@loan-engine/calculations': './loan-engine-shim/calculations',
+      '@loan-engine/loan': './loan-engine-shim/loan',
+    },
+  },
 };
 
 export default nextConfig;

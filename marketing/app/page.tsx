@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import { siteUrl } from './site-url';
 import { AppStoreLink } from './AppStoreLink';
+import { Simulator } from './components/Simulator/Simulator';
 
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
@@ -130,82 +131,7 @@ export default function Home() {
           </div>
         </div>
         <div className={styles.heroCard}>
-          <div className={styles.heroDevice}>
-            <div className={styles.previewGrid}>
-              <div className={styles.previewCard}>
-                <div className={styles.previewTitle}>Resumo rápido</div>
-                <div className={styles.metricRow}>
-                  <span>Entrada</span>
-                  <span>R$ 80.000</span>
-                </div>
-                <div className={styles.metricRow}>
-                  <span>Financiado</span>
-                  <span className={styles.metricValue}>R$ 320.000</span>
-                </div>
-                <div className={styles.metricRow}>
-                  <span>1ª parcela (SAC)</span>
-                  <span>R$ 3.890</span>
-                </div>
-                <div className={styles.metricRow}>
-                  <span>Última parcela</span>
-                  <span>R$ 1.980</span>
-                </div>
-                <div className={styles.metricRow}>
-                  <span>CET (a.a.)</span>
-                  <span className={styles.metricValue}>13,8%</span>
-                </div>
-              </div>
-              <div className={styles.previewCard}>
-                <div className={styles.previewTitle}>Gráficos</div>
-                <div className={styles.miniCharts}>
-                  <svg
-                    className={styles.curveLine}
-                    viewBox="0 0 240 70"
-                    role="img"
-                    aria-label="Curva de saldo devedor"
-                  >
-                    <path
-                      d="M4 16 C 70 10, 140 18, 220 60"
-                      fill="none"
-                      stroke="#d64b3c"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <svg
-                    className={styles.flatLine}
-                    viewBox="0 0 240 10"
-                    role="img"
-                    aria-label="Linha de parcelas"
-                  >
-                    <line
-                      x1="6"
-                      y1="5"
-                      x2="234"
-                      y2="5"
-                      stroke="#2f6bdd"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className={styles.barRow} aria-hidden="true">
-                    <span className={styles.barOrange} style={{ height: '80%' }} />
-                    <span className={styles.barOrange} style={{ height: '78%' }} />
-                    <span className={styles.barOrange} style={{ height: '76%' }} />
-                    <span className={styles.barOrange} style={{ height: '72%' }} />
-                    <span className={styles.barOrange} style={{ height: '70%' }} />
-                    <span className={styles.barOrange} style={{ height: '64%' }} />
-                    <span className={styles.barOrange} style={{ height: '60%' }} />
-                    <span className={styles.barOrange} style={{ height: '56%' }} />
-                    <span className={styles.barOrange} style={{ height: '52%' }} />
-                    <span className={styles.barOrange} style={{ height: '48%' }} />
-                    <span className={styles.barOrange} style={{ height: '42%' }} />
-                    <span className={styles.barGreen} style={{ height: '55%' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Simulator />
         </div>
       </section>
 
