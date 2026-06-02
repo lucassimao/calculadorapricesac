@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './page.module.css';
+import { siteUrl } from './site-url';
+import { AppStoreLink } from './AppStoreLink';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com.br';
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
 export const metadata: Metadata = {
-  title: 'Simulador SAC e Price',
+  title: { absolute: 'Simulador de Financiamento Imobiliário SAC e Price' },
   description:
     'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
   alternates: {
@@ -48,7 +49,7 @@ export default function Home() {
     '@context': 'https://schema.org',
     '@type': 'MobileApplication',
     name: 'Calculadora Price & SAC',
-    operatingSystem: 'iOS, Android',
+    operatingSystem: 'iOS',
     applicationCategory: 'FinanceApplication',
     description:
       'Simulador de financiamento imobiliário com SAC e Price. Funciona offline, com tabela completa, FGTS e exportações Premium.',
@@ -59,6 +60,7 @@ export default function Home() {
       priceCurrency: 'BRL',
       category: 'Free',
     },
+    installUrl: appStoreUrl,
     url: siteUrl,
   };
 
@@ -81,7 +83,7 @@ export default function Home() {
             veja o impacto de FGTS, amortizações extras e taxas opcionais no seu bolso.
           </p>
           <div className={`${styles.heroActions} ${styles.fadeUp} ${styles.delay3}`}>
-            <a className={styles.primaryButton} href={appStoreUrl}>
+            <AppStoreLink className={styles.primaryButton} href={appStoreUrl} location="hero">
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
@@ -95,7 +97,7 @@ export default function Home() {
                 </svg>
               </span>
               App Store
-            </a>
+            </AppStoreLink>
             <span
               className={`${styles.secondaryButton} ${styles.disabledButton}`}
               aria-disabled="true"
@@ -358,7 +360,7 @@ export default function Home() {
             offline.
           </p>
           <div className={styles.ctaActions}>
-            <a className={styles.primaryButton} href={appStoreUrl}>
+            <AppStoreLink className={styles.primaryButton} href={appStoreUrl} location="cta">
               <span className={styles.storeIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
                   <path
@@ -372,7 +374,7 @@ export default function Home() {
                 </svg>
               </span>
               App Store
-            </a>
+            </AppStoreLink>
             <span
               className={`${styles.secondaryButton} ${styles.disabledButton}`}
               aria-disabled="true"

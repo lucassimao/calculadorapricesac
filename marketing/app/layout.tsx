@@ -1,12 +1,11 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 import styles from './site.module.css';
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com.br';
+import { siteUrl } from './site-url';
 const appStoreId = '6757717537';
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 const playStoreId = process.env.NEXT_PUBLIC_PLAY_STORE_ID;
@@ -44,7 +43,7 @@ export const metadata: Metadata = {
     'CET',
     'FGTS',
   ],
-  authors: [{ name: 'Lucas Simão Costa', url: 'https://calculadorapricesac.com' }],
+  authors: [{ name: 'Lucas Simão Costa', url: siteUrl }],
   creator: 'Lucas Simão Costa',
   publisher: 'Calculadora Price & SAC',
   robots: {
@@ -108,6 +107,11 @@ export const metadata: Metadata = {
       : {}),
     ...(playStoreUrl ? { 'twitter:app:url:googleplay': playStoreUrl } : {}),
   },
+};
+
+export const viewport: Viewport = {
+  // Matches the cream header background so mobile browser chrome blends in.
+  themeColor: '#f6f4f0',
 };
 
 export default function RootLayout({
