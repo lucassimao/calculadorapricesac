@@ -21,9 +21,14 @@ export function Simulator() {
 
   const model = useMemo(() => {
     const { sac, price } = buildScenarios(inputs);
-    const validation = validateScenario(sac);
-    if (validation.errors.length > 0) {
-      return { errors: validation.errors, result: null };
+    // validateScenario has no system-specific rules, so validating `sac` covers both systems.
+    const errors = [...validateScenario(sac).errors];
+    // The engine accepts a 0% rate; for this lite calculator an empty/zero rate is invalid input.
+    if (inputs.annualRate <= 0) {
+      errors.push('Informe uma taxa de juros maior que zero.');
+    }
+    if (errors.length > 0) {
+      return { errors, result: null };
     }
     const sacSchedule = generateAmortizationSchedule(sac);
     const priceSchedule = generateAmortizationSchedule(price);

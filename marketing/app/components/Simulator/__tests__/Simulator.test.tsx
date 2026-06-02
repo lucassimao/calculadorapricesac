@@ -17,4 +17,11 @@ describe('Simulator', () => {
     expect(screen.queryByText('1ª parcela')).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
+
+  it('hides results and shows an alert when the interest rate is zero', () => {
+    render(<Simulator />);
+    fireEvent.change(screen.getByLabelText('Taxa de juros anual'), { target: { value: '0' } });
+    expect(screen.queryByText('1ª parcela')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
 });
