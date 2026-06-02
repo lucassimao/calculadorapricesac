@@ -135,6 +135,7 @@ export default function RootLayout({
               </Link>
               <nav className={styles.nav}>
                 <Link href="/">Início</Link>
+                <Link href="/guias">Guias</Link>
                 <Link href="/privacidade">Privacidade</Link>
                 <Link href="/termos">Termos</Link>
                 <Link href="/suporte">Suporte</Link>
