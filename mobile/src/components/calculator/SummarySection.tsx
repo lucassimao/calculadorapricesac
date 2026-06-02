@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { CorrectionIndexType, LoanSummary } from '../../types/loan';
-import { formatCurrency } from '../../lib/calculations';
+import type { CorrectionIndexType, LoanSummary } from '@loan-engine/loan';
+import { formatCurrency } from '@loan-engine/calculations';
 import { formatCorrectionRate } from '../../lib/exports/formatters';
 import { useTheme } from '../../lib/theme';
 

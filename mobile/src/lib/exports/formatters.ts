@@ -1,4 +1,4 @@
-import type { Scenario } from '../../types/loan';
+import type { Scenario } from '@loan-engine/loan';
 
 const TERM_UNIT_LABELS: Record<Scenario['termUnit'], string> = {
   months: 'meses',

@@ -1,4 +1,4 @@
-import type { CorrectionIndexType } from '../types/loan';
+import type { CorrectionIndexType } from '@loan-engine/loan';
 
 const BACEN_SERIES: Record<CorrectionIndexType, number> = {
   TR: 226,

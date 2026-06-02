@@ -10,9 +10,9 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
-import type { ScheduleRow } from '../types/loan';
+import type { ScheduleRow } from '@loan-engine/loan';
 import { useTheme } from '../lib/theme';
-import { formatCurrency } from '../lib/calculations';
+import { formatCurrency } from '@loan-engine/calculations';
 import {
   buildCompositionBars,
   createChartAreaPath,

@@ -6,7 +6,7 @@ import { exportCsv } from '../exports/csv';
 import { exportPdf } from '../exports/pdf';
 import { exportXlsx } from '../exports/xlsx';
 import { FREE_EXPORT_ROW_LIMIT, getFreePdfVisibleRowLimit } from '../exports/access';
-import type { LoanSummary, Scenario, ScheduleRow } from '../../types/loan';
+import type { LoanSummary, Scenario, ScheduleRow } from '@loan-engine/loan';
 import { normalizeWorksheetRows } from '../exports/worksheet-normalizer.mjs';
 
 const { shareAsync, printToFileAsync, createdFiles } = vi.hoisted(() => ({

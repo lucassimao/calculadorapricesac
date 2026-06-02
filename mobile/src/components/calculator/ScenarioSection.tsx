@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { Scenario } from '../../types/loan';
-import { formatCurrency } from '../../lib/calculations';
+import type { Scenario } from '@loan-engine/loan';
+import { formatCurrency } from '@loan-engine/calculations';
 import { useTheme } from '../../lib/theme';
 
 interface ScenarioSectionProps {

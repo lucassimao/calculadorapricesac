@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
-import type { ScheduleRow } from '../types/loan';
-import { formatCurrency } from '../lib/calculations';
+import type { ScheduleRow } from '@loan-engine/loan';
+import { formatCurrency } from '@loan-engine/calculations';
 import { useTheme } from '../lib/theme';
 
 type ColumnKey =

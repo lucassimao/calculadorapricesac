@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ['@loan-engine/calculations', '@loan-engine/loan'],
 };
 
 export default nextConfig;

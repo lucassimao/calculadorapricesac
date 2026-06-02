@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { CorrectionIndexType } from '../../types/loan';
+import type { CorrectionIndexType } from '@loan-engine/loan';
 import { useTheme } from '../../lib/theme';
 
 interface IndexSelectorProps {

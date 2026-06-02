@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
-import type { LoanSummary, ScheduleRow, Scenario } from '../../types/loan';
+import type { LoanSummary, ScheduleRow, Scenario } from '@loan-engine/loan';
 import { formatDateBR } from '../utils';
 import {
   buildFreeExportNoticeRows,

@@ -19,13 +19,13 @@ import type {
   FgtsEvent,
   PrepaymentEvent,
   Scenario,
-} from '../../src/types/loan';
+} from '@loan-engine/loan';
 import {
   calculateLoanSummary,
   formatCurrency,
   generateAmortizationSchedule,
   validateScenario,
-} from '../../src/lib/calculations';
+} from '@loan-engine/calculations';
 import { fetchLatestIndexRate } from '../../src/lib/bacen';
 import { formatDateBR, maskCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';

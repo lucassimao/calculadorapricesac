@@ -1,31 +1,43 @@
 # Deploy checklist — web calculator
 
 ## Engine sharing architecture (context)
-The loan engine's single source of truth is the **mobile app**
-(`mobile/src/lib/calculations.ts` + `mobile/src/types/loan.ts`), where it originated and
-where its 98-test vitest suite runs. Mobile bundles it natively — **no mobile config
-changes, EAS builds unaffected.**
+The loan engine's single source of truth is now a pair of local package directories inside
+the mobile project:
 
-Neither Metro (mobile) nor Turbopack (marketing) can bundle imports from a folder outside
-its own project root, so a separate top-level `shared/` folder was abandoned. Instead,
-`marketing` generates an in-root copy at build time: `marketing/scripts/sync-loan-engine.mjs`
-(wired to `prebuild`/`predev`) copies the two engine files from `../mobile/src` into a
-gitignored `marketing/loan-engine-shim/`, rewriting the engine's `../types/loan` import to
-`./loan`. Next's `@loan-engine/*` aliases point at that copy; **tsc and vitest alias directly
-at the mobile source**, so the copy cannot silently drift (a mismatch would fail a type
-check or test). A future cleanup could promote the engine to a proper workspace package and
-drop the copy step.
+- `mobile/packages/@loan-engine/loan/src/index.ts`
+- `mobile/packages/@loan-engine/calculations/src/index.ts`
+
+Both apps import the engine through the package specifiers `@loan-engine/loan` and
+`@loan-engine/calculations`. Mobile depends on them with `file:packages/...`, so its
+`node_modules/@loan-engine/*` links stay inside `mobile/` and remain reproducible for EAS.
+Marketing depends on the same package folders with `file:../mobile/packages/...`; pnpm
+resolves them through `marketing/node_modules`, and Next transpiles the two packages via
+`transpilePackages`.
+
+There is no build-time copy, sync script, generated shim, or tsconfig/vitest alias for the
+engine. The TypeScript source in `mobile/packages/@loan-engine/*/src/index.ts` is the only
+engine source.
 
 ## Vercel (required, dashboard)
-Because marketing's `prebuild` reads `../mobile/src` at build time, the **repo root must be
-in the build context**. Do ONE of:
+Because `marketing/package.json` depends on `file:../mobile/packages/@loan-engine/*`, the
+**repo root must be in the install/build context**. Do ONE of:
 - Set Settings → General → Root Directory to the **repo root**, with
   Build Command `cd marketing && pnpm build`, Install `cd marketing && pnpm install`,
   Output `marketing/.next`; OR
 - Keep Root Directory = `marketing` and enable
-  "Include source files outside of the Root Directory in the Build Step".
+  "Include source files outside of the Root Directory in the Build Step" so Vercel can read
+  `../mobile/packages/@loan-engine/*` during install.
 Redeploy and confirm `/` renders the calculator and the build log shows the
-`[sync-loan-engine]` line + `✓ externalDir` + `Compiled successfully`.
+Next.js Turbopack build reaches `Compiled successfully`.
+
+## Local verification
+- `cd mobile && npm test` — 98 passed
+- `cd mobile && npx tsc --noEmit` — clean
+- `cd mobile && npx expo export --platform ios` — exported `dist` without engine resolution errors
+- `cd marketing && pnpm test` — 11 passed
+- `cd marketing && npx tsc --noEmit` — clean
+- `cd marketing && pnpm lint` — clean
+- `cd marketing && pnpm build` — `Compiled successfully`
 
 ## Google Ads (required for conversion tracking)
 - Create a conversion action (Website → "App Store click").

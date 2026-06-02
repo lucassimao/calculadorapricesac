@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { Scenario } from '../../src/types/loan';
+import type { Scenario } from '@loan-engine/loan';
 import {
   calculateLoanSummary,
   formatCurrency,
   generateAmortizationSchedule,
-} from '../../src/lib/calculations';
+} from '@loan-engine/calculations';
 import { buildQuickComparisonScenario } from '../../src/lib/comparison';
 import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';

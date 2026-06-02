@@ -1,4 +1,4 @@
-import type { FgtsEvent, LoanSummary, PrepaymentEvent, Scenario, ScheduleRow } from '../types/loan';
+import type { FgtsEvent, LoanSummary, PrepaymentEvent, Scenario, ScheduleRow } from '@loan-engine/loan';
 
 const roundCents = (value: number) => Math.round(value * 100) / 100;
 

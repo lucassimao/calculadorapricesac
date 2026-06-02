@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@loan-engine/calculations':
+        specifier: file:../mobile/packages/@loan-engine/calculations
+        version: file:../mobile/packages/@loan-engine/calculations(@loan-engine/loan@file:../mobile/packages/@loan-engine/loan)
+      '@loan-engine/loan':
+        specifier: file:../mobile/packages/@loan-engine/loan
+        version: file:../mobile/packages/@loan-engine/loan
       '@vercel/analytics':
         specifier: ^1.6.1
         version: 1.6.1(next@16.1.1(@babel/core@7.28.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
@@ -422,6 +428,14 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@loan-engine/calculations@file:../mobile/packages/@loan-engine/calculations':
+    resolution: {directory: ../mobile/packages/@loan-engine/calculations, type: directory}
+    peerDependencies:
+      '@loan-engine/loan': 0.0.0
+
+  '@loan-engine/loan@file:../mobile/packages/@loan-engine/loan':
+    resolution: {directory: ../mobile/packages/@loan-engine/loan, type: directory}
 
   '@napi-rs/wasm-runtime@0.2.12':
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
@@ -2762,6 +2776,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@loan-engine/calculations@file:../mobile/packages/@loan-engine/calculations(@loan-engine/loan@file:../mobile/packages/@loan-engine/loan)':
+    dependencies:
+      '@loan-engine/loan': file:../mobile/packages/@loan-engine/loan
+
+  '@loan-engine/loan@file:../mobile/packages/@loan-engine/loan': {}
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:

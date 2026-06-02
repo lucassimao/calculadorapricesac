@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Scenario } from '../../types/loan';
+import type { Scenario } from '@loan-engine/loan';
 import { buildQuickComparisonScenario } from '../comparison';
 
 const baseScenario: Scenario = {

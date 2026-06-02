@@ -1,5 +1,5 @@
-import type { ScheduleRow } from '../../types/loan';
-import { formatCurrency } from '../calculations';
+import type { ScheduleRow } from '@loan-engine/loan';
+import { formatCurrency } from '@loan-engine/calculations';
 
 export interface ChartLayout {
   width: number;

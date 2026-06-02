@@ -1,4 +1,4 @@
-import type { Scenario } from '../types/loan';
+import type { Scenario } from '@loan-engine/loan';
 
 export function buildQuickComparisonScenario(baseAmount: number, scenario: Scenario): Scenario {
   const downPayment = scenario.downPayment ?? 0;

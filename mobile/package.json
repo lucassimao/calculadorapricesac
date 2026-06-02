@@ -26,6 +26,8 @@
     "build:android:local:internal": "eas build -p android --local --profile internal"
   },
   "dependencies": {
+    "@loan-engine/calculations": "file:packages/@loan-engine/calculations",
+    "@loan-engine/loan": "file:packages/@loan-engine/loan",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
@@ -38,7 +40,7 @@
     "expo-device": "~56.0.4",
     "expo-file-system": "~56.0.7",
     "expo-font": "~56.0.5",
-    "expo-iap": "^3.4.0",
+    "expo-iap": "^3.4.13",
     "expo-image-picker": "~56.0.15",
     "expo-insights": "~56.0.15",
     "expo-linking": "~56.0.13",

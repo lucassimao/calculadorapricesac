@@ -5,8 +5,8 @@ import {
   convertRateToMonthly,
   generateAmortizationSchedule,
   validateScenario,
-} from '../calculations';
-import type { Scenario } from '../../types/loan';
+} from '@loan-engine/calculations';
+import type { Scenario } from '@loan-engine/loan';
 
 const baseScenario: Scenario = {
   id: 'test',

@@ -2,9 +2,9 @@ import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import type { BrandProfile } from '../../types/brand-profile';
-import type { LoanSummary, Scenario, ScheduleRow } from '../../types/loan';
+import type { LoanSummary, Scenario, ScheduleRow } from '@loan-engine/loan';
 import { DEFAULT_BRAND_ACCENT_COLOR, normalizeBrandProfile } from '../../types/brand-profile';
-import { formatCurrency } from '../calculations';
+import { formatCurrency } from '@loan-engine/calculations';
 import {
   buildCompositionBars,
   createChartAreaPath,

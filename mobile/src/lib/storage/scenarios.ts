@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { FgtsEvent, PrepaymentEvent, Scenario } from '../../types/loan';
+import type { FgtsEvent, PrepaymentEvent, Scenario } from '@loan-engine/loan';
 
 const STORAGE_KEY = 'scenarios:v1';
 

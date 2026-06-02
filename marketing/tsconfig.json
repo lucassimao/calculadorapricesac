@@ -19,9 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@loan-engine/calculations": ["../mobile/src/lib/calculations"],
-      "@loan-engine/loan": ["../mobile/src/types/loan"]
+      "@/*": ["./*"]
     }
   },
   "include": [
