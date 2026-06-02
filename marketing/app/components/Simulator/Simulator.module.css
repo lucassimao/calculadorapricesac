@@ -1,0 +1,59 @@
+.simulator { display: flex; flex-direction: column; gap: 16px; }
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(25, 25, 25, 0.06);
+}
+
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); font-weight: 600;
+}
+.inputWrap {
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 9px 11px;
+}
+.inputWrap:focus-within { border-color: var(--accent); }
+.affix { color: var(--muted); font-size: 13px; font-weight: 500; }
+.input {
+  border: 0; outline: 0; background: transparent; width: 100%;
+  font: inherit; font-weight: 600; font-size: 15px; color: var(--ink);
+}
+.error { color: #b3261e; font-size: 12px; margin: 2px 0 0; }
+
+.results { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile { border-radius: var(--radius-md); padding: 14px; }
+.tileSac { background: var(--accent-soft); }
+.tilePrice { background: var(--highlight); }
+.tileName { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; margin-bottom: 8px; }
+.tileName small { font-weight: 500; color: var(--muted); font-size: 11px; }
+.kv { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 4px 0; }
+.kv b { color: var(--ink); font-weight: 700; }
+
+.chartCard { padding: 12px 14px; }
+.chart { width: 100%; height: 64px; display: block; }
+.legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-top: 6px; }
+.legendDot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+.tablePreview { position: relative; overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th { text-align: right; color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; padding: 4px 0; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { text-align: right; padding: 5px 0; border-top: 1px solid var(--line); }
+.tableFade { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: linear-gradient(transparent, var(--bg-elevated)); pointer-events: none; }
+.tableCaption { text-align: center; font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+
+.unlock { background: var(--accent-strong); color: #fff; border-radius: var(--radius-md); padding: 16px; text-align: center; }
+.unlockTitle { font-weight: 700; margin-bottom: 4px; }
+.unlockList { font-size: 12px; opacity: 0.9; line-height: 1.5; margin: 0 0 12px; }
+
+@media (max-width: 520px) {
+  .fields { grid-template-columns: 1fr 1fr; }
+  .results { grid-template-columns: 1fr; }
+}
