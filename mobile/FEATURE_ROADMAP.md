@@ -13,7 +13,7 @@ Revision 2 — 2026-08-01. Sources: codebase audit, PostHog usage data (project 
 
 ### Execution protocol (per-item workflow — follow in this exact order)
 
-- Branch per item: `roadmap/<item-id>-<slug>` (e.g. `roadmap/p0-2-first-installment`). Never commit directly to `main`.
+Items are worked sequentially on the current branch — no per-item branches. An item is **done** when it passes all quality checks below and meets its spec; only then is the next item unlocked.
 
 For every item, in order:
 
@@ -22,8 +22,8 @@ For every item, in order:
 3. **Run the full test suite**: `cd mobile && npm test` — all green, including pre-existing tests.
 4. **Visual/emulator tests (required for any item that touches UI):** validate the important flows locally with **Maestro on the Android emulator** (the agent runs on Linux) — keep the existing flows passing, and when the item adds or changes a screen (P0.3's CET display, all of P1, P2.1–P2.3, P2.5, P2.7's result screens), add or update a Maestro flow covering the new UI state in the same branch. Note in the completion note that visual verification was Android-only.
 5. **Static checks, immediately before commit**: `cd mobile && npx tsc --noEmit`; lint if a lint script exists; apply the repo's formatter (e.g. `npx prettier --write` on touched files if Prettier is configured). Plus `cd marketing && npm run build` whenever `mobile/packages/@loan-engine/*` or anything the site imports was touched.
-6. **Commit** locally with a descriptive message. **Do not push, open PRs, publish releases, or submit builds** — stop after committing.
-7. Only when steps 1–6 are all clean: check the item off with its completion note and **proceed to the next item in the list**.
+6. **Commit** locally with a descriptive message (one commit per item, plus the roadmap checkbox update). **Do not push, open PRs, publish releases, or submit builds.**
+7. Only when steps 1–6 are all clean is the item done: check it off with its completion note and **proceed to the next item in the list**.
 
 - **Blocked protocol:** if an item needs owner-only access (App Store Connect, PostHog web UI, real device, paid accounts), complete every automatable part, then mark the checkbox `[b]` with `BLOCKED — owner action: <exact steps for Lucas>`. Never fake or skip the blocked part silently.
 
