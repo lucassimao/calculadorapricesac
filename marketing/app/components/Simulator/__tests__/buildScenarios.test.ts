@@ -23,12 +23,20 @@ describe('buildScenarios', () => {
     expect(sac.termUnit).toBe('years');
   });
 
-  it('produces summaries where SAC first payment > last and PRICE is flat', () => {
+  it('keeps regular PRICE installments flat and exposes the final cent-ledger true-up', () => {
     const { sac, price } = buildScenarios(DEFAULT_INPUTS);
-    const sacSum = calculateLoanSummary(generateAmortizationSchedule(sac), sac);
-    const priceSum = calculateLoanSummary(generateAmortizationSchedule(price), price);
+    const sacSchedule = generateAmortizationSchedule(sac);
+    const priceSchedule = generateAmortizationSchedule(price);
+    const sacSum = calculateLoanSummary(sacSchedule, sac);
+    const priceSum = calculateLoanSummary(priceSchedule, price);
+    const regularPricePayments = priceSchedule.slice(1, -1).map((row) => row.payment);
+
     expect(sacSum.firstPayment).toBeGreaterThan(sacSum.lastPayment);
-    expect(priceSum.firstPayment).toBeCloseTo(priceSum.lastPayment, 0);
+    expect(regularPricePayments.every((payment) => payment === priceSum.firstPayment)).toBe(true);
+    expect(priceSum.firstPayment).toBe(3031.72);
+    // Before the cent ledger, the test treated the final payment as flat. The reconciled
+    // ledger makes the accumulated rounding explicit in a 3031.72 -> 3029.05 true-up.
+    expect(priceSum.lastPayment).toBe(3029.05);
     expect(sacSum.cet).toMatchObject({ status: 'available', root: 'positive' });
     if (sacSum.cet.status === 'available') {
       expect(sacSum.cet.annualRate).toBeGreaterThan(0);

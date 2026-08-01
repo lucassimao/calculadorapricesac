@@ -8,6 +8,8 @@ import type {
 } from '@loan-engine/loan';
 
 const roundCents = (value: number) => Math.round(value * 100) / 100;
+const toCents = (value: number) => Math.round(value * 100);
+const fromCents = (value: number) => value / 100;
 
 export interface ValidationResult {
   errors: string[];
@@ -54,18 +56,20 @@ function getMonthlyCorrectionRate(scenario: Scenario): number | null {
 }
 
 function applyBalanceCorrection(
-  balance: number,
+  balanceCents: number,
   monthlyCorrectionRate: number | null,
-): { balance: number; indexCorrection?: number } {
+): { balanceCents: number; indexCorrectionCents?: number } {
   if (monthlyCorrectionRate === null) {
-    return { balance };
+    return { balanceCents };
   }
 
-  const originalBalance = balance;
-  const correctedBalance = Math.max(balance + roundCents(balance * monthlyCorrectionRate), 0);
+  const indexCorrectionCents = Math.max(
+    Math.round(balanceCents * monthlyCorrectionRate),
+    -balanceCents,
+  );
   return {
-    balance: correctedBalance,
-    indexCorrection: roundCents(correctedBalance - originalBalance),
+    balanceCents: balanceCents + indexCorrectionCents,
+    indexCorrectionCents,
   };
 }
 
@@ -158,9 +162,9 @@ export function calculatePricePayment(
   termMonths: number,
 ): number {
   if (monthlyRate === 0) return principal / termMonths;
-  const numerator = monthlyRate * Math.pow(1 + monthlyRate, termMonths);
-  const denominator = Math.pow(1 + monthlyRate, termMonths) - 1;
-  return principal * (numerator / denominator);
+  const discountExponent = -termMonths * Math.log1p(monthlyRate);
+  const denominator = -Math.expm1(discountExponent);
+  return (principal * monthlyRate) / denominator;
 }
 
 export function calculateSacAmortization(principal: number, termMonths: number): number {
@@ -294,7 +298,10 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
 
   const schedule: ScheduleRow[] = [];
   const fgtsDownPayment = getFgtsDownPayment(scenario);
-  let balance = Math.max(getFinancedPrincipal(scenario) - fgtsDownPayment, 0);
+  let balanceCents = Math.max(
+    toCents(getFinancedPrincipal(scenario)) - toCents(fgtsDownPayment),
+    0,
+  );
   let currentDate = getFirstDueDate(scenario.startDate, scenario.dueDay);
   const prepayments = scenario.prepayments ?? [];
   const fgtsEvents = scenario.fgtsEvents ?? [];
@@ -309,7 +316,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     payment: 0,
     interest: 0,
     amortization: 0,
-    balance: roundCents(balance),
+    balance: fromCents(balanceCents),
   });
 
   const getPrepaymentsForMonth = (installmentDate: Date): MonthlyAmortization[] => {
@@ -339,89 +346,110 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   };
 
   if (scenario.system === 'PRICE') {
-    let fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths);
+    let fixedPaymentCents = toCents(
+      calculatePricePayment(fromCents(balanceCents), monthlyRate, termMonths),
+    );
     for (let i = 1; i <= termMonths; i++) {
-      const corrected = applyBalanceCorrection(balance, monthlyCorrectionRate);
-      balance = corrected.balance;
-      const indexCorrection = corrected.indexCorrection;
+      const corrected = applyBalanceCorrection(balanceCents, monthlyCorrectionRate);
+      balanceCents = corrected.balanceCents;
+      const indexCorrection =
+        corrected.indexCorrectionCents === undefined
+          ? undefined
+          : fromCents(corrected.indexCorrectionCents);
       if (monthlyCorrectionRate !== null) {
-        fixedPayment = calculatePricePayment(balance, monthlyRate, termMonths - i + 1);
+        fixedPaymentCents = toCents(
+          calculatePricePayment(fromCents(balanceCents), monthlyRate, termMonths - i + 1),
+        );
       }
 
-      const interest = balance * monthlyRate;
-      let amortization = fixedPayment - interest;
-      let payment = fixedPayment;
-      const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(balance, scenario);
+      const interestCents = Math.round(balanceCents * monthlyRate);
+      let amortizationCents = Math.max(fixedPaymentCents - interestCents, 0);
+      if (i === termMonths || amortizationCents >= balanceCents) {
+        amortizationCents = balanceCents;
+      }
+      let paymentCents = interestCents + amortizationCents;
+      const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(
+        fromCents(balanceCents),
+        scenario,
+      );
 
       const installmentDate = new Date(currentDate);
       setDayClamped(installmentDate, scenario.dueDay);
 
       const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
-      let fgtsAmortization = 0;
-      let prepaymentAmount = 0;
+      let fgtsAmortizationCents = 0;
+      let prepaymentAmountCents = 0;
       let prepaymentDescription: string | undefined;
 
       if (prepaymentsForMonth.length > 0) {
+        let remainingPrepaymentCapacityCents = balanceCents - amortizationCents;
         for (const prepayment of prepaymentsForMonth) {
-          let amount = 0;
+          let amountCents = 0;
           if (prepayment.type === 'fixed_amount') {
-            amount = prepayment.amount;
+            amountCents = toCents(prepayment.amount);
           } else if (prepayment.type === 'percentage') {
-            amount = (prepayment.amount / 100) * balance;
+            amountCents = Math.round((prepayment.amount / 100) * balanceCents);
           } else {
             continue;
           }
 
-          amount = Math.min(amount, balance - amortization);
-          if (amount > 0) {
-            prepaymentAmount += amount;
+          amountCents = Math.min(amountCents, remainingPrepaymentCapacityCents);
+          if (amountCents > 0) {
+            prepaymentAmountCents += amountCents;
+            remainingPrepaymentCapacityCents -= amountCents;
             prepaymentDescription = prepayment.description || prepaymentDescription;
             if (prepayment.source === 'fgts') {
-              fgtsAmortization += amount;
+              fgtsAmortizationCents += amountCents;
             }
           }
         }
 
-        if (prepaymentAmount > 0) {
+        if (prepaymentAmountCents > 0) {
           if (prepaymentsForMonth.some((p) => p.strategy === 'reduce_term')) {
-            amortization += prepaymentAmount;
-            payment += prepaymentAmount;
+            amortizationCents += prepaymentAmountCents;
+            paymentCents += prepaymentAmountCents;
           } else {
-            amortization += prepaymentAmount;
-            payment += prepaymentAmount;
+            amortizationCents += prepaymentAmountCents;
+            paymentCents += prepaymentAmountCents;
             const remaining = termMonths - i;
             if (remaining > 0) {
-              fixedPayment = calculatePricePayment(balance - amortization, monthlyRate, remaining);
+              fixedPaymentCents = toCents(
+                calculatePricePayment(
+                  fromCents(balanceCents - amortizationCents),
+                  monthlyRate,
+                  remaining,
+                ),
+              );
             }
           }
         }
       }
 
-      balance -= amortization;
-      const isPaidOff = balance <= 0;
+      balanceCents -= amortizationCents;
+      const isPaidOff = balanceCents === 0;
 
-      const fgtsSubsidy = Math.min(
-        getFgtsInstallmentForMonth(sortedFgts, installmentDate),
-        payment,
+      const fgtsSubsidyCents = Math.min(
+        toCents(getFgtsInstallmentForMonth(sortedFgts, installmentDate)),
+        paymentCents,
       );
-      const netPayment = payment - fgtsSubsidy;
+      const netPaymentCents = paymentCents - fgtsSubsidyCents;
 
       schedule.push({
         installmentNumber: i,
         date: installmentDate,
-        payment: roundCents(payment),
-        interest: roundCents(interest),
-        amortization: roundCents(amortization),
-        balance: roundCents(balance < 0 ? 0 : balance),
-        prepaymentAmount: prepaymentAmount > 0 ? roundCents(prepaymentAmount) : undefined,
+        payment: fromCents(paymentCents),
+        interest: fromCents(interestCents),
+        amortization: fromCents(amortizationCents),
+        balance: fromCents(balanceCents),
+        prepaymentAmount: prepaymentAmountCents > 0 ? fromCents(prepaymentAmountCents) : undefined,
         prepaymentDescription,
         insurance: insurance > 0 ? roundCents(insurance) : undefined,
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
-        totalCost: roundCents(payment + extraCosts),
-        fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
-        fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
-        netPayment: roundCents(netPayment),
+        totalCost: roundCents(fromCents(paymentCents) + extraCosts),
+        fgtsAmortization: fgtsAmortizationCents > 0 ? fromCents(fgtsAmortizationCents) : undefined,
+        fgtsSubsidy: fgtsSubsidyCents > 0 ? fromCents(fgtsSubsidyCents) : undefined,
+        netPayment: fromCents(netPaymentCents),
         indexCorrection,
       });
 
@@ -432,89 +460,106 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       currentDate = addMonths(currentDate, 1);
     }
   } else {
-    let fixedAmortization = calculateSacAmortization(balance, termMonths);
+    let fixedAmortizationCents = toCents(
+      calculateSacAmortization(fromCents(balanceCents), termMonths),
+    );
     for (let i = 1; i <= termMonths; i++) {
-      const corrected = applyBalanceCorrection(balance, monthlyCorrectionRate);
-      balance = corrected.balance;
-      const indexCorrection = corrected.indexCorrection;
+      const corrected = applyBalanceCorrection(balanceCents, monthlyCorrectionRate);
+      balanceCents = corrected.balanceCents;
+      const indexCorrection =
+        corrected.indexCorrectionCents === undefined
+          ? undefined
+          : fromCents(corrected.indexCorrectionCents);
       if (monthlyCorrectionRate !== null) {
-        fixedAmortization = calculateSacAmortization(balance, termMonths - i + 1);
+        fixedAmortizationCents = toCents(
+          calculateSacAmortization(fromCents(balanceCents), termMonths - i + 1),
+        );
       }
 
-      const interest = balance * monthlyRate;
-      let amortization = fixedAmortization;
-      let payment = fixedAmortization + interest;
-      const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(balance, scenario);
+      const interestCents = Math.round(balanceCents * monthlyRate);
+      let amortizationCents = Math.min(fixedAmortizationCents, balanceCents);
+      if (i === termMonths) {
+        amortizationCents = balanceCents;
+      }
+      let paymentCents = interestCents + amortizationCents;
+      const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(
+        fromCents(balanceCents),
+        scenario,
+      );
 
       const installmentDate = new Date(currentDate);
       setDayClamped(installmentDate, scenario.dueDay);
 
       const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
-      let fgtsAmortization = 0;
-      let prepaymentAmount = 0;
+      let fgtsAmortizationCents = 0;
+      let prepaymentAmountCents = 0;
       let prepaymentDescription: string | undefined;
 
       if (prepaymentsForMonth.length > 0) {
+        let remainingPrepaymentCapacityCents = balanceCents - amortizationCents;
         for (const prepayment of prepaymentsForMonth) {
-          let amount = 0;
+          let amountCents = 0;
           if (prepayment.type === 'fixed_amount') {
-            amount = prepayment.amount;
+            amountCents = toCents(prepayment.amount);
           } else if (prepayment.type === 'percentage') {
-            amount = (prepayment.amount / 100) * balance;
+            amountCents = Math.round((prepayment.amount / 100) * balanceCents);
           } else {
             continue;
           }
 
-          amount = Math.min(amount, balance - amortization);
-          if (amount > 0) {
-            prepaymentAmount += amount;
+          amountCents = Math.min(amountCents, remainingPrepaymentCapacityCents);
+          if (amountCents > 0) {
+            prepaymentAmountCents += amountCents;
+            remainingPrepaymentCapacityCents -= amountCents;
             prepaymentDescription = prepayment.description || prepaymentDescription;
             if (prepayment.source === 'fgts') {
-              fgtsAmortization += amount;
+              fgtsAmortizationCents += amountCents;
             }
           }
         }
 
-        if (prepaymentAmount > 0) {
+        if (prepaymentAmountCents > 0) {
           if (prepaymentsForMonth.some((p) => p.strategy === 'reduce_term')) {
-            amortization += prepaymentAmount;
-            payment += prepaymentAmount;
+            amortizationCents += prepaymentAmountCents;
+            paymentCents += prepaymentAmountCents;
           } else {
-            amortization += prepaymentAmount;
-            payment += prepaymentAmount;
+            amortizationCents += prepaymentAmountCents;
+            paymentCents += prepaymentAmountCents;
             const remaining = termMonths - i;
             if (remaining > 0) {
-              fixedAmortization = calculateSacAmortization(balance - amortization, remaining);
+              fixedAmortizationCents = toCents(
+                calculateSacAmortization(fromCents(balanceCents - amortizationCents), remaining),
+              );
             }
           }
         }
       }
 
-      balance -= amortization;
-      const isPaidOff = balance <= 0;
+      balanceCents -= amortizationCents;
+      const isPaidOff = balanceCents === 0;
 
-      const fgtsSubsidy = Math.min(
-        getFgtsInstallmentForMonth(sortedFgts, installmentDate),
-        payment,
+      const fgtsSubsidyCents = Math.min(
+        toCents(getFgtsInstallmentForMonth(sortedFgts, installmentDate)),
+        paymentCents,
       );
-      const netPayment = payment - fgtsSubsidy;
+      const netPaymentCents = paymentCents - fgtsSubsidyCents;
 
       schedule.push({
         installmentNumber: i,
         date: installmentDate,
-        payment: roundCents(payment),
-        interest: roundCents(interest),
-        amortization: roundCents(amortization),
-        balance: roundCents(balance < 0 ? 0 : balance),
-        prepaymentAmount: prepaymentAmount > 0 ? roundCents(prepaymentAmount) : undefined,
+        payment: fromCents(paymentCents),
+        interest: fromCents(interestCents),
+        amortization: fromCents(amortizationCents),
+        balance: fromCents(balanceCents),
+        prepaymentAmount: prepaymentAmountCents > 0 ? fromCents(prepaymentAmountCents) : undefined,
         prepaymentDescription,
         insurance: insurance > 0 ? roundCents(insurance) : undefined,
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
-        totalCost: roundCents(payment + extraCosts),
-        fgtsAmortization: fgtsAmortization > 0 ? roundCents(fgtsAmortization) : undefined,
-        fgtsSubsidy: fgtsSubsidy > 0 ? roundCents(fgtsSubsidy) : undefined,
-        netPayment: roundCents(netPayment),
+        totalCost: roundCents(fromCents(paymentCents) + extraCosts),
+        fgtsAmortization: fgtsAmortizationCents > 0 ? fromCents(fgtsAmortizationCents) : undefined,
+        fgtsSubsidy: fgtsSubsidyCents > 0 ? fromCents(fgtsSubsidyCents) : undefined,
+        netPayment: fromCents(netPaymentCents),
         indexCorrection,
       });
 

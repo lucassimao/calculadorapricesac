@@ -94,6 +94,112 @@ describe('generateAmortizationSchedule', () => {
   });
 });
 
+describe('cent-ledger reconciliation', () => {
+  const toCents = (value: number) => Math.round(value * 100);
+
+  function expectReconciled(schedule: ReturnType<typeof generateAmortizationSchedule>) {
+    const openingBalance = toCents(schedule[0].balance);
+    const endingBalance = toCents(schedule.at(-1)?.balance ?? 0);
+    const indexCorrections = schedule.reduce(
+      (total, row) => total + toCents(row.indexCorrection ?? 0),
+      0,
+    );
+    const amortization = schedule.reduce((total, row) => total + toCents(row.amortization), 0);
+
+    expect(openingBalance + indexCorrections - endingBalance).toBe(amortization);
+    expect(endingBalance).toBe(0);
+  }
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'reconciles displayed %s rows over a principal/rate/term grid',
+    (system) => {
+      for (const principal of [1, 10_000, 123_456.78]) {
+        for (const rate of [0, 0.01, 1, 10]) {
+          for (const term of [1, 12, 120, 360]) {
+            const schedule = generateAmortizationSchedule({
+              ...baseScenario,
+              system,
+              principal,
+              rate,
+              term,
+            });
+
+            expectReconciled(schedule);
+          }
+        }
+      }
+    },
+  );
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'includes displayed monetary corrections in the %s ledger identity',
+    (system) => {
+      const schedule = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        principal: 123_456.78,
+        rate: 1.37,
+        term: 120,
+        indexType: 'IPCA',
+        indexRate: 0.41,
+      });
+
+      expectReconciled(schedule);
+    },
+  );
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'caps combined prepayment and FGTS amortization at the remaining %s balance',
+    (system) => {
+      const schedule = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        prepayments: [
+          {
+            id: 'large-prepayment',
+            date: new Date(2026, 1, 5),
+            amount: 7_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_term',
+          },
+        ],
+        fgtsEvents: [
+          {
+            id: 'large-fgts-amortization',
+            date: new Date(2026, 1, 5),
+            amount: 7_000,
+            usage: 'amortization',
+            strategy: 'reduce_term',
+          },
+        ],
+      });
+
+      const payoffRow = schedule.at(-1);
+      expect(payoffRow?.amortization).toBeCloseTo(10_000, 2);
+      expect(payoffRow?.fgtsAmortization).toBeLessThan(7_000);
+      expectReconciled(schedule);
+    },
+  );
+
+  it('keeps the 10% monthly PRICE / 360-month extreme domain finite and fully paid', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      system: 'PRICE',
+      principal: 100_000,
+      rate: 10,
+      term: 360,
+    });
+
+    expect(schedule).toHaveLength(361);
+    expect(
+      schedule.every((row) =>
+        [row.payment, row.interest, row.amortization, row.balance].every(Number.isFinite),
+      ),
+    ).toBe(true);
+    expectReconciled(schedule);
+  });
+});
+
 describe('generateAmortizationSchedule with monetary correction', () => {
   const indexedBase: Scenario = {
     ...baseScenario,
