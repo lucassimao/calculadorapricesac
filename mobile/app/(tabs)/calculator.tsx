@@ -1080,6 +1080,7 @@ export default function CalculatorScreen() {
 
   const seedExportExtrasForDev = () => {
     const fixedDate = new Date(2026, 0, 1);
+    const firstDueDate = new Date(2026, 1, 5);
     setScenario((prev) => ({
       ...prev,
       name: 'Teste Exportacao',
@@ -1096,7 +1097,7 @@ export default function CalculatorScreen() {
         {
           id: 'dev-prepayment',
           amount: 1000,
-          date: fixedDate,
+          date: firstDueDate,
           type: 'fixed_amount',
           strategy: 'reduce_term',
           description: 'Dev prepayment',
@@ -1106,7 +1107,7 @@ export default function CalculatorScreen() {
         {
           id: 'dev-fgts',
           amount: 800,
-          date: fixedDate,
+          date: firstDueDate,
           usage: 'amortization',
           strategy: 'reduce_term',
           description: 'Dev FGTS',
@@ -1678,6 +1679,7 @@ export default function CalculatorScreen() {
               placeholder="R$ 1.000"
               placeholderTextColor={colors.textTertiary}
               accessibilityLabel="Taxa de abertura"
+              testID="input-opening-fee"
             />
 
             {isPropertyMode && (

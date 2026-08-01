@@ -1,0 +1,61 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: 'tab-calculator'
+- scrollUntilVisible:
+    element:
+      id: 'input-principal'
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- tapOn:
+    id: 'input-principal'
+- eraseText
+- inputText: '10000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'input-rate'
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- tapOn:
+    id: 'input-rate'
+- eraseText
+- inputText: '0'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'summary-cet'
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'summary-cet-value'
+    text: '0,00%'
+- scrollUntilVisible:
+    element:
+      id: 'input-opening-fee'
+    centerElement: true
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: 'input-opening-fee'
+- eraseText
+- inputText: '9900'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'summary-cet'
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'summary-cet-value'
+    text: 'CET indisponível para este cenário'

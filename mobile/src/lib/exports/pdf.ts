@@ -4,7 +4,7 @@ import * as Sharing from 'expo-sharing';
 import type { BrandProfile } from '../../types/brand-profile';
 import type { LoanSummary, Scenario, ScheduleRow } from '@loan-engine/loan';
 import { DEFAULT_BRAND_ACCENT_COLOR, normalizeBrandProfile } from '../../types/brand-profile';
-import { formatCurrency } from '@loan-engine/calculations';
+import { formatCetResult, formatCurrency } from '@loan-engine/calculations';
 import {
   buildCompositionBars,
   createChartAreaPath,
@@ -173,8 +173,7 @@ function buildChartGridLines(width: number) {
   return [0, 0.25, 0.5, 0.75, 1]
     .map((ratio) => {
       const y =
-        PDF_CHART_VERTICAL_PADDING +
-        ratio * (PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING * 2);
+        PDF_CHART_VERTICAL_PADDING + ratio * (PDF_CHART_HEIGHT - PDF_CHART_VERTICAL_PADDING * 2);
       return `<line x1="${PDF_CHART_LEFT_GUTTER}" y1="${y.toFixed(2)}" x2="${width - PDF_CHART_RIGHT_PADDING}" y2="${y.toFixed(2)}" stroke="${PDF_CHART_COLORS.border}" stroke-width="0.5" stroke-dasharray="4,4" />`;
     })
     .join('');
@@ -429,7 +428,7 @@ function buildProfessionalHtml(
             </div>
             <div class="miniCard">
               <p class="miniLabel">CET estimado</p>
-              <p class="miniValue">${summary.cetAnnualRate.toFixed(2).replace('.', ',')}% a.a.</p>
+              <p class="miniValue">${formatCetResult(summary.cet)}${summary.cet.status === 'available' ? ' a.a.' : ''}</p>
             </div>
             <div class="miniCard">
               <p class="miniLabel">1ª parcela</p>
@@ -526,7 +525,7 @@ function buildProfessionalHtml(
               <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
               <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
               <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
-              <p><strong>CET (a.a.):</strong> ${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%</p>
+              <p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>
               <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>
               <p><strong>Total Pago Líquido:</strong> ${formatCurrency(summary.totalPaymentNet)}</p>
               <p><strong>1ª Parcela:</strong> ${formatCurrency(summary.firstPayment)}</p>
@@ -600,7 +599,7 @@ function buildPremiumHtml(
           <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
           <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
           <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
-          <p><strong>CET (a.a.):</strong> ${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%</p>
+          <p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>
           <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>
           <p><strong>Total Pago Líquido:</strong> ${formatCurrency(summary.totalPaymentNet)}</p>
           <p><strong>1ª Parcela:</strong> ${formatCurrency(summary.firstPayment)}</p>
@@ -609,7 +608,9 @@ function buildPremiumHtml(
       </section>`;
 
   const title = options?.tableOnly ? 'Tabela de Amortização' : 'Relatório de Financiamento';
-  const tableHeading = options?.tableOnly ? '' : '<h2 class="tableTitle">Tabela de Amortização</h2>';
+  const tableHeading = options?.tableOnly
+    ? ''
+    : '<h2 class="tableTitle">Tabela de Amortização</h2>';
 
   return `
     <html>

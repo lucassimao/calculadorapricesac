@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { CorrectionIndexType, LoanSummary } from '@loan-engine/loan';
-import { formatCurrency } from '@loan-engine/calculations';
+import { formatCetResult, formatCurrency } from '@loan-engine/calculations';
 import { formatCorrectionRate } from '../../lib/exports/formatters';
 import { useTheme } from '../../lib/theme';
 
@@ -75,13 +75,15 @@ export function SummarySection({
             value={formatCurrency(summary.totalPaymentWithCosts)}
             colors={colors}
           />
-          <SummaryRow
-            label="CET (a.a.)"
-            value={`${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%`}
-            colors={colors}
-          />
         </>
       )}
+
+      <SummaryRow
+        label="CET (a.a.)"
+        value={formatCetResult(summary.cet)}
+        colors={colors}
+        testID="summary-cet"
+      />
 
       {summary.propertyTotalCost > 0 && (
         <SummaryRow
@@ -217,9 +219,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
+    flexShrink: 0,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '600',
+    flex: 1,
+    marginLeft: 12,
+    textAlign: 'right',
   },
 });

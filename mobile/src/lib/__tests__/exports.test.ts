@@ -93,7 +93,7 @@ const summary: LoanSummary = {
   totalUpfrontCosts: 0,
   totalMonthlyCosts: 0,
   totalPaymentWithCosts: 120000,
-  cetAnnualRate: 0,
+  cet: { status: 'available', root: 'zero', annualRate: 0 },
   financedPrincipal: 100000,
   propertyTotalCost: 0,
   totalFgtsUsed: 0,
@@ -636,5 +636,34 @@ describe('exports', () => {
     expect(pdfHeaders).toEqual(exportFixture.pdf.headers);
     expect(pdfFirstRow).toEqual(exportFixture.pdf.firstRow);
     expect(pdfMetadata).toMatchObject(exportFixture.pdf.metadata);
+  });
+
+  it('renders the explanatory unavailable CET label in csv, xlsx, and pdf', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+    const unavailableSummary: LoanSummary = {
+      ...summary,
+      cet: { status: 'unavailable', reason: 'no_sign_change' },
+    };
+
+    await exportCsv(schedule, scenario, unavailableSummary);
+    await exportXlsx(schedule, scenario, unavailableSummary);
+    await exportPdf(scenario, unavailableSummary, schedule);
+
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
+    const csv = csvFile?.writes[0] as string;
+    const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array' });
+    const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(
+      workbook.Sheets.Amortizacao,
+      { header: 1 },
+    );
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(csv).toContain('CET indisponível para este cenário');
+    expect(worksheetRows.flat()).toContain('CET indisponível para este cenário');
+    expect(html).toContain('CET indisponível para este cenário');
   });
 });

@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { LoanSummary, ScheduleRow, Scenario } from '@loan-engine/loan';
+import { formatCetResult } from '@loan-engine/calculations';
 import { formatDateBR } from '../utils';
 import {
   buildFreeExportNoticeRows,
@@ -110,9 +111,7 @@ const buildCsv = (
         lines.push(buildCsvLine(['Correção Total', formatCsvNumber(summary.totalIndexCorrection)]));
       }
     }
-    lines.push(
-      buildCsvLine(['CET (a.a.)', `${summary.cetAnnualRate.toFixed(2).replace('.', ',')}%`]),
-    );
+    lines.push(buildCsvLine(['CET (a.a.)', formatCetResult(summary.cet)]));
     lines.push(buildCsvLine(['Custos Iniciais', formatCsvNumber(summary.totalUpfrontCosts)]));
     lines.push(buildCsvLine(['Custos Mensais', formatCsvNumber(summary.totalMonthlyCosts)]));
     lines.push(buildCsvLine(['Total com Custos', formatCsvNumber(summary.totalPaymentWithCosts)]));

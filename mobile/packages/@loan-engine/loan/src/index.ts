@@ -79,6 +79,17 @@ export interface ScheduleRow {
   indexCorrection?: number;
 }
 
+export type CetResult =
+  | {
+      status: 'available';
+      root: 'positive' | 'zero' | 'negative';
+      annualRate: number;
+    }
+  | {
+      status: 'unavailable';
+      reason: 'no_sign_change' | 'non_convergence';
+    };
+
 export interface LoanSummary {
   totalPayment: number;
   totalInterest: number;
@@ -89,7 +100,7 @@ export interface LoanSummary {
   totalUpfrontCosts: number;
   totalMonthlyCosts: number;
   totalPaymentWithCosts: number;
-  cetAnnualRate: number;
+  cet: CetResult;
   financedPrincipal: number;
   propertyTotalCost: number;
   totalFgtsUsed: number;

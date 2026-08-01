@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildScenarios } from '../buildScenarios';
 import { DEFAULT_INPUTS } from '../types';
-import {
-  generateAmortizationSchedule,
-  calculateLoanSummary,
-} from '@loan-engine/calculations';
+import { generateAmortizationSchedule, calculateLoanSummary } from '@loan-engine/calculations';
 
 describe('buildScenarios', () => {
   it('derives the financed principal from propertyValue - downPayment', () => {
@@ -32,6 +29,9 @@ describe('buildScenarios', () => {
     const priceSum = calculateLoanSummary(generateAmortizationSchedule(price), price);
     expect(sacSum.firstPayment).toBeGreaterThan(sacSum.lastPayment);
     expect(priceSum.firstPayment).toBeCloseTo(priceSum.lastPayment, 0);
-    expect(sacSum.cetAnnualRate).toBeGreaterThan(0);
+    expect(sacSum.cet).toMatchObject({ status: 'available', root: 'positive' });
+    if (sacSum.cet.status === 'available') {
+      expect(sacSum.cet.annualRate).toBeGreaterThan(0);
+    }
   });
 });

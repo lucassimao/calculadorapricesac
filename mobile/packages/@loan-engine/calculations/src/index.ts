@@ -1,4 +1,5 @@
 import type {
+  CetResult,
   FgtsEvent,
   LoanSummary,
   PrepaymentEvent,
@@ -19,6 +20,27 @@ interface CostSummary {
   openingFee: number;
   itbi: number;
   registryFee: number;
+}
+
+export interface CetCashFlow {
+  amount: number;
+  yearFraction: number;
+}
+
+export interface SolveCetInput {
+  netDisbursement: number;
+  cashFlows: CetCashFlow[];
+}
+
+const CET_MAX_ANNUAL_RATE = 1;
+const CET_MIN_ANNUAL_RATE = -0.99;
+const CET_RATE_TOLERANCE = 1e-10;
+const CET_MAX_ITERATIONS = 100;
+export const CET_UNAVAILABLE_LABEL = 'CET indisponível para este cenário';
+
+export function formatCetResult(cet: CetResult, decimalSeparator: ',' | '.' = ','): string {
+  if (cet.status === 'unavailable') return CET_UNAVAILABLE_LABEL;
+  return `${cet.annualRate.toFixed(2).replace('.', decimalSeparator)}%`;
 }
 
 type MonthlyAmortization = PrepaymentEvent & {
@@ -143,6 +165,85 @@ export function calculatePricePayment(
 
 export function calculateSacAmortization(principal: number, termMonths: number): number {
   return principal / termMonths;
+}
+
+export function solveCet({ netDisbursement, cashFlows }: SolveCetInput): CetResult {
+  if (
+    !Number.isFinite(netDisbursement) ||
+    cashFlows.length === 0 ||
+    cashFlows.some(
+      ({ amount, yearFraction }) =>
+        !Number.isFinite(amount) ||
+        amount < 0 ||
+        !Number.isFinite(yearFraction) ||
+        yearFraction < 0,
+    )
+  ) {
+    return { status: 'unavailable', reason: 'non_convergence' };
+  }
+
+  const npv = (annualRate: number) => {
+    const base = 1 + annualRate;
+    if (base <= 0) return Number.NaN;
+
+    let discountedOutflows = 0;
+    for (const { amount, yearFraction } of cashFlows) {
+      const discountFactor = Math.pow(base, yearFraction);
+      const presentValue = amount / discountFactor;
+      if (!Number.isFinite(presentValue)) return Number.NaN;
+      discountedOutflows += presentValue;
+      if (!Number.isFinite(discountedOutflows)) return Number.NaN;
+    }
+    return netDisbursement - discountedOutflows;
+  };
+
+  const monetaryTolerance = Math.max(0.01, cashFlows.length * 0.01);
+  const atZero = npv(0);
+  if (!Number.isFinite(atZero)) {
+    return { status: 'unavailable', reason: 'non_convergence' };
+  }
+  if (Math.abs(atZero) <= monetaryTolerance) {
+    return { status: 'available', root: 'zero', annualRate: 0 };
+  }
+
+  const root = atZero < 0 ? 'positive' : 'negative';
+  let low = root === 'positive' ? 0 : CET_MIN_ANNUAL_RATE;
+  let high = root === 'positive' ? CET_MAX_ANNUAL_RATE : 0;
+  let lowValue = npv(low);
+  let highValue = npv(high);
+
+  if (!Number.isFinite(lowValue) || !Number.isFinite(highValue)) {
+    return { status: 'unavailable', reason: 'non_convergence' };
+  }
+  if (Math.abs(lowValue) <= monetaryTolerance) {
+    return { status: 'available', root, annualRate: roundCents(low * 100) };
+  }
+  if (Math.abs(highValue) <= monetaryTolerance) {
+    return { status: 'available', root, annualRate: roundCents(high * 100) };
+  }
+  if (lowValue > 0 || highValue < 0) {
+    return { status: 'unavailable', reason: 'no_sign_change' };
+  }
+
+  for (let iteration = 0; iteration < CET_MAX_ITERATIONS; iteration += 1) {
+    const mid = (low + high) / 2;
+    const midValue = npv(mid);
+    if (!Number.isFinite(midValue)) {
+      return { status: 'unavailable', reason: 'non_convergence' };
+    }
+    if (Math.abs(midValue) <= monetaryTolerance || high - low <= CET_RATE_TOLERANCE) {
+      return { status: 'available', root, annualRate: roundCents(mid * 100) };
+    }
+    if (midValue < 0) {
+      low = mid;
+      lowValue = midValue;
+    } else {
+      high = mid;
+      highValue = midValue;
+    }
+  }
+
+  return { status: 'unavailable', reason: 'non_convergence' };
 }
 
 function addMonths(date: Date, months: number): Date {
@@ -470,48 +571,20 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
 
   const installments = schedule.filter((row) => row.installmentNumber > 0);
   const netDisbursement = financedPrincipal - totalUpfrontCosts - fgtsDownPayment;
-  let cetAnnualRate = 0;
+  let cet: CetResult = { status: 'unavailable', reason: 'no_sign_change' };
   if (netDisbursement > 0 && installments.length > 0) {
     // Use actual dates for more accurate CET calculation (Brazilian standard uses 365-day year)
     const startDate = scenario.startDate;
     const startTime = startDate.getTime();
 
     // Calculate year fractions based on actual dates
-    const yearFractions = installments.map((row) => {
-      const daysDiff = (row.date.getTime() - startTime) / (1000 * 60 * 60 * 24);
-      return daysDiff / 365;
-    });
-
-    const cashFlows = installments.map((row) => row.payment + (row.extraCosts ?? 0));
-
-    // NPV function using actual year fractions
-    const npv = (annualRate: number) => {
-      return (
-        netDisbursement -
-        cashFlows.reduce((sum, value, index) => {
-          const yearFrac = yearFractions[index];
-          return sum + value / Math.pow(1 + annualRate, yearFrac);
-        }, 0)
-      );
-    };
-
-    // Binary search for annual IRR (CET)
-    if (npv(0) < 0) {
-      let low = 0;
-      let high = 1;
-      while (npv(high) < 0 && high < 100) {
-        high *= 2;
-      }
-      for (let i = 0; i < 50; i++) {
-        const mid = (low + high) / 2;
-        if (npv(mid) > 0) {
-          high = mid;
-        } else {
-          low = mid;
-        }
-      }
-      cetAnnualRate = (low + high) / 2;
-    }
+    // CET follows the borrower's out-of-pocket cash flow. An FGTS installment subsidy therefore
+    // reduces the discounted outflow and can legitimately produce the negative-root case.
+    const cashFlows = installments.map((row) => ({
+      amount: (row.netPayment ?? row.payment) + (row.extraCosts ?? 0),
+      yearFraction: (row.date.getTime() - startTime) / (1000 * 60 * 60 * 24) / 365,
+    }));
+    cet = solveCet({ netDisbursement, cashFlows });
   }
 
   return {
@@ -524,7 +597,7 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
     totalUpfrontCosts: roundCents(totalUpfrontCosts),
     totalMonthlyCosts: roundCents(totalMonthlyCosts),
     totalPaymentWithCosts: roundCents(totalPaymentWithCosts),
-    cetAnnualRate: roundCents(cetAnnualRate * 100),
+    cet,
     financedPrincipal: roundCents(financedPrincipal),
     propertyTotalCost: roundCents(propertyTotalCost),
     totalFgtsUsed: roundCents(fgtsDownPayment + totals.fgtsAmortization + totals.fgtsSubsidy),

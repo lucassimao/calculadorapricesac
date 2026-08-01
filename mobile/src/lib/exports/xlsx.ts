@@ -2,6 +2,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
 import type { LoanSummary, ScheduleRow, Scenario } from '@loan-engine/loan';
+import { formatCetResult } from '@loan-engine/calculations';
 import { formatDateBR } from '../utils';
 import {
   buildFreeExportNoticeRows,
@@ -114,7 +115,7 @@ export async function exportXlsx(
               : []),
           ] as (string | number)[][])
         : []),
-      ['CET (a.a.)', `${summary.cetAnnualRate.toFixed(2)}%`],
+      ['CET (a.a.)', formatCetResult(summary.cet, '.')],
       ['Custos Iniciais', summary.totalUpfrontCosts],
       ['Custos Mensais', summary.totalMonthlyCosts],
       ['Total com Custos', summary.totalPaymentWithCosts],

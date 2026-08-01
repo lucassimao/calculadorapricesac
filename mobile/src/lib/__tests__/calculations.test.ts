@@ -3,7 +3,10 @@ import {
   calculatePricePayment,
   calculateLoanSummary,
   convertRateToMonthly,
+  CET_UNAVAILABLE_LABEL,
+  formatCetResult,
   generateAmortizationSchedule,
+  solveCet,
   validateScenario,
 } from '@loan-engine/calculations';
 import type { Scenario } from '@loan-engine/loan';
@@ -224,7 +227,10 @@ describe('calculateLoanSummary', () => {
     expect(summary.totalUpfrontCosts).toBeGreaterThan(0);
     expect(summary.totalMonthlyCosts).toBeGreaterThan(0);
     expect(summary.totalPaymentWithCosts).toBeGreaterThan(summary.totalPayment);
-    expect(summary.cetAnnualRate).toBeGreaterThan(0);
+    expect(summary.cet).toMatchObject({ status: 'available', root: 'positive' });
+    if (summary.cet.status === 'available') {
+      expect(summary.cet.annualRate).toBeGreaterThan(0);
+    }
   });
 
   it('applies FGTS down payment and installment subsidy', () => {
@@ -274,6 +280,127 @@ describe('calculateLoanSummary', () => {
     expect(schedule[1]?.prepaymentAmount).toBeCloseTo(800, 2);
     expect(schedule[1]?.fgtsAmortization).toBeCloseTo(800, 2);
     expect(summary.totalFgtsUsed).toBeCloseTo(800, 2);
+  });
+
+  it('returns an available exact-zero CET for a zero-rate no-fee loan', () => {
+    const scenario = { ...baseScenario, rate: 0 };
+    const summary = calculateLoanSummary(generateAmortizationSchedule(scenario), scenario);
+
+    expect(summary.cet).toEqual({ status: 'available', root: 'zero', annualRate: 0 });
+  });
+
+  it('returns an available negative CET when FGTS subsidy makes borrower outflows lower', () => {
+    const scenario = {
+      ...baseScenario,
+      rate: 0,
+      fgtsEvents: [
+        {
+          id: 'fgts-negative-cet',
+          date: new Date(2026, 1, 5),
+          amount: 1000,
+          usage: 'installment' as const,
+        },
+      ],
+    };
+    const summary = calculateLoanSummary(generateAmortizationSchedule(scenario), scenario);
+
+    expect(summary.cet).toMatchObject({ status: 'available', root: 'negative' });
+    if (summary.cet.status === 'available') {
+      expect(summary.cet.annualRate).toBeLessThan(0);
+    }
+  });
+
+  it('keeps a partial FGTS installment subsidy positive while lowering borrower CET', () => {
+    const baseline = calculateLoanSummary(
+      generateAmortizationSchedule(baseScenario),
+      baseScenario,
+    ).cet;
+    const subsidizedScenario: Scenario = {
+      ...baseScenario,
+      fgtsEvents: [
+        {
+          id: 'fgts-partial-cet',
+          date: new Date(2026, 1, 5),
+          amount: 100,
+          usage: 'installment',
+        },
+      ],
+    };
+    const subsidized = calculateLoanSummary(
+      generateAmortizationSchedule(subsidizedScenario),
+      subsidizedScenario,
+    ).cet;
+
+    expect(baseline).toMatchObject({ status: 'available', root: 'positive' });
+    expect(subsidized).toMatchObject({ status: 'available', root: 'positive' });
+    if (baseline.status === 'available' && subsidized.status === 'available') {
+      expect(subsidized.annualRate).toBeLessThan(baseline.annualRate);
+    }
+  });
+
+  it('returns unavailable when an extreme-cost root is outside the 100% bracket', () => {
+    const scenario = {
+      ...baseScenario,
+      includeOpeningFee: true,
+      openingFee: 9900,
+    };
+    const summary = calculateLoanSummary(generateAmortizationSchedule(scenario), scenario);
+
+    expect(summary.cet).toEqual({ status: 'unavailable', reason: 'no_sign_change' });
+  });
+
+  it('distinguishes numerical non-convergence from a missing bracket sign change', () => {
+    expect(
+      solveCet({
+        netDisbursement: 1000,
+        cashFlows: [{ amount: Number.POSITIVE_INFINITY, yearFraction: 1 }],
+      }),
+    ).toEqual({ status: 'unavailable', reason: 'non_convergence' });
+  });
+
+  it('formats zero, negative, and unavailable CET results', () => {
+    expect(formatCetResult({ status: 'available', root: 'zero', annualRate: 0 })).toBe('0,00%');
+    expect(formatCetResult({ status: 'available', root: 'negative', annualRate: -3.25 })).toBe(
+      '-3,25%',
+    );
+    expect(formatCetResult({ status: 'unavailable', reason: 'non_convergence' })).toBe(
+      CET_UNAVAILABLE_LABEL,
+    );
+  });
+
+  it('documents the structured CET for the Android export-readback fixture', () => {
+    const firstDueDate = new Date(2026, 1, 5);
+    const scenario: Scenario = {
+      ...baseScenario,
+      name: 'Teste Exportacao',
+      principal: 300000,
+      rate: 1.2,
+      term: 360,
+      prepayments: [
+        {
+          id: 'dev-prepayment',
+          amount: 1000,
+          date: firstDueDate,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+      fgtsEvents: [
+        {
+          id: 'dev-fgts',
+          amount: 800,
+          date: firstDueDate,
+          usage: 'amortization',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const summary = calculateLoanSummary(schedule, scenario);
+
+    expect(schedule).toHaveLength(332);
+    // P0.2 moved installment 1 from Jan 5 to Feb 5: CET changed from 15.58% to 15.36% a.a.
+    expect(summary.cet).toEqual({ status: 'available', root: 'positive', annualRate: 15.36 });
   });
 });
 
@@ -435,7 +562,11 @@ describe('date handling edge cases', () => {
         .map((row) => (row.date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
       expect(dayIntervals.every((days) => days >= 0)).toBe(true);
-      expect(calculateLoanSummary(schedule, scenario).cetAnnualRate).toBeGreaterThanOrEqual(0);
+      const cet = calculateLoanSummary(schedule, scenario).cet;
+      expect(cet.status).toBe('available');
+      if (cet.status === 'available') {
+        expect(cet.annualRate).toBeGreaterThanOrEqual(0);
+      }
     }
   });
 
@@ -448,7 +579,11 @@ describe('date handling edge cases', () => {
     const schedule = generateAmortizationSchedule(scenario);
 
     // Before the date fix this fixture produced 16.98% a.a. from a negative first interval.
-    expect(calculateLoanSummary(schedule, scenario).cetAnnualRate).toBeCloseTo(11.75, 2);
+    const cet = calculateLoanSummary(schedule, scenario).cet;
+    expect(cet.status).toBe('available');
+    if (cet.status === 'available') {
+      expect(cet.annualRate).toBeCloseTo(11.75, 2);
+    }
   });
 
   it('keeps the documented full-month interest convention for a 44-day first period', () => {
