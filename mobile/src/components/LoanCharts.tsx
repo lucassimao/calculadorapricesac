@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type RefObject } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, {
   Defs,
@@ -25,13 +25,19 @@ import {
 
 interface LoanChartsProps {
   schedule: ScheduleRow[];
+  visibilityRefs?: {
+    balance: RefObject<View | null>;
+    payment: RefObject<View | null>;
+    composition: RefObject<View | null>;
+  };
 }
 
-export function LoanCharts({ schedule }: LoanChartsProps) {
+export function LoanCharts({ schedule, visibilityRefs }: LoanChartsProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(0);
   const isTablet = width >= 768;
+
   const availableWidth = containerWidth || Math.max(width - 64, 320);
   const gridGap = 12;
   const halfBlockWidth = isTablet ? (availableWidth - gridGap) / 2 : availableWidth;
@@ -200,6 +206,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
       <View style={[styles.chartGrid, isTablet && styles.chartGridTablet]}>
         {/* Balance Chart */}
         <View
+          ref={visibilityRefs?.balance}
           style={[styles.chartBlock, themedStyles.chartBlock, isTablet && styles.chartBlockHalf]}
           accessibilityRole="image"
           accessibilityLabel="Gráfico de saldo devedor"
@@ -278,6 +285,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
 
         {/* Payment Chart */}
         <View
+          ref={visibilityRefs?.payment}
           style={[styles.chartBlock, themedStyles.chartBlock, isTablet && styles.chartBlockHalf]}
           accessibilityRole="image"
           accessibilityLabel="Gráfico das parcelas"
@@ -356,6 +364,7 @@ export function LoanCharts({ schedule }: LoanChartsProps) {
 
         {/* Interest vs Amortization Chart */}
         <View
+          ref={visibilityRefs?.composition}
           style={[styles.chartBlock, themedStyles.chartBlock, isTablet && styles.chartBlockFull]}
           accessibilityRole="image"
           accessibilityLabel="Gráfico de juros versus amortização"

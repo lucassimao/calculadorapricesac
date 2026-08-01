@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,13 +13,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
-import type {
-  CorrectionIndexType,
-  FgtsEvent,
-  PrepaymentEvent,
-  Scenario,
-} from '@loan-engine/loan';
+import { useFocusEffect, useRouter } from 'expo-router';
+import type { CorrectionIndexType, FgtsEvent, PrepaymentEvent, Scenario } from '@loan-engine/loan';
 import {
   calculateLoanSummary,
   formatCurrency,
@@ -51,7 +46,14 @@ import { useTheme } from '../../src/lib/theme';
 import { useExport } from '../../src/contexts/ExportContext';
 import type { ExportTriggerOptions } from '../../src/contexts/ExportContext';
 import { useStoreReview } from '../../src/hooks/useStoreReview';
-import { trackEvent, trackScreen } from '../../src/lib/analytics';
+import {
+  getPaywallViewContext,
+  getAnnualRateBucket,
+  registerAnalyticsProperties,
+  setPendingPaywallSource,
+  trackEvent,
+  trackScreen,
+} from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
 import { useRewardedExport } from '../../src/hooks/useRewardedExport';
@@ -92,20 +94,36 @@ function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?: number
   const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
   const prepaymentCount = scenario.prepayments?.length ?? 0;
   const fgtsEventCount = scenario.fgtsEvents?.length ?? 0;
+  const rateBucket = getAnnualRateBucket(scenario.rate, scenario.rateType);
+  const principalBucket =
+    scenario.principal < 100_000
+      ? '<100k'
+      : scenario.principal < 300_000
+        ? '100-300k'
+        : scenario.principal < 500_000
+          ? '300-500k'
+          : scenario.principal < 1_000_000
+            ? '500k-1M'
+            : '>1M';
 
   return {
     system: scenario.system,
     loan_mode: scenario.loanMode ?? 'standard',
     rate_type: scenario.rateType,
-    index_type: scenario.indexType ?? 'none',
+    rate_bucket: rateBucket,
+    index_type: (scenario.indexType ?? 'none') as 'none' | CorrectionIndexType,
     term_unit: scenario.termUnit,
     term_value: scenario.term,
     term_months: termMonths,
-    principal: scenario.principal,
+    principal_bucket: principalBucket as '<100k' | '100-300k' | '300-500k' | '500k-1M' | '>1M',
     has_prepayments: prepaymentCount > 0,
     prepayment_count: prepaymentCount,
     has_fgts: fgtsEventCount > 0,
     fgts_event_count: fgtsEventCount,
+    has_insurance: Boolean(scenario.includeInsurance && (scenario.insuranceRate ?? 0) > 0),
+    has_admin_fee: Boolean(scenario.includeAdminFee && (scenario.adminFeeRate ?? 0) > 0),
+    has_iof: Boolean(scenario.includeIOF && (scenario.iofRate ?? 0) > 0),
+    entry_mode: 'new_loan' as const,
     effective_installments:
       typeof scheduleLength === 'number' ? Math.max(scheduleLength - 1, 0) : termMonths,
   };
@@ -130,18 +148,28 @@ function getExportProgressTitle(format: ExportFormat | null) {
   return 'Gerando arquivo...';
 }
 
-function getProfessionalExportAnalytics({
-  clientName,
-}: {
-  clientName?: string;
-}): Record<string, string | boolean> {
+function getProfessionalExportAnalytics({ clientName }: { clientName?: string }): {
+  has_client_name?: boolean;
+} {
   const trimmedClientName = clientName?.trim() ?? '';
   if (trimmedClientName.length === 0) return {};
 
   return {
-    professional_client_name: trimmedClientName,
-    professional_has_client_name: true,
+    has_client_name: true,
   };
+}
+
+function getMonthsFromStartBucket(startDate: Date, eventDate: Date) {
+  const months = Math.max(
+    0,
+    (eventDate.getFullYear() - startDate.getFullYear()) * 12 +
+      eventDate.getMonth() -
+      startDate.getMonth(),
+  );
+  if (months < 12) return '0-11';
+  if (months < 24) return '12-23';
+  if (months < 60) return '24-59';
+  return '60+';
 }
 
 function getProfessionalProfileSnapshot(profile: BrandProfile) {
@@ -175,9 +203,11 @@ function waitForNextPaint() {
 function PremiumSectionIap({
   isPremium,
   markPremium,
+  sectionRef,
 }: {
   isPremium: boolean;
   markPremium: (value: boolean) => Promise<void>;
+  sectionRef: RefObject<View | null>;
 }) {
   const {
     connected,
@@ -189,11 +219,10 @@ function PremiumSectionIap({
   } = useIapPurchase({
     isPremium,
     markPremium,
-    source: 'calculator_inline',
+    source: 'export_upgrade',
   });
-
   return (
-    <View style={styles.section}>
+    <View ref={sectionRef} style={styles.section}>
       <Text style={styles.sectionTitle}>Plano Premium</Text>
       <Text style={styles.label}>
         Desbloqueie recursos premium por {priceLabel} (pagamento único).
@@ -204,7 +233,7 @@ function PremiumSectionIap({
             styles.primaryButton,
             (isPremium || purchaseInProgress) && styles.primaryButtonDisabled,
           ]}
-          onPress={handlePurchase}
+          onPress={() => void handlePurchase()}
           accessibilityRole="button"
           accessibilityLabel="Assinar Premium"
         >
@@ -278,7 +307,7 @@ function PremiumSectionUnsupported() {
 export default function CalculatorScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   // 768px = iPad Mini/iPad portrait, 1024px = iPad landscape
   const isTablet = width >= 768;
   const [scenario, setScenario] = useState<Scenario>(DEFAULT_SCENARIO);
@@ -333,6 +362,118 @@ export default function CalculatorScreen() {
   });
   const [showPrepaymentDatePicker, setShowPrepaymentDatePicker] = useState(false);
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
+  const hasSkippedInitialCalculation = useRef(false);
+  const inlinePaywallRef = useRef<View>(null);
+  const balanceChartRef = useRef<View>(null);
+  const paymentChartRef = useRef<View>(null);
+  const compositionChartRef = useRef<View>(null);
+  const screenHeightRef = useRef(height);
+  const isPremiumRef = useRef(isPremium);
+  const viewedChartTypesRef = useRef(new Set<string>());
+  const inlinePaywallTrackingRef = useRef<{
+    pending: boolean;
+    viewedAt: number | null;
+    blurredAt: number | null;
+    context: Awaited<ReturnType<typeof getPaywallViewContext>> | null;
+    dismissed: boolean;
+  }>({ pending: false, viewedAt: null, blurredAt: null, context: null, dismissed: false });
+
+  useEffect(() => {
+    screenHeightRef.current = height;
+  }, [height]);
+
+  useEffect(() => {
+    isPremiumRef.current = isPremium;
+  }, [isPremium]);
+
+  const trackInlinePaywallDismissal = useCallback(() => {
+    const state = inlinePaywallTrackingRef.current;
+    if (
+      state.dismissed ||
+      state.viewedAt === null ||
+      state.blurredAt === null ||
+      !state.context ||
+      isPremiumRef.current
+    ) {
+      return;
+    }
+    state.dismissed = true;
+    trackEvent('paywall_dismissed', {
+      source: 'export_upgrade',
+      time_on_paywall_ms: state.blurredAt - state.viewedAt,
+      nth_view: state.context.nth_view,
+      days_since_install: state.context.days_since_install,
+    });
+  }, []);
+
+  const checkInlinePaywallVisibility = useCallback(() => {
+    const state = inlinePaywallTrackingRef.current;
+    if (state.pending || state.context || isPremiumRef.current) return;
+    inlinePaywallRef.current?.measureInWindow((_x, y, _width, measuredHeight) => {
+      if (y >= screenHeightRef.current || y + measuredHeight <= 0) return;
+      const current = inlinePaywallTrackingRef.current;
+      if (current.pending || current.context) return;
+      current.pending = true;
+      current.viewedAt = Date.now();
+      void getPaywallViewContext('export_upgrade').then((context) => {
+        current.context = context;
+        current.pending = false;
+        trackEvent('premium_paywall_viewed', {
+          source: 'export_upgrade',
+          nth_view: context.nth_view,
+          iap_availability: 'supported',
+        });
+        trackInlinePaywallDismissal();
+      });
+    });
+  }, [trackInlinePaywallDismissal]);
+
+  const checkChartVisibility = useCallback(() => {
+    const charts = [
+      ['balance', balanceChartRef],
+      ['payment', paymentChartRef],
+      ['composition', compositionChartRef],
+    ] as const;
+    for (const [chartType, chartRef] of charts) {
+      if (viewedChartTypesRef.current.has(chartType)) continue;
+      chartRef.current?.measureInWindow((_x, y, _width, measuredHeight) => {
+        if (
+          viewedChartTypesRef.current.has(chartType) ||
+          y >= screenHeightRef.current ||
+          y + measuredHeight <= 0
+        ) {
+          return;
+        }
+        viewedChartTypesRef.current.add(chartType);
+        trackEvent('chart_viewed', { chart_type: chartType });
+      });
+    }
+  }, []);
+
+  const checkTrackedViewportElements = useCallback(() => {
+    checkInlinePaywallVisibility();
+    checkChartVisibility();
+  }, [checkChartVisibility, checkInlinePaywallVisibility]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!inlinePaywallTrackingRef.current.pending) {
+        inlinePaywallTrackingRef.current = {
+          pending: false,
+          viewedAt: null,
+          blurredAt: null,
+          context: null,
+          dismissed: false,
+        };
+      }
+      const timeout = setTimeout(checkTrackedViewportElements, 250);
+      return () => {
+        clearTimeout(timeout);
+        inlinePaywallTrackingRef.current.blurredAt = Date.now();
+        trackInlinePaywallDismissal();
+      };
+    }, [checkTrackedViewportElements, trackInlinePaywallDismissal]),
+  );
 
   useEffect(() => {
     trackScreen('calculator');
@@ -404,6 +545,10 @@ export default function CalculatorScreen() {
       })
       .catch((error) => {
         if (didCancel || (error instanceof Error && error.name === 'AbortError')) return;
+        trackEvent('bacen_rate_fetch_failed', {
+          series: activeIndexType,
+          error_kind: error instanceof Error ? error.name || 'unknown' : 'unknown',
+        });
         setIndexRateHelper('Não foi possível buscar no BACEN. Informe a taxa mensal manualmente.');
       })
       .finally(() => {
@@ -424,6 +569,33 @@ export default function CalculatorScreen() {
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   const totalInstallments = Math.max(schedule.length - 1, 0);
   const exportFlowBusy = exporting || rewardedExportFormat !== null;
+
+  useEffect(() => {
+    if (!hasSkippedInitialCalculation.current) {
+      hasSkippedInitialCalculation.current = true;
+      return;
+    }
+    if (validation.errors.length > 0) return;
+    const timeout = setTimeout(() => {
+      const context = getScenarioAnalyticsContext(scenario, schedule.length);
+      trackEvent('calculation_performed', {
+        system: context.system,
+        loan_mode: context.loan_mode,
+        rate_type: context.rate_type,
+        rate_bucket: context.rate_bucket,
+        term_months: context.term_months,
+        principal_bucket: context.principal_bucket,
+        prepayment_count: context.prepayment_count,
+        fgts_event_count: context.fgts_event_count,
+        index_type: context.index_type,
+        has_insurance: context.has_insurance,
+        has_admin_fee: context.has_admin_fee,
+        has_iof: context.has_iof,
+        entry_mode: 'new_loan',
+      });
+    }, 2_000);
+    return () => clearTimeout(timeout);
+  }, [scenario, schedule.length, validation.errors.length]);
 
   // Dynamic themed styles
   const themedStyles = useMemo(
@@ -477,6 +649,7 @@ export default function CalculatorScreen() {
             text: 'Ver Premium',
             onPress: () => {
               trackEvent('scenario_limit_upgrade_clicked', { source: 'save_scenario' });
+              setPendingPaywallSource('scenario_limit');
               router.push('/(tabs)/premium');
             },
           },
@@ -493,6 +666,7 @@ export default function CalculatorScreen() {
       setScenario((prev) => ({ ...prev, id: newId }));
     }
     await persistScenarios(nextList);
+    registerAnalyticsProperties({ saved_scenario_count: nextList.length });
     trackEvent('scenario_saved', {
       is_update: existingIndex >= 0,
       is_premium: isPremium,
@@ -550,6 +724,7 @@ export default function CalculatorScreen() {
         onPress: async () => {
           const nextList = scenarios.filter((s) => s.id !== id);
           await persistScenarios(nextList);
+          registerAnalyticsProperties({ saved_scenario_count: nextList.length });
           trackEvent('scenario_deleted', {
             remaining_scenarios: nextList.length,
           });
@@ -584,6 +759,8 @@ export default function CalculatorScreen() {
     trackEvent('prepayment_added', {
       type: next.type,
       strategy: next.strategy,
+      recurrence: 'none',
+      months_from_start: getMonthsFromStartBucket(scenario.startDate, next.date),
       ...getScenarioAnalyticsContext(scenario, schedule.length),
       prepayment_count_after: (scenario.prepayments?.length ?? 0) + 1,
     });
@@ -627,6 +804,8 @@ export default function CalculatorScreen() {
     trackEvent('fgts_added', {
       usage: next.usage,
       strategy: next.strategy ?? null,
+      recurrence: 'none',
+      months_from_start: getMonthsFromStartBucket(scenario.startDate, next.date),
       ...getScenarioAnalyticsContext(scenario, schedule.length),
       fgts_event_count_after: (scenario.fgtsEvents?.length ?? 0) + 1,
     });
@@ -822,6 +1001,7 @@ export default function CalculatorScreen() {
                 source,
                 placement: tableOnly ? 'table_only_rewarded_prompt' : 'rewarded_prompt',
               });
+              setPendingPaywallSource('export_upgrade');
               router.push('/(tabs)/premium');
             },
           },
@@ -874,6 +1054,7 @@ export default function CalculatorScreen() {
                   source: 'table_only',
                   placement: 'blocked_alert',
                 });
+                setPendingPaywallSource('export_upgrade');
                 router.push('/(tabs)/premium');
               },
             },
@@ -961,7 +1142,10 @@ export default function CalculatorScreen() {
             { text: 'Cancelar', style: 'cancel' },
             {
               text: 'Completar perfil',
-              onPress: () => router.push('/(tabs)/premium'),
+              onPress: () => {
+                setPendingPaywallSource('export_upgrade');
+                router.push('/(tabs)/premium');
+              },
             },
           ],
         );
@@ -1002,6 +1186,7 @@ export default function CalculatorScreen() {
 
       if (professional && !isPremium) {
         Alert.alert('Premium', 'PDF Profissional disponível apenas para assinantes.');
+        setPendingPaywallSource('export_upgrade');
         router.push('/(tabs)/premium');
         return;
       }
@@ -1023,6 +1208,7 @@ export default function CalculatorScreen() {
           source: 'tab_action',
           placement: 'blocked_redirect',
         });
+        setPendingPaywallSource('export_upgrade');
         router.push('/(tabs)/premium');
         return;
       }
@@ -1068,7 +1254,10 @@ export default function CalculatorScreen() {
     const pending = pendingProfessionalExport;
     const clientName = professionalClientName.trim();
     trackEvent('professional_export_started', {
+      format: 'pdf',
       source: pending.source,
+      professional: true,
+      is_premium: isPremium,
       ...getProfessionalProfileSnapshot(pending.brandProfile),
       ...getProfessionalExportAnalytics({
         clientName,
@@ -1084,7 +1273,14 @@ export default function CalculatorScreen() {
       clientName,
     });
     setProfessionalClientName('');
-  }, [pendingProfessionalExport, professionalClientName, runExport, scenario, schedule.length]);
+  }, [
+    isPremium,
+    pendingProfessionalExport,
+    professionalClientName,
+    runExport,
+    scenario,
+    schedule.length,
+  ]);
 
   const handleNewScenario = () => {
     trackEvent('scenario_new_started', {
@@ -1142,6 +1338,8 @@ export default function CalculatorScreen() {
         isTablet && styles.containerTablet,
       ]}
       keyboardShouldPersistTaps="handled"
+      onScroll={checkTrackedViewportElements}
+      scrollEventThrottle={200}
     >
       <AdBanner enabled={showAds} />
 
@@ -1519,7 +1717,11 @@ export default function CalculatorScreen() {
 
           {!isPremium ? (
             iapAvailability === 'supported' ? (
-              <PremiumSectionIap isPremium={isPremium} markPremium={markPremium} />
+              <PremiumSectionIap
+                isPremium={isPremium}
+                markPremium={markPremium}
+                sectionRef={inlinePaywallRef}
+              />
             ) : (
               <PremiumSectionUnsupported />
             )
@@ -1543,7 +1745,14 @@ export default function CalculatorScreen() {
           {!isTablet && (
             <>
               <View style={[styles.section, themedStyles.section]}>
-                <LoanCharts schedule={schedule} />
+                <LoanCharts
+                  schedule={schedule}
+                  visibilityRefs={{
+                    balance: balanceChartRef,
+                    payment: paymentChartRef,
+                    composition: compositionChartRef,
+                  }}
+                />
               </View>
 
               <View style={[styles.section, themedStyles.section]}>
@@ -2055,7 +2264,14 @@ export default function CalculatorScreen() {
       {isTablet && (
         <>
           <View style={[styles.section, themedStyles.section]}>
-            <LoanCharts schedule={schedule} />
+            <LoanCharts
+              schedule={schedule}
+              visibilityRefs={{
+                balance: balanceChartRef,
+                payment: paymentChartRef,
+                composition: compositionChartRef,
+              }}
+            />
           </View>
 
           <View style={[styles.section, themedStyles.section]}>

@@ -1,5 +1,3 @@
-import type { IdentityProperties } from '../lib/analytics';
-
 export interface BrandProfile {
   nameOrCompany: string;
   registration?: string;
@@ -88,19 +86,5 @@ export function getBrandProfileAnalyticsProperties(profile: BrandProfile | null 
     professional_profile_has_logo: completion.hasLogo,
     professional_profile_has_custom_accent_color: completion.hasCustomAccentColor,
     professional_profile_contact_field_count: completion.contactFieldCount,
-  };
-}
-
-export function getBrandProfileIdentityProperties(
-  profile: BrandProfile | null | undefined,
-): IdentityProperties {
-  const normalized = normalizeBrandProfile(profile);
-
-  return {
-    email: normalized.email || undefined,
-    phone: normalized.phone || undefined,
-    name: normalized.nameOrCompany || undefined,
-    registration: normalized.registration || undefined,
-    website: normalized.website || undefined,
   };
 }

@@ -1,14 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { Alert } from 'react-native';
-import { useIAP } from 'expo-iap';
-import { trackEvent } from '../lib/analytics';
+import { ErrorCode, useIAP } from 'expo-iap';
+import {
+  getPaywallViewCount,
+  trackEvent,
+  type AnalyticsEventMap,
+  type PaywallSource,
+} from '../lib/analytics';
 import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../lib/iap';
+import {
+  completePurchaseAttempt,
+  createPurchaseAttempt,
+  getPendingPurchaseAttempt,
+  type PurchaseTerminalEvent,
+} from '../lib/purchase-attempt';
 
 interface UseIapPurchaseOptions {
   isPremium: boolean;
   markPremium: (value: boolean) => Promise<void>;
-  source: string;
+  source: PaywallSource;
   onPremiumActivated?: () => void;
+}
+
+async function finalizeTrackedPurchaseAttempt(
+  activeAttemptIdRef: RefObject<string | null>,
+  terminalEvent: PurchaseTerminalEvent,
+  properties: Omit<AnalyticsEventMap['purchase_success'], 'attempt_id'>,
+  errorCode?: string,
+) {
+  const pending = await getPendingPurchaseAttempt();
+  const attemptId = activeAttemptIdRef.current ?? pending?.id;
+  if (!attemptId) return false;
+  const completed = await completePurchaseAttempt(attemptId, terminalEvent);
+  if (!completed) return false;
+  activeAttemptIdRef.current = null;
+  const base = { ...properties, attempt_id: attemptId };
+  if (terminalEvent === 'purchase_success') trackEvent('purchase_success', base);
+  else if (terminalEvent === 'purchase_cancelled') trackEvent('purchase_cancelled', base);
+  else trackEvent('purchase_failed', { ...base, error_code: errorCode ?? 'unknown' });
+  return true;
 }
 
 export function useIapPurchase({
@@ -19,8 +49,7 @@ export function useIapPurchase({
 }: UseIapPurchaseOptions) {
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [restoreRequestedAt, setRestoreRequestedAt] = useState<number | null>(null);
-  const [purchasesValidated, setPurchasesValidated] = useState(false);
-  const [recentPurchaseAt, setRecentPurchaseAt] = useState<number | null>(null);
+  const activeAttemptIdRef = useRef<string | null>(null);
 
   const {
     connected,
@@ -34,8 +63,11 @@ export function useIapPurchase({
   } = useIAP({
     onPurchaseSuccess: async (purchase) => {
       if (purchase.productId !== IAP_PRODUCT_ID) return;
-      trackEvent('purchase_success', getPurchaseEventProps('purchase'));
-      setRecentPurchaseAt(Date.now());
+      await finalizeTrackedPurchaseAttempt(
+        activeAttemptIdRef,
+        'purchase_success',
+        getPurchaseEventProps('purchase'),
+      );
       try {
         await finishTransaction({ purchase, isConsumable: false });
       } catch {
@@ -45,9 +77,19 @@ export function useIapPurchase({
       Alert.alert('Premium ativado', 'Anúncios removidos e exportação liberada.');
       onPremiumActivated?.();
     },
-    onPurchaseError: () => {
-      trackEvent('purchase_failed', getPurchaseEventProps('purchase'));
-      Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    onPurchaseError: async (error) => {
+      const code = String(error.code ?? ErrorCode.Unknown);
+      const terminalEvent =
+        code === ErrorCode.UserCancelled ? 'purchase_cancelled' : 'purchase_failed';
+      await finalizeTrackedPurchaseAttempt(
+        activeAttemptIdRef,
+        terminalEvent,
+        getPurchaseEventProps('purchase'),
+        code,
+      );
+      if (terminalEvent === 'purchase_failed') {
+        Alert.alert('Erro', 'Não foi possível concluir a compra.');
+      }
     },
   });
 
@@ -59,7 +101,6 @@ export function useIapPurchase({
   const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
   const isStoreReady = connected && !!product;
   const restoreInProgress = restoreRequestedAt !== null;
-  const recentlyPurchased = recentPurchaseAt !== null && Date.now() - recentPurchaseAt < 10000;
   const getPurchaseEventProps = useCallback(
     (flow: 'purchase' | 'restore') => ({
       source,
@@ -76,24 +117,14 @@ export function useIapPurchase({
   useEffect(() => {
     if (!connected) return;
     fetchProducts({ skus: [IAP_PRODUCT_ID], type: 'in-app' }).catch(() => {});
-    getAvailablePurchases()
-      .then(() => setPurchasesValidated(true))
-      .catch(() => setPurchasesValidated(true));
+    getAvailablePurchases().catch(() => {});
   }, [connected, fetchProducts, getAvailablePurchases]);
 
   useEffect(() => {
     if (hasEntitlement && !isPremium) {
       markPremium(true).catch(() => {});
-    } else if (purchasesValidated && isPremium && !hasEntitlement && !recentlyPurchased) {
-      markPremium(false).catch(() => {});
     }
-  }, [hasEntitlement, isPremium, markPremium, purchasesValidated, recentlyPurchased]);
-
-  useEffect(() => {
-    if (recentPurchaseAt !== null && hasEntitlement) {
-      setRecentPurchaseAt(null);
-    }
-  }, [recentPurchaseAt, hasEntitlement]);
+  }, [hasEntitlement, isPremium, markPremium]);
 
   useEffect(() => {
     if (restoreRequestedAt === null) return;
@@ -120,7 +151,8 @@ export function useIapPurchase({
 
   const handlePurchase = useCallback(async () => {
     try {
-      trackEvent('purchase_started', getPurchaseEventProps('purchase'));
+      const nthView = await getPaywallViewCount();
+      trackEvent('paywall_purchase_cta_clicked', { source, nth_view: nthView });
       if (!connected) {
         trackEvent('purchase_store_unavailable', getPurchaseEventProps('purchase'));
         Alert.alert('Loja indisponível', 'Conecte-se à App Store/Google Play para comprar.');
@@ -137,6 +169,20 @@ export function useIapPurchase({
         );
         return;
       }
+      const attempt = await createPurchaseAttempt(source, nthView);
+      if (attempt.supersededAttempt) {
+        trackEvent('purchase_failed', {
+          ...getPurchaseEventProps('purchase'),
+          attempt_id: attempt.supersededAttempt.id,
+          error_code: 'superseded',
+        });
+      }
+      activeAttemptIdRef.current = attempt.id;
+      trackEvent('purchase_started', {
+        ...getPurchaseEventProps('purchase'),
+        attempt_id: attempt.id,
+        nth_view: nthView,
+      });
       setPurchaseInProgress(true);
       await requestPurchase({
         type: 'in-app',
@@ -145,12 +191,26 @@ export function useIapPurchase({
           android: { skus: [IAP_PRODUCT_ID] },
         },
       });
-    } catch {
-      Alert.alert('Erro', 'Não foi possível concluir a compra.');
+    } catch (error) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String(error.code)
+          : ErrorCode.Unknown;
+      const terminalEvent =
+        code === ErrorCode.UserCancelled ? 'purchase_cancelled' : 'purchase_failed';
+      const completed = await finalizeTrackedPurchaseAttempt(
+        activeAttemptIdRef,
+        terminalEvent,
+        getPurchaseEventProps('purchase'),
+        code,
+      );
+      if (!completed || terminalEvent === 'purchase_failed') {
+        Alert.alert('Erro', 'Não foi possível concluir a compra.');
+      }
     } finally {
       setPurchaseInProgress(false);
     }
-  }, [connected, getPurchaseEventProps, isPremium, product, requestPurchase]);
+  }, [connected, getPurchaseEventProps, isPremium, product, requestPurchase, source]);
 
   const handleRestore = useCallback(async () => {
     try {

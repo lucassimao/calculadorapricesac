@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
@@ -10,7 +11,12 @@ import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
 import { BrandProfileCard } from '../../src/components/premium/BrandProfileCard';
-import { trackEvent, trackScreen } from '../../src/lib/analytics';
+import {
+  consumePendingPaywallSource,
+  getPaywallViewContext,
+  trackEvent,
+  trackScreen,
+} from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
 import { resetAdMonetizationTimestamps } from '../../src/lib/storage/ad-monetization';
@@ -402,6 +408,8 @@ function PremiumIapScreen() {
   const showAds = shouldShowAds(isPremium);
   const [modalVisible, setModalVisible] = useState(false);
   const [diagnosticsTapCount, setDiagnosticsTapCount] = useState(0);
+  const [paywallSource, setPaywallSource] =
+    useState<ReturnType<typeof consumePendingPaywallSource>>('premium_tab');
   const diagnosticsVisible = diagnosticsTapCount >= 7;
   const {
     connected,
@@ -414,19 +422,78 @@ function PremiumIapScreen() {
   } = useIapPurchase({
     isPremium,
     markPremium,
-    source: 'premium_tab',
+    source: paywallSource,
     onPremiumActivated: () => setModalVisible(false),
   });
 
+  const premiumTrackingStateRef = useRef({
+    isPremium,
+    connected,
+    isStoreReady,
+    priceLabel,
+    purchasedProductCount: diagnostics.purchasedProductIds.length,
+  });
+
   useEffect(() => {
-    trackEvent(isPremium ? 'premium_status_viewed' : 'premium_paywall_viewed', {
-      iap_availability: 'supported',
-      store_connected: connected,
-      store_ready: isStoreReady,
-      price_label: priceLabel,
-      purchased_product_count: diagnostics.purchasedProductIds.length,
-    });
+    premiumTrackingStateRef.current = {
+      isPremium,
+      connected,
+      isStoreReady,
+      priceLabel,
+      purchasedProductCount: diagnostics.purchasedProductIds.length,
+    };
   }, [connected, diagnostics.purchasedProductIds.length, isPremium, isStoreReady, priceLabel]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const source = consumePendingPaywallSource();
+      setPaywallSource(source);
+      const initial = premiumTrackingStateRef.current;
+      if (initial.isPremium) {
+        trackEvent('premium_status_viewed', {
+          iap_availability: 'supported',
+          store_connected: initial.connected,
+          store_ready: initial.isStoreReady,
+          price_label: initial.priceLabel,
+          purchased_product_count: initial.purchasedProductCount,
+        });
+        return undefined;
+      }
+
+      const viewedAt = Date.now();
+      let blurredAt: number | null = null;
+      let context: Awaited<ReturnType<typeof getPaywallViewContext>> | null = null;
+      const trackDismissal = () => {
+        if (!blurredAt || !context || premiumTrackingStateRef.current.isPremium) return;
+        trackEvent('paywall_dismissed', {
+          source,
+          time_on_paywall_ms: blurredAt - viewedAt,
+          nth_view: context.nth_view,
+          days_since_install: context.days_since_install,
+        });
+      };
+
+      void getPaywallViewContext(source).then((nextContext) => {
+        context = nextContext;
+        const current = premiumTrackingStateRef.current;
+        trackEvent('premium_paywall_viewed', {
+          source,
+          nth_view: nextContext.nth_view,
+          iap_availability: 'supported',
+          store_connected: current.connected,
+          store_ready: current.isStoreReady,
+          price_label: current.priceLabel,
+          purchased_product_count: current.purchasedProductCount,
+        });
+        trackDismissal();
+      });
+
+      return () => {
+        blurredAt = Date.now();
+        trackDismissal();
+      };
+    }, []),
+  );
 
   return (
     <ScrollView

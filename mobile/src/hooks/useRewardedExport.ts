@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { useRewardedAd } from 'react-native-google-mobile-ads';
 import { useAdTest } from '../contexts/AdTestContext';
 import { getAdUnitId, isRewardedExportEnabled } from '../lib/ads';
-import { trackEvent } from '../lib/analytics';
+import { getNextRewardedChoiceCount, trackEvent } from '../lib/analytics';
 import type { ExportFormat } from '../lib/exports/access';
 import {
   canUseRewardedExportPlacement,
@@ -20,6 +20,20 @@ interface RewardedExportRequest {
 
 function formatExportTypeLabel(format: ExportFormat) {
   return format.toUpperCase();
+}
+
+function getRewardedErrorKind(message: string) {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('timeout')) return 'load_timeout';
+  if (
+    normalized.includes('no fill') ||
+    normalized.includes('no-fill') ||
+    normalized.includes('no_fill')
+  ) {
+    return 'no_fill';
+  }
+  if (normalized.includes('network')) return 'network';
+  return 'unknown';
 }
 
 export function useRewardedExport(isPremium: boolean) {
@@ -65,6 +79,7 @@ export function useRewardedExport(isPremium: boolean) {
       trackEvent('rewarded_export_ad_failed', {
         format: request?.format ?? pendingFormat,
         source: request?.source ?? 'unknown',
+        error_kind: getRewardedErrorKind(errorMessage),
         error_message: errorMessage,
       });
       Alert.alert(
@@ -194,6 +209,10 @@ export function useRewardedExport(isPremium: boolean) {
         source,
         export_type: formatExportTypeLabel(format),
       });
+      trackEvent('rewarded_ad_chosen_over_premium', {
+        source,
+        nth_time: await getNextRewardedChoiceCount(),
+      });
 
       if (stubModeEnabled) {
         const stubResult = await showRewardedStub();
@@ -217,6 +236,7 @@ export function useRewardedExport(isPremium: boolean) {
               format,
               source,
               stub: true,
+              error_kind: 'unknown',
               error_message: 'stub_failure',
             });
             Alert.alert(

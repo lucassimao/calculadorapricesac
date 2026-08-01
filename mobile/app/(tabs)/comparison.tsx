@@ -11,7 +11,7 @@ import { parseCurrencyInput, parseNumberInput } from '../../src/lib/utils';
 import { AdBanner } from '../../src/components/AdBanner';
 import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useTheme } from '../../src/lib/theme';
-import { trackEvent, trackScreen } from '../../src/lib/analytics';
+import { getAnnualRateBucket, trackEvent, trackScreen } from '../../src/lib/analytics';
 import { shouldShowAds } from '../../src/lib/premium';
 
 const BASE_SCENARIO: Scenario = {
@@ -72,8 +72,7 @@ export default function ComparisonScreen() {
 
     const timeout = setTimeout(() => {
       trackEvent('comparison_configuration_updated', {
-        principal: base.principal,
-        rate: base.rate,
+        rate_bucket: getAnnualRateBucket(base.rate, base.rateType),
         term: base.term,
         base_system: base.system,
         loan_mode: base.loanMode ?? 'standard',
@@ -88,6 +87,7 @@ export default function ComparisonScreen() {
     base.loanMode,
     base.principal,
     base.rate,
+    base.rateType,
     base.system,
     base.term,
     isPremium,

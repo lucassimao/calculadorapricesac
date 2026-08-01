@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import {
   ActionSheetIOS,
@@ -16,7 +16,7 @@ import { useTheme } from '../../src/lib/theme';
 import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useExport } from '../../src/contexts/ExportContext';
 import type { ExportFormat } from '../../src/lib/exports/access';
-import { trackEvent } from '../../src/lib/analytics';
+import { setPendingPaywallSource, trackEvent } from '../../src/lib/analytics';
 
 type AndroidExportAction = ExportFormat | 'pdf_professional';
 
@@ -55,6 +55,15 @@ export default function TabsLayout() {
   } = useExport();
   const [androidExportModalVisible, setAndroidExportModalVisible] = useState(false);
   const [androidExportFormat, setAndroidExportFormat] = useState<AndroidExportAction | null>(null);
+  const exportStartedRef = useRef(false);
+
+  const trackExportSheetAbandoned = () => {
+    if (exportStartedRef.current) return;
+    trackEvent('export_sheet_abandoned', {
+      is_premium: contextPremium,
+      platform: Platform.OS,
+    });
+  };
 
   const showExportActionSheet = () => {
     if (isExporting) return;
@@ -64,6 +73,7 @@ export default function TabsLayout() {
       rewarded_available: canUseRewardedExport,
       platform: Platform.OS,
     });
+    exportStartedRef.current = false;
 
     const options = contextPremium
       ? ['Exportar PDF', 'Exportar PDF Profissional', 'Exportar XLSX', 'Exportar CSV', 'Cancelar']
@@ -92,6 +102,11 @@ export default function TabsLayout() {
               : 'Recurso disponível para assinantes Premium',
         },
         (buttonIndex) => {
+          if (buttonIndex === cancelButtonIndex || buttonIndex === premiumButtonIndex) {
+            trackExportSheetAbandoned();
+          } else {
+            exportStartedRef.current = true;
+          }
           if (contextPremium) {
             if (buttonIndex === 0) triggerExport('pdf');
             else if (buttonIndex === 1) triggerExport('pdf', { professional: true });
@@ -105,6 +120,7 @@ export default function TabsLayout() {
           else if (buttonIndex === 2) triggerExport('csv');
           else if (buttonIndex === premiumButtonIndex) {
             trackEvent('export_upgrade_clicked', { source: 'tab_export_sheet', platform: 'ios' });
+            setPendingPaywallSource('export_upgrade');
             router.push('/(tabs)/premium');
           }
         },
@@ -116,6 +132,7 @@ export default function TabsLayout() {
 
   const handleAndroidExport = (format: ExportFormat, options?: { professional?: boolean }) => {
     if (isExporting) return;
+    exportStartedRef.current = true;
 
     const action = options?.professional ? 'pdf_professional' : format;
     setAndroidExportFormat(action);
@@ -249,6 +266,7 @@ export default function TabsLayout() {
         visible={androidExportModalVisible}
         onRequestClose={() => {
           if (!isExporting) {
+            trackExportSheetAbandoned();
             setAndroidExportModalVisible(false);
             setAndroidExportFormat(null);
           }
@@ -377,12 +395,14 @@ export default function TabsLayout() {
                 ]}
                 onPress={() => {
                   if (!isExporting) {
+                    trackExportSheetAbandoned();
                     trackEvent('export_upgrade_clicked', {
                       source: 'tab_export_sheet',
                       platform: 'android',
                     });
                     setAndroidExportModalVisible(false);
                     setAndroidExportFormat(null);
+                    setPendingPaywallSource('export_upgrade');
                     router.push('/(tabs)/premium');
                   }
                 }}
@@ -404,6 +424,7 @@ export default function TabsLayout() {
               ]}
               onPress={() => {
                 if (!isExporting) {
+                  trackExportSheetAbandoned();
                   setAndroidExportModalVisible(false);
                   setAndroidExportFormat(null);
                 }

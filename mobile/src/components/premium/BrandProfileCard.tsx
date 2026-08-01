@@ -15,7 +15,6 @@ import {
   EMPTY_BRAND_PROFILE,
   getBrandProfileAnalyticsProperties,
   getBrandProfileCompletion,
-  getBrandProfileIdentityProperties,
   isBrandProfileComplete,
   normalizeBrandProfile,
 } from '../../types/brand-profile';
@@ -24,13 +23,7 @@ import {
   loadBrandProfile,
   saveBrandProfile,
 } from '../../lib/storage/brand-profile';
-import {
-  analyticsEnabled,
-  identifyUser,
-  registerAnalyticsProperties,
-  resetAnalyticsIdentity,
-  trackEvent,
-} from '../../lib/analytics';
+import { registerAnalyticsProperties, trackEvent } from '../../lib/analytics';
 
 interface BrandProfileCardProps {
   isPremium: boolean;
@@ -130,10 +123,7 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
       setProfile(saved);
       setMessage('Perfil profissional salvo.');
       const analyticsProperties = getBrandProfileAnalyticsProperties(saved);
-      registerAnalyticsProperties(analyticsProperties);
-      if (analyticsEnabled()) {
-        await identifyUser(getBrandProfileIdentityProperties(saved)).catch(() => {});
-      }
+      registerAnalyticsProperties({ has_brand_profile: true });
       trackEvent('professional_profile_saved', analyticsProperties);
     } catch {
       setMessage('Não foi possível salvar o perfil profissional.');
@@ -168,9 +158,7 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
       const clearedProfile = await clearBrandProfile();
       setProfile(clearedProfile);
       setMessage('Perfil profissional removido.');
-      // Reset before tracking so the cleared event lands on a fresh anon id, not the prior identified user.
-      resetAnalyticsIdentity();
-      registerAnalyticsProperties(getBrandProfileAnalyticsProperties(clearedProfile));
+      registerAnalyticsProperties({ has_brand_profile: false });
       trackEvent('professional_profile_cleared', priorAnalyticsProperties);
     } catch {
       setMessage('Não foi possível limpar o perfil profissional.');

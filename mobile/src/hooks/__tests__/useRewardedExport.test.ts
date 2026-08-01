@@ -38,6 +38,7 @@ vi.mock('react-native-google-mobile-ads', () => ({
 }));
 
 vi.mock('../../lib/analytics', () => ({
+  getNextRewardedChoiceCount: async () => 1,
   trackEvent: trackEventMock,
 }));
 

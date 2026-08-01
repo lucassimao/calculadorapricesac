@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -15,6 +16,27 @@ const state = {
   initConnectionResult: true,
   purchases: [] as { productId: string }[],
 };
+
+const storage = vi.hoisted(() => new Map<string, string>());
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    clear: async () => storage.clear(),
+    getItem: async (key: string) => storage.get(key) ?? null,
+    setItem: async (key: string, value: string) => storage.set(key, value),
+    removeItem: async (key: string) => storage.delete(key),
+  },
+}));
+
+vi.mock('expo-constants', () => ({
+  default: { expoConfig: { version: '1.2.0', extra: {} } },
+}));
+
+vi.mock('expo-application', () => ({
+  getInstallationTimeAsync: async () => new Date(0),
+}));
+
+vi.mock('posthog-react-native', () => ({ PostHog: class {} }));
 
 const initConnectionMock = vi.fn(async () => state.initConnectionResult);
 const endConnectionMock = vi.fn(async () => undefined);
@@ -58,7 +80,8 @@ function getSnapshot(snapshot: PremiumContextValue | null) {
 }
 
 describe('PremiumProvider', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
     state.availability = 'supported';
     state.initConnectionResult = true;
     state.purchases = [];
@@ -179,7 +202,7 @@ describe('PremiumProvider', () => {
     expect(premiumLabels).toHaveLength(1);
   });
 
-  it('does not persist optimistic premium state across remounts', async () => {
+  it('revokes optimistic premium after a confirmed-absent store response', async () => {
     state.purchases = [];
 
     let snapshot: PremiumContextValue | null = null;
@@ -221,7 +244,7 @@ describe('PremiumProvider', () => {
     expect(getSnapshot(snapshot).isPremium).toBe(false);
   });
 
-  it('falls back to free mode when the store connection fails', async () => {
+  it('keeps the last known premium state when the store connection is indeterminate', async () => {
     state.initConnectionResult = false;
 
     let snapshot: PremiumContextValue | null = null;
@@ -239,9 +262,15 @@ describe('PremiumProvider', () => {
     expect(initConnectionMock).toHaveBeenCalledTimes(1);
     expect(getAvailablePurchasesMock).not.toHaveBeenCalled();
     expect(getSnapshot(snapshot).loading).toBe(false);
-    expect(getSnapshot(snapshot).isPremium).toBe(false);
+    await act(async () => {
+      await getSnapshot(snapshot).markPremium(true);
+      await getSnapshot(snapshot).refreshEntitlement();
+    });
+
+    expect(getSnapshot(snapshot).isPremium).toBe(true);
     expect(getSnapshot(snapshot).diagnostics.purchasedProductIds).toEqual([]);
     expect(getSnapshot(snapshot).diagnostics.premiumPurchaseDetails).toBeNull();
     expect(getSnapshot(snapshot).diagnostics.refreshError).toBe('store_connection_failed');
+    expect(getSnapshot(snapshot).diagnostics.entitlementState).toBe('indeterminate');
   });
 });
