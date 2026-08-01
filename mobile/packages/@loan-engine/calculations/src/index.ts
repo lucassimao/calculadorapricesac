@@ -39,6 +39,8 @@ const CET_MIN_ANNUAL_RATE = -0.99;
 const CET_RATE_TOLERANCE = 1e-10;
 const CET_MAX_ITERATIONS = 100;
 export const CET_UNAVAILABLE_LABEL = 'CET indisponível para este cenário';
+export const MIXED_PREPAYMENT_STRATEGIES_WARNING =
+  'Amortizações no mesmo mês com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.';
 
 export function formatCetResult(cet: CetResult, decimalSeparator: ',' | '.' = ','): string {
   if (cet.status === 'unavailable') return CET_UNAVAILABLE_LABEL;
@@ -48,6 +50,64 @@ export function formatCetResult(cet: CetResult, decimalSeparator: ',' | '.' = ',
 type MonthlyAmortization = PrepaymentEvent & {
   source: 'prepayment' | 'fgts';
 };
+
+interface AppliedMonthlyAmortizations {
+  totalCents: number;
+  reducePaymentCents: number;
+  fgtsCents: number;
+  description?: string;
+}
+
+function applyMonthlyAmortizations(
+  amortizations: MonthlyAmortization[],
+  openingBalanceCents: number,
+  scheduledAmortizationCents: number,
+): AppliedMonthlyAmortizations {
+  const orderedAmortizations = [...amortizations].sort((left, right) => {
+    const strategyOrder =
+      Number(left.strategy === 'reduce_term') - Number(right.strategy === 'reduce_term');
+    if (strategyOrder !== 0) return strategyOrder;
+
+    const dateOrder = left.date.getTime() - right.date.getTime();
+    if (dateOrder !== 0) return dateOrder;
+
+    const sourceOrder = Number(left.source === 'fgts') - Number(right.source === 'fgts');
+    if (sourceOrder !== 0) return sourceOrder;
+    return left.id.localeCompare(right.id);
+  });
+
+  let remainingCapacityCents = openingBalanceCents - scheduledAmortizationCents;
+  let totalCents = 0;
+  let reducePaymentCents = 0;
+  let fgtsCents = 0;
+  let description: string | undefined;
+
+  for (const amortization of orderedAmortizations) {
+    let amountCents = 0;
+    if (amortization.type === 'fixed_amount') {
+      amountCents = toCents(amortization.amount);
+    } else if (amortization.type === 'percentage') {
+      // Percentages use the opening installment balance; sequential processing only reduces
+      // the remaining allocation headroom so same-month events can never double-spend it.
+      amountCents = Math.round((amortization.amount / 100) * openingBalanceCents);
+    }
+
+    amountCents = Math.min(amountCents, remainingCapacityCents);
+    if (amountCents <= 0) continue;
+
+    totalCents += amountCents;
+    remainingCapacityCents -= amountCents;
+    description = amortization.description || description;
+    if (amortization.strategy === 'reduce_payment') {
+      reducePaymentCents += amountCents;
+    }
+    if (amortization.source === 'fgts') {
+      fgtsCents += amountCents;
+    }
+  }
+
+  return { totalCents, reducePaymentCents, fgtsCents, description };
+}
 
 function getMonthlyCorrectionRate(scenario: Scenario): number | null {
   if (!scenario.indexType) return null;
@@ -377,52 +437,26 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       setDayClamped(installmentDate, scenario.dueDay);
 
       const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
-      let fgtsAmortizationCents = 0;
-      let prepaymentAmountCents = 0;
-      let prepaymentDescription: string | undefined;
+      const appliedAmortizations = applyMonthlyAmortizations(
+        prepaymentsForMonth,
+        balanceCents,
+        amortizationCents,
+      );
+      const scheduledAmortizationCents = amortizationCents;
+      amortizationCents += appliedAmortizations.totalCents;
+      paymentCents += appliedAmortizations.totalCents;
 
-      if (prepaymentsForMonth.length > 0) {
-        let remainingPrepaymentCapacityCents = balanceCents - amortizationCents;
-        for (const prepayment of prepaymentsForMonth) {
-          let amountCents = 0;
-          if (prepayment.type === 'fixed_amount') {
-            amountCents = toCents(prepayment.amount);
-          } else if (prepayment.type === 'percentage') {
-            amountCents = Math.round((prepayment.amount / 100) * balanceCents);
-          } else {
-            continue;
-          }
-
-          amountCents = Math.min(amountCents, remainingPrepaymentCapacityCents);
-          if (amountCents > 0) {
-            prepaymentAmountCents += amountCents;
-            remainingPrepaymentCapacityCents -= amountCents;
-            prepaymentDescription = prepayment.description || prepaymentDescription;
-            if (prepayment.source === 'fgts') {
-              fgtsAmortizationCents += amountCents;
-            }
-          }
-        }
-
-        if (prepaymentAmountCents > 0) {
-          if (prepaymentsForMonth.some((p) => p.strategy === 'reduce_term')) {
-            amortizationCents += prepaymentAmountCents;
-            paymentCents += prepaymentAmountCents;
-          } else {
-            amortizationCents += prepaymentAmountCents;
-            paymentCents += prepaymentAmountCents;
-            const remaining = termMonths - i;
-            if (remaining > 0) {
-              fixedPaymentCents = toCents(
-                calculatePricePayment(
-                  fromCents(balanceCents - amortizationCents),
-                  monthlyRate,
-                  remaining,
-                ),
-              );
-            }
-          }
-        }
+      const remaining = termMonths - i;
+      if (appliedAmortizations.reducePaymentCents > 0 && remaining > 0) {
+        fixedPaymentCents = toCents(
+          calculatePricePayment(
+            fromCents(
+              balanceCents - scheduledAmortizationCents - appliedAmortizations.reducePaymentCents,
+            ),
+            monthlyRate,
+            remaining,
+          ),
+        );
       }
 
       balanceCents -= amortizationCents;
@@ -441,13 +475,19 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         interest: fromCents(interestCents),
         amortization: fromCents(amortizationCents),
         balance: fromCents(balanceCents),
-        prepaymentAmount: prepaymentAmountCents > 0 ? fromCents(prepaymentAmountCents) : undefined,
-        prepaymentDescription,
+        prepaymentAmount:
+          appliedAmortizations.totalCents > 0
+            ? fromCents(appliedAmortizations.totalCents)
+            : undefined,
+        prepaymentDescription: appliedAmortizations.description,
         insurance: insurance > 0 ? roundCents(insurance) : undefined,
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
         totalCost: roundCents(fromCents(paymentCents) + extraCosts),
-        fgtsAmortization: fgtsAmortizationCents > 0 ? fromCents(fgtsAmortizationCents) : undefined,
+        fgtsAmortization:
+          appliedAmortizations.fgtsCents > 0
+            ? fromCents(appliedAmortizations.fgtsCents)
+            : undefined,
         fgtsSubsidy: fgtsSubsidyCents > 0 ? fromCents(fgtsSubsidyCents) : undefined,
         netPayment: fromCents(netPaymentCents),
         indexCorrection,
@@ -491,48 +531,25 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       setDayClamped(installmentDate, scenario.dueDay);
 
       const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
-      let fgtsAmortizationCents = 0;
-      let prepaymentAmountCents = 0;
-      let prepaymentDescription: string | undefined;
+      const appliedAmortizations = applyMonthlyAmortizations(
+        prepaymentsForMonth,
+        balanceCents,
+        amortizationCents,
+      );
+      const scheduledAmortizationCents = amortizationCents;
+      amortizationCents += appliedAmortizations.totalCents;
+      paymentCents += appliedAmortizations.totalCents;
 
-      if (prepaymentsForMonth.length > 0) {
-        let remainingPrepaymentCapacityCents = balanceCents - amortizationCents;
-        for (const prepayment of prepaymentsForMonth) {
-          let amountCents = 0;
-          if (prepayment.type === 'fixed_amount') {
-            amountCents = toCents(prepayment.amount);
-          } else if (prepayment.type === 'percentage') {
-            amountCents = Math.round((prepayment.amount / 100) * balanceCents);
-          } else {
-            continue;
-          }
-
-          amountCents = Math.min(amountCents, remainingPrepaymentCapacityCents);
-          if (amountCents > 0) {
-            prepaymentAmountCents += amountCents;
-            remainingPrepaymentCapacityCents -= amountCents;
-            prepaymentDescription = prepayment.description || prepaymentDescription;
-            if (prepayment.source === 'fgts') {
-              fgtsAmortizationCents += amountCents;
-            }
-          }
-        }
-
-        if (prepaymentAmountCents > 0) {
-          if (prepaymentsForMonth.some((p) => p.strategy === 'reduce_term')) {
-            amortizationCents += prepaymentAmountCents;
-            paymentCents += prepaymentAmountCents;
-          } else {
-            amortizationCents += prepaymentAmountCents;
-            paymentCents += prepaymentAmountCents;
-            const remaining = termMonths - i;
-            if (remaining > 0) {
-              fixedAmortizationCents = toCents(
-                calculateSacAmortization(fromCents(balanceCents - amortizationCents), remaining),
-              );
-            }
-          }
-        }
+      const remaining = termMonths - i;
+      if (appliedAmortizations.reducePaymentCents > 0 && remaining > 0) {
+        fixedAmortizationCents = toCents(
+          calculateSacAmortization(
+            fromCents(
+              balanceCents - scheduledAmortizationCents - appliedAmortizations.reducePaymentCents,
+            ),
+            remaining,
+          ),
+        );
       }
 
       balanceCents -= amortizationCents;
@@ -551,13 +568,19 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         interest: fromCents(interestCents),
         amortization: fromCents(amortizationCents),
         balance: fromCents(balanceCents),
-        prepaymentAmount: prepaymentAmountCents > 0 ? fromCents(prepaymentAmountCents) : undefined,
-        prepaymentDescription,
+        prepaymentAmount:
+          appliedAmortizations.totalCents > 0
+            ? fromCents(appliedAmortizations.totalCents)
+            : undefined,
+        prepaymentDescription: appliedAmortizations.description,
         insurance: insurance > 0 ? roundCents(insurance) : undefined,
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
         totalCost: roundCents(fromCents(paymentCents) + extraCosts),
-        fgtsAmortization: fgtsAmortizationCents > 0 ? fromCents(fgtsAmortizationCents) : undefined,
+        fgtsAmortization:
+          appliedAmortizations.fgtsCents > 0
+            ? fromCents(appliedAmortizations.fgtsCents)
+            : undefined,
         fgtsSubsidy: fgtsSubsidyCents > 0 ? fromCents(fgtsSubsidyCents) : undefined,
         netPayment: fromCents(netPaymentCents),
         indexCorrection,
@@ -658,6 +681,27 @@ export function formatCurrency(value: number): string {
   });
 }
 
+function hasMixedSameMonthAmortizationStrategies(scenario: Scenario): boolean {
+  const strategiesByMonth = new Map<string, Set<PrepaymentEvent['strategy']>>();
+  const addStrategy = (date: Date, strategy: PrepaymentEvent['strategy']) => {
+    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+    const strategies = strategiesByMonth.get(monthKey) ?? new Set();
+    strategies.add(strategy);
+    strategiesByMonth.set(monthKey, strategies);
+  };
+
+  for (const prepayment of scenario.prepayments ?? []) {
+    addStrategy(prepayment.date, prepayment.strategy);
+  }
+  for (const fgtsEvent of scenario.fgtsEvents ?? []) {
+    if (fgtsEvent.usage === 'amortization') {
+      addStrategy(fgtsEvent.date, fgtsEvent.strategy ?? 'reduce_term');
+    }
+  }
+
+  return [...strategiesByMonth.values()].some((strategies) => strategies.size > 1);
+}
+
 export function validateScenario(scenario: Scenario): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -723,6 +767,9 @@ export function validateScenario(scenario: Scenario): ValidationResult {
   }
   if ((scenario.includeOpeningFee ?? false) && (scenario.openingFee ?? 0) <= 0) {
     warnings.push('Taxa de abertura ativada sem valor informado.');
+  }
+  if (hasMixedSameMonthAmortizationStrategies(scenario)) {
+    warnings.push(MIXED_PREPAYMENT_STRATEGIES_WARNING);
   }
 
   return { errors, warnings };

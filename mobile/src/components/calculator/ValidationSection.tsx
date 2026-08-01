@@ -25,7 +25,10 @@ export function ValidationSection({ errors, warnings }: ValidationSectionProps) 
         </View>
       )}
       {warnings.length > 0 && (
-        <View style={[styles.banner, { backgroundColor: colors.warningLight }]}>
+        <View
+          style={[styles.banner, { backgroundColor: colors.warningLight }]}
+          testID="validation-warnings"
+        >
           {warnings.map((warning, index) => (
             <Text key={index} style={[styles.bannerText, { color: colors.warning }]}>
               {warning}

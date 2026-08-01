@@ -1,0 +1,25 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: 'tab-calculator'
+- scrollUntilVisible:
+    element:
+      id: 'btn-seed-mixed-strategies-dev'
+    direction: UP
+    centerElement: true
+    timeout: 12000
+    speed: 50
+    visibilityPercentage: 10
+- tapOn:
+    id: 'btn-seed-mixed-strategies-dev'
+- scrollUntilVisible:
+    element:
+      id: 'validation-warnings'
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'validation-warnings'
+- assertVisible: 'Amortizações no mesmo mês com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.'

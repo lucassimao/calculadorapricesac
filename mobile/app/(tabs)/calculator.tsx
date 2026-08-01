@@ -19,6 +19,7 @@ import {
   calculateLoanSummary,
   formatCurrency,
   generateAmortizationSchedule,
+  MIXED_PREPAYMENT_STRATEGIES_WARNING,
   validateScenario,
 } from '@loan-engine/calculations';
 import { fetchLatestIndexRate } from '../../src/lib/bacen';
@@ -363,6 +364,7 @@ export default function CalculatorScreen() {
   const [showPrepaymentDatePicker, setShowPrepaymentDatePicker] = useState(false);
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
   const hasSkippedInitialCalculation = useRef(false);
+  const mixedStrategyWarningShown = useRef(false);
   const inlinePaywallRef = useRef<View>(null);
   const balanceChartRef = useRef<View>(null);
   const paymentChartRef = useRef<View>(null);
@@ -567,8 +569,18 @@ export default function CalculatorScreen() {
   const scheduleForTable = useMemo(() => schedule.slice(0, MAX_TABLE_ROWS + 1), [schedule]);
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
+  const hasMixedStrategyWarning = validation.warnings.includes(MIXED_PREPAYMENT_STRATEGIES_WARNING);
   const totalInstallments = Math.max(schedule.length - 1, 0);
   const exportFlowBusy = exporting || rewardedExportFormat !== null;
+
+  useEffect(() => {
+    if (hasMixedStrategyWarning && !mixedStrategyWarningShown.current) {
+      trackEvent('validation_warning_shown', {
+        warning_code: 'mixed_prepayment_strategies',
+      });
+    }
+    mixedStrategyWarningShown.current = hasMixedStrategyWarning;
+  }, [hasMixedStrategyWarning]);
 
   useEffect(() => {
     if (!hasSkippedInitialCalculation.current) {
@@ -1116,6 +1128,36 @@ export default function CalculatorScreen() {
     }));
   };
 
+  const seedMixedStrategiesForDev = () => {
+    const fixedDate = new Date(2026, 0, 1);
+    const firstDueDate = new Date(2026, 1, 5);
+    setScenario((prev) => ({
+      ...prev,
+      startDate: fixedDate,
+      dueDay: 5,
+      prepayments: [
+        {
+          id: 'dev-reduce-payment',
+          amount: 1000,
+          date: firstDueDate,
+          type: 'fixed_amount',
+          strategy: 'reduce_payment',
+          description: 'Dev reduzir parcela',
+        },
+      ],
+      fgtsEvents: [
+        {
+          id: 'dev-reduce-term',
+          amount: 1000,
+          date: firstDueDate,
+          usage: 'amortization',
+          strategy: 'reduce_term',
+          description: 'Dev reduzir prazo',
+        },
+      ],
+    }));
+  };
+
   const hasDevSeedExtras =
     (scenario.prepayments?.length ?? 0) > 0 && (scenario.fgtsEvents?.length ?? 0) > 0;
 
@@ -1358,17 +1400,28 @@ export default function CalculatorScreen() {
           />
 
           {__DEV__ ? (
-            <Pressable
-              style={[styles.secondaryButton, { marginBottom: 16 }]}
-              onPress={seedExportExtrasForDev}
-              accessibilityRole="button"
-              accessibilityLabel="Popular extras para exportação (dev)"
-              testID="btn-seed-export-extras-dev"
-            >
-              <Text style={styles.secondaryButtonText} testID="label-seed-export-extras-dev">
-                {hasDevSeedExtras ? 'Extras prontos (dev)' : 'Popular extras (dev)'}
-              </Text>
-            </Pressable>
+            <View style={{ gap: 8, marginBottom: 16 }}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={seedExportExtrasForDev}
+                accessibilityRole="button"
+                accessibilityLabel="Popular extras para exportação (dev)"
+                testID="btn-seed-export-extras-dev"
+              >
+                <Text style={styles.secondaryButtonText} testID="label-seed-export-extras-dev">
+                  {hasDevSeedExtras ? 'Extras prontos (dev)' : 'Popular extras (dev)'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={seedMixedStrategiesForDev}
+                accessibilityRole="button"
+                accessibilityLabel="Popular estratégias mistas (dev)"
+                testID="btn-seed-mixed-strategies-dev"
+              >
+                <Text style={styles.secondaryButtonText}>Estratégias mistas (dev)</Text>
+              </Pressable>
+            </View>
           ) : null}
 
           <SystemSelector

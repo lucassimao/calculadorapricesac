@@ -25,6 +25,21 @@ const baseScenario: Scenario = {
   prepayments: [],
 };
 
+const toCents = (value: number) => Math.round(value * 100);
+
+function expectReconciled(schedule: ReturnType<typeof generateAmortizationSchedule>) {
+  const openingBalance = toCents(schedule[0].balance);
+  const endingBalance = toCents(schedule.at(-1)?.balance ?? 0);
+  const indexCorrections = schedule.reduce(
+    (total, row) => total + toCents(row.indexCorrection ?? 0),
+    0,
+  );
+  const amortization = schedule.reduce((total, row) => total + toCents(row.amortization), 0);
+
+  expect(openingBalance + indexCorrections - endingBalance).toBe(amortization);
+  expect(endingBalance).toBe(0);
+}
+
 describe('generateAmortizationSchedule', () => {
   it('matches spreadsheet values for Price example', () => {
     const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
@@ -95,21 +110,6 @@ describe('generateAmortizationSchedule', () => {
 });
 
 describe('cent-ledger reconciliation', () => {
-  const toCents = (value: number) => Math.round(value * 100);
-
-  function expectReconciled(schedule: ReturnType<typeof generateAmortizationSchedule>) {
-    const openingBalance = toCents(schedule[0].balance);
-    const endingBalance = toCents(schedule.at(-1)?.balance ?? 0);
-    const indexCorrections = schedule.reduce(
-      (total, row) => total + toCents(row.indexCorrection ?? 0),
-      0,
-    );
-    const amortization = schedule.reduce((total, row) => total + toCents(row.amortization), 0);
-
-    expect(openingBalance + indexCorrections - endingBalance).toBe(amortization);
-    expect(endingBalance).toBe(0);
-  }
-
   it.each(['PRICE', 'SAC'] as const)(
     'reconciles displayed %s rows over a principal/rate/term grid',
     (system) => {
@@ -197,6 +197,201 @@ describe('cent-ledger reconciliation', () => {
       ),
     ).toBe(true);
     expectReconciled(schedule);
+  });
+});
+
+describe('same-month prepayment strategy semantics', () => {
+  it.each(['PRICE', 'SAC'] as const)(
+    'caps two same-month fixed prepayments against the cumulative %s headroom',
+    (system) => {
+      const schedule = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        principal: 1_000,
+        rate: 0,
+        prepayments: [
+          {
+            id: 'first-600',
+            date: new Date(2026, 1, 5),
+            amount: 600,
+            type: 'fixed_amount',
+            strategy: 'reduce_term',
+          },
+          {
+            id: 'second-600',
+            date: new Date(2026, 1, 5),
+            amount: 600,
+            type: 'fixed_amount',
+            strategy: 'reduce_term',
+          },
+        ],
+      });
+
+      expect(schedule).toHaveLength(2);
+      expect(schedule[1].amortization).toBe(1_000);
+      expect(schedule[1].prepaymentAmount).toBe(916.67);
+      expect(schedule[1].balance).toBe(0);
+    },
+  );
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'applies %s reduce_payment before reduce_term regardless of input order',
+    (system) => {
+      const reducePaymentOnly = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        prepayments: [
+          {
+            id: 'reduce-payment',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_payment',
+          },
+        ],
+      });
+      const mixed = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        prepayments: [
+          {
+            id: 'reduce-term-first-in-input',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_term',
+          },
+          {
+            id: 'reduce-payment-second-in-input',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_payment',
+          },
+        ],
+      });
+
+      if (system === 'PRICE') {
+        expect(mixed[2].payment).toBe(reducePaymentOnly[2].payment);
+      } else {
+        expect(mixed[2].amortization).toBe(reducePaymentOnly[2].amortization);
+        expect(mixed[2].interest).toBeLessThan(reducePaymentOnly[2].interest);
+      }
+      expect(mixed.length).toBeLessThan(reducePaymentOnly.length);
+      expectReconciled(mixed);
+    },
+  );
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'does not let same-month FGTS reduce_term hijack %s reduce_payment semantics',
+    (system) => {
+      const reducePaymentOnly = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        prepayments: [
+          {
+            id: 'reduce-payment',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_payment',
+          },
+        ],
+      });
+      const mixedWithFgts = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        prepayments: [
+          {
+            id: 'reduce-payment',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_payment',
+          },
+        ],
+        fgtsEvents: [
+          {
+            id: 'fgts-reduce-term',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            usage: 'amortization',
+            strategy: 'reduce_term',
+          },
+        ],
+      });
+
+      if (system === 'PRICE') {
+        expect(mixedWithFgts[2].payment).toBe(reducePaymentOnly[2].payment);
+      } else {
+        expect(mixedWithFgts[2].amortization).toBe(reducePaymentOnly[2].amortization);
+        expect(mixedWithFgts[2].interest).toBeLessThan(reducePaymentOnly[2].interest);
+      }
+      expect(mixedWithFgts.length).toBeLessThan(reducePaymentOnly.length);
+      expectReconciled(mixedWithFgts);
+    },
+  );
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'keeps the existing indexed %s contract of re-amortizing after each correction',
+    (system) => {
+      const mixedIndexed = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        indexType: 'IPCA',
+        indexRate: 0.5,
+        prepayments: [
+          {
+            id: 'indexed-reduce-payment',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_payment',
+          },
+          {
+            id: 'indexed-reduce-term',
+            date: new Date(2026, 1, 5),
+            amount: 1_000,
+            type: 'fixed_amount',
+            strategy: 'reduce_term',
+          },
+        ],
+      });
+
+      // Indexed schedules intentionally recalculate the next row from the corrected balance
+      // and remaining contractual term. P0.5 governs deterministic allocation within the row.
+      expect(mixedIndexed[1].prepaymentAmount).toBe(2_000);
+      expect(mixedIndexed[1].balance).toBeLessThan(8_000);
+      expectReconciled(mixedIndexed);
+    },
+  );
+
+  it('warns that mixed same-month strategies use reduce_payment before reduce_term', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      prepayments: [
+        {
+          id: 'mixed-warning-payment',
+          date: new Date(2026, 1, 5),
+          amount: 500,
+          type: 'fixed_amount',
+          strategy: 'reduce_payment',
+        },
+      ],
+      fgtsEvents: [
+        {
+          id: 'mixed-warning-term',
+          date: new Date(2026, 1, 20),
+          amount: 500,
+          usage: 'amortization',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    expect(result.warnings).toContain(
+      'Amortizações no mesmo mês com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.',
+    );
   });
 });
 
