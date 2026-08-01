@@ -50,7 +50,7 @@ describe('generateAmortizationSchedule', () => {
       prepayments: [
         {
           id: 'p1',
-          date: new Date('2026-01-05T00:00:00Z'),
+          date: new Date('2026-02-05T00:00:00Z'),
           amount: 9500,
           type: 'fixed_amount',
           strategy: 'reduce_term',
@@ -71,7 +71,7 @@ describe('generateAmortizationSchedule', () => {
       prepayments: [
         {
           id: 'p2',
-          date: new Date(2026, 1, 5),
+          date: new Date(2026, 2, 5),
           amount: 5000,
           type: 'fixed_amount',
           strategy: 'reduce_payment',
@@ -161,7 +161,7 @@ describe('generateAmortizationSchedule with monetary correction', () => {
       prepayments: [
         {
           id: 'p-index',
-          date: new Date(2026, 0, 5),
+          date: new Date(2026, 1, 5),
           amount: 100,
           type: 'percentage',
           strategy: 'reduce_term',
@@ -239,7 +239,7 @@ describe('calculateLoanSummary', () => {
         },
         {
           id: 'fgts-install',
-          date: new Date(2026, 0, 5),
+          date: new Date(2026, 1, 5),
           amount: 500,
           usage: 'installment' as const,
         },
@@ -260,7 +260,7 @@ describe('calculateLoanSummary', () => {
       fgtsEvents: [
         {
           id: 'fgts-amort',
-          date: new Date(2026, 0, 1),
+          date: new Date(2026, 1, 5),
           amount: 800,
           usage: 'amortization' as const,
           strategy: 'reduce_term' as const,
@@ -390,7 +390,79 @@ describe('rate conversions and payment edge cases', () => {
 });
 
 describe('date handling edge cases', () => {
-  it('handles end-of-month dates without overflow (Jan 31 + 1 month stays in Feb)', () => {
+  it.each([
+    {
+      relation: 'before the due day',
+      startDate: new Date(2026, 0, 1),
+      dueDay: 5,
+      expectedFirstDueDate: new Date(2026, 1, 5),
+    },
+    {
+      relation: 'on the due day',
+      startDate: new Date(2026, 0, 5),
+      dueDay: 5,
+      expectedFirstDueDate: new Date(2026, 1, 5),
+    },
+    {
+      relation: 'after the due day',
+      startDate: new Date(2026, 0, 20),
+      dueDay: 5,
+      expectedFirstDueDate: new Date(2026, 2, 5),
+    },
+  ])(
+    'uses the first due-day occurrence at least 30 days after a start date $relation',
+    ({ startDate, dueDay, expectedFirstDueDate }) => {
+      const schedule = generateAmortizationSchedule({
+        ...baseScenario,
+        startDate,
+        dueDay,
+        term: 3,
+      });
+
+      expect(schedule[1].date).toEqual(expectedFirstDueDate);
+      expect(schedule.every((row) => row.date.getTime() >= startDate.getTime())).toBe(true);
+    },
+  );
+
+  it('keeps every CET cash-flow interval non-negative for both amortization systems', () => {
+    const startDate = new Date(2026, 0, 20);
+
+    for (const system of ['PRICE', 'SAC'] as const) {
+      const scenario = { ...baseScenario, system, startDate, dueDay: 5 };
+      const schedule = generateAmortizationSchedule(scenario);
+      const dayIntervals = schedule
+        .filter((row) => row.installmentNumber > 0)
+        .map((row) => (row.date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      expect(dayIntervals.every((days) => days >= 0)).toBe(true);
+      expect(calculateLoanSummary(schedule, scenario).cetAnnualRate).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('documents the CET fixture change caused by the corrected first due date', () => {
+    const scenario = {
+      ...baseScenario,
+      startDate: new Date(2026, 0, 20),
+      dueDay: 5,
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+
+    // Before the date fix this fixture produced 16.98% a.a. from a negative first interval.
+    expect(calculateLoanSummary(schedule, scenario).cetAnnualRate).toBeCloseTo(11.75, 2);
+  });
+
+  it('keeps the documented full-month interest convention for a 44-day first period', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      startDate: new Date(2026, 0, 20),
+      dueDay: 5,
+    });
+
+    expect(schedule[1].date).toEqual(new Date(2026, 2, 5));
+    expect(schedule[1].interest).toBeCloseTo(100, 2);
+  });
+
+  it('handles end-of-month dates without overflow after applying the 30-day minimum', () => {
     const schedule = generateAmortizationSchedule({
       ...baseScenario,
       startDate: new Date(2026, 0, 31), // Jan 31, 2026
@@ -398,16 +470,15 @@ describe('date handling edge cases', () => {
       term: 3,
     });
 
-    // Row 0 is initial, row 1 is first payment
-    expect(schedule[1].date.getMonth()).toBe(0); // January
-    expect(schedule[1].date.getDate()).toBe(31); // Jan 31
-    expect(schedule[2].date.getMonth()).toBe(1); // February (not March!)
-    expect(schedule[2].date.getDate()).toBe(28); // Clamped to Feb 28
-    expect(schedule[3].date.getMonth()).toBe(2); // March
-    expect(schedule[3].date.getDate()).toBe(31); // Mar 31
+    expect(schedule[1].date.getMonth()).toBe(2); // March
+    expect(schedule[1].date.getDate()).toBe(31); // Mar 31
+    expect(schedule[2].date.getMonth()).toBe(3); // April
+    expect(schedule[2].date.getDate()).toBe(30); // Clamped to Apr 30
+    expect(schedule[3].date.getMonth()).toBe(4); // May
+    expect(schedule[3].date.getDate()).toBe(31); // May 31
   });
 
-  it('handles leap year correctly (Jan 31 + 1 month in 2024 = Feb 29)', () => {
+  it('does not accept leap day when it is only 29 days after the start date', () => {
     const schedule = generateAmortizationSchedule({
       ...baseScenario,
       startDate: new Date(2024, 0, 31), // Jan 31, 2024 (leap year)
@@ -415,11 +486,13 @@ describe('date handling edge cases', () => {
       term: 2,
     });
 
-    expect(schedule[2].date.getMonth()).toBe(1); // February
-    expect(schedule[2].date.getDate()).toBe(29); // Leap year has 29 days
+    expect(schedule[1].date.getMonth()).toBe(2); // March (Feb 29 is only 29 days later)
+    expect(schedule[1].date.getDate()).toBe(31);
+    expect(schedule[2].date.getMonth()).toBe(3); // April
+    expect(schedule[2].date.getDate()).toBe(30);
   });
 
-  it('handles Mar 31 + 1 month = Apr 30', () => {
+  it('accepts a clamped April 30 due date exactly 30 days after March 31', () => {
     const schedule = generateAmortizationSchedule({
       ...baseScenario,
       startDate: new Date(2026, 2, 31), // Mar 31, 2026
@@ -427,7 +500,9 @@ describe('date handling edge cases', () => {
       term: 2,
     });
 
-    expect(schedule[2].date.getMonth()).toBe(3); // April
-    expect(schedule[2].date.getDate()).toBe(30); // April has 30 days
+    expect(schedule[1].date.getMonth()).toBe(3); // April 30 is exactly 30 days later
+    expect(schedule[1].date.getDate()).toBe(30);
+    expect(schedule[2].date.getMonth()).toBe(4); // May
+    expect(schedule[2].date.getDate()).toBe(31);
   });
 });

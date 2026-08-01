@@ -1,4 +1,10 @@
-import type { FgtsEvent, LoanSummary, PrepaymentEvent, Scenario, ScheduleRow } from '@loan-engine/loan';
+import type {
+  FgtsEvent,
+  LoanSummary,
+  PrepaymentEvent,
+  Scenario,
+  ScheduleRow,
+} from '@loan-engine/loan';
 
 const roundCents = (value: number) => Math.round(value * 100) / 100;
 
@@ -165,6 +171,22 @@ function setDayClamped(date: Date, day: number): void {
   date.setDate(Math.min(day, lastDayOfMonth));
 }
 
+function getFirstDueDate(startDate: Date, dueDay: number): Date {
+  const earliestDueDate = new Date(startDate);
+  earliestDueDate.setDate(earliestDueDate.getDate() + 30);
+
+  let candidate = new Date(startDate);
+  candidate.setDate(1);
+  setDayClamped(candidate, dueDay);
+
+  while (candidate.getTime() < earliestDueDate.getTime()) {
+    candidate = addMonths(candidate, 1);
+    setDayClamped(candidate, dueDay);
+  }
+
+  return candidate;
+}
+
 export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] {
   const monthlyRate = convertRateToMonthly(scenario.rate, scenario.rateType === 'annual');
   const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
@@ -172,7 +194,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   const schedule: ScheduleRow[] = [];
   const fgtsDownPayment = getFgtsDownPayment(scenario);
   let balance = Math.max(getFinancedPrincipal(scenario) - fgtsDownPayment, 0);
-  let currentDate = new Date(scenario.startDate);
+  let currentDate = getFirstDueDate(scenario.startDate, scenario.dueDay);
   const prepayments = scenario.prepayments ?? [];
   const fgtsEvents = scenario.fgtsEvents ?? [];
   const sortedPrepayments = [...prepayments].sort((a, b) => a.date.getTime() - b.date.getTime());
