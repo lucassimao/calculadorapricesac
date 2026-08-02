@@ -1,0 +1,59 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: 'tab-premium'
+- scrollUntilVisible:
+    element:
+      id: 'btn-dev-prepare-free-rewarded'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn:
+    id: 'btn-dev-prepare-free-rewarded'
+- scrollUntilVisible:
+    element:
+      id: 'btn-dev-reset-scenarios'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn:
+    id: 'btn-dev-reset-scenarios'
+- killApp
+- runFlow: helpers/launch_dev_client.yaml
+- scrollUntilVisible:
+    element:
+      id: 'input-scenario-name'
+    timeout: 8000
+    speed: 80
+    visibilityPercentage: 10
+- tapOn:
+    id: 'input-scenario-name'
+- eraseText
+- inputText: 'Cenario Um'
+- tapOn:
+    id: 'section-scenarios'
+    optional: true
+- tapOn:
+    id: 'btn-save-scenario'
+- tapOn:
+    id: 'btn-new-scenario'
+- tapOn:
+    id: 'input-scenario-name'
+- eraseText
+- inputText: 'Cenario Dois'
+- tapOn:
+    id: 'section-scenarios'
+    optional: true
+- tapOn:
+    id: 'btn-save-scenario'
+- assertVisible:
+    id: 'scenario-limit-paywall'
+- assertVisible:
+    text: 'Salve cenários ilimitados no Premium'
+- assertVisible:
+    text: 'R$ 24,90'
+- tapOn:
+    id: 'scenario-limit-paywall-close'
+- assertNotVisible:
+    id: 'scenario-limit-paywall'

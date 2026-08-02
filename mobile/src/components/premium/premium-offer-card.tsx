@@ -10,18 +10,23 @@ import {
 interface PremiumOfferCardProps extends PropsWithChildren {
   priceLabel: string | null;
   socialProof: PremiumSocialProof | null;
+  subtitle?: string;
+  title?: string;
 }
 
-export function PremiumOfferCard({ children, priceLabel, socialProof }: PremiumOfferCardProps) {
+export function PremiumOfferCard({
+  children,
+  priceLabel,
+  socialProof,
+  subtitle = 'Todas as ferramentas para analisar financiamentos com clareza e apresentar um resultado profissional.',
+  title = 'Simule e compartilhe sem limites',
+}: PremiumOfferCardProps) {
   return (
     <View style={styles.card} testID="premium-offer-card">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>PREMIUM</Text>
-        <Text style={styles.title}>Simule e compartilhe sem limites</Text>
-        <Text style={styles.subtitle}>
-          Todas as ferramentas para analisar financiamentos com clareza e apresentar um resultado
-          profissional.
-        </Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
       <View style={styles.priceBlock}>

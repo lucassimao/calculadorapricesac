@@ -68,6 +68,8 @@ import {
 import type { BrandProfile } from '../../src/types/brand-profile';
 import { getBrandProfileCompletion, isBrandProfileComplete } from '../../src/types/brand-profile';
 import { loadBrandProfile } from '../../src/lib/storage/brand-profile';
+import { ScenarioLimitPaywall } from '../../src/components/premium/scenario-limit-paywall';
+import { SCENARIO_LIMIT_PAYWALL_SOURCE, getScenarioSaveGate } from '../../src/lib/scenario-limit';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -85,8 +87,6 @@ const DEFAULT_SCENARIO: Scenario = {
 };
 
 const MAX_TABLE_ROWS = 10;
-const FREE_SCENARIO_LIMIT = 1;
-
 interface PendingProfessionalExport {
   source: string;
   brandProfile: BrandProfile;
@@ -353,6 +353,7 @@ export default function CalculatorScreen() {
   const [exportingFormat, setExportingFormat] = useState<'pdf' | 'xlsx' | 'csv' | null>(null);
   const [pendingProfessionalExport, setPendingProfessionalExport] =
     useState<PendingProfessionalExport | null>(null);
+  const [scenarioLimitPaywallVisible, setScenarioLimitPaywallVisible] = useState(false);
   const [professionalClientName, setProfessionalClientName] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const { canUseRewardedExport, requestRewardedExport, rewardedExportFormat } =
@@ -383,6 +384,12 @@ export default function CalculatorScreen() {
     context: Awaited<ReturnType<typeof getPaywallViewContext>> | null;
     dismissed: boolean;
   }>({ pending: false, viewedAt: null, blurredAt: null, context: null, dismissed: false });
+  const scenarioLimitPaywallTrackingRef = useRef<{
+    viewedAt: number;
+    closedAt: number | null;
+    context: Awaited<ReturnType<typeof getPaywallViewContext>> | null;
+    dismissed: boolean;
+  } | null>(null);
 
   useEffect(() => {
     screenHeightRef.current = height;
@@ -411,6 +418,36 @@ export default function CalculatorScreen() {
       days_since_install: state.context.days_since_install,
     });
   }, []);
+
+  const trackScenarioLimitPaywallDismissal = useCallback(() => {
+    const state = scenarioLimitPaywallTrackingRef.current;
+    if (state?.dismissed || state?.closedAt === null || !state?.context) return;
+    state.dismissed = true;
+    trackEvent('paywall_dismissed', {
+      source: SCENARIO_LIMIT_PAYWALL_SOURCE,
+      time_on_paywall_ms: Math.max(0, state.closedAt - state.viewedAt),
+      nth_view: state.context.nth_view,
+      days_since_install: state.context.days_since_install,
+    });
+    scenarioLimitPaywallTrackingRef.current = null;
+  }, []);
+
+  const closeScenarioLimitPaywall = useCallback(
+    (reason: 'dismissed' | 'converted' = 'dismissed') => {
+      const state = scenarioLimitPaywallTrackingRef.current;
+      if (state) {
+        if (reason === 'converted') {
+          state.dismissed = true;
+          scenarioLimitPaywallTrackingRef.current = null;
+        } else {
+          state.closedAt = Date.now();
+          trackScenarioLimitPaywallDismissal();
+        }
+      }
+      setScenarioLimitPaywallVisible(false);
+    },
+    [trackScenarioLimitPaywallDismissal],
+  );
 
   const checkInlinePaywallVisibility = useCallback(() => {
     const state = inlinePaywallTrackingRef.current;
@@ -664,25 +701,43 @@ export default function CalculatorScreen() {
       return;
     }
     const existingIndex = scenarios.findIndex((item) => item.id === scenario.id);
-    if (!isPremium && existingIndex < 0 && scenarios.length >= FREE_SCENARIO_LIMIT) {
+    if (
+      getScenarioSaveGate({
+        isPremium,
+        isExistingScenario: existingIndex >= 0,
+        savedScenarioCount: scenarios.length,
+      }) === 'scenario_limit_paywall'
+    ) {
+      if (scenarioLimitPaywallTrackingRef.current) return;
       trackEvent('scenario_save_blocked_free_limit', {
         scenario_count: scenarios.length,
       });
-      Alert.alert(
-        'Plano Premium',
-        'Usuários gratuitos podem salvar apenas 1 cenário adicional. Assine o Premium para liberar mais cenários.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Ver Premium',
-            onPress: () => {
-              trackEvent('scenario_limit_upgrade_clicked', { source: 'save_scenario' });
-              setPendingPaywallSource('scenario_limit');
-              router.push('/(tabs)/premium');
-            },
-          },
-        ],
-      );
+      const viewedAt = Date.now();
+      scenarioLimitPaywallTrackingRef.current = {
+        viewedAt,
+        closedAt: null,
+        context: null,
+        dismissed: false,
+      };
+      setScenarioLimitPaywallVisible(true);
+      void getPaywallViewContext(SCENARIO_LIMIT_PAYWALL_SOURCE)
+        .then((context) => {
+          const state = scenarioLimitPaywallTrackingRef.current;
+          if (!state || state.viewedAt !== viewedAt) return;
+          state.context = context;
+          trackEvent('premium_paywall_viewed', {
+            source: SCENARIO_LIMIT_PAYWALL_SOURCE,
+            nth_view: context.nth_view,
+            iap_availability: iapAvailability,
+          });
+          trackScenarioLimitPaywallDismissal();
+        })
+        .catch(() => {
+          const state = scenarioLimitPaywallTrackingRef.current;
+          if (state?.viewedAt === viewedAt) {
+            scenarioLimitPaywallTrackingRef.current = null;
+          }
+        });
       return;
     }
     const nextList = [...scenarios];
@@ -2483,6 +2538,14 @@ export default function CalculatorScreen() {
       )}
 
       <AdBanner enabled={showAds} />
+
+      <ScenarioLimitPaywall
+        visible={scenarioLimitPaywallVisible}
+        iapAvailability={iapAvailability}
+        isPremium={isPremium}
+        markPremium={markPremium}
+        onClose={closeScenarioLimitPaywall}
+      />
 
       <Modal
         animationType="fade"
