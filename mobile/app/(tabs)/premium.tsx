@@ -454,7 +454,7 @@ function PremiumIapScreen() {
           iap_availability: 'supported',
           store_connected: initial.connected,
           store_ready: initial.isStoreReady,
-          price_label: initial.priceLabel,
+          ...(initial.priceLabel ? { price_label: initial.priceLabel } : {}),
           purchased_product_count: initial.purchasedProductCount,
         });
         return undefined;
@@ -482,7 +482,7 @@ function PremiumIapScreen() {
           iap_availability: 'supported',
           store_connected: current.connected,
           store_ready: current.isStoreReady,
-          price_label: current.priceLabel,
+          ...(current.priceLabel ? { price_label: current.priceLabel } : {}),
           purchased_product_count: current.purchasedProductCount,
         });
         trackDismissal();
@@ -633,7 +633,13 @@ function PremiumIapScreen() {
 
           <View style={styles.card}>
             <Text style={styles.priceLabel}>Pagamento único</Text>
-            <Text style={styles.price}>{priceLabel}</Text>
+            {priceLabel ? (
+              <Text style={styles.price} testID="premium-price-label">
+                {priceLabel}
+              </Text>
+            ) : (
+              <Text style={styles.helper}>Preço indisponível no momento.</Text>
+            )}
             <Text style={styles.helper}>Compra única, sem assinatura recorrente.</Text>
             <View style={styles.row}>
               <Pressable
@@ -756,7 +762,11 @@ function PremiumIapScreen() {
                 accessibilityLabel="Continuar para compra"
               >
                 <Text style={styles.primaryButtonText}>
-                  {purchaseInProgress ? 'Processando...' : `Continuar (${priceLabel})`}
+                  {purchaseInProgress
+                    ? 'Processando...'
+                    : priceLabel
+                      ? `Continuar (${priceLabel})`
+                      : 'Continuar'}
                 </Text>
               </Pressable>
             </View>
@@ -811,7 +821,9 @@ function PremiumUnsupportedScreen() {
           <BrandProfileCard isPremium={isPremium} />
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Pagamento único</Text>
-            <Text style={styles.price}>{IAP_FALLBACK_PRICE}</Text>
+            <Text style={styles.price} testID="premium-price-label">
+              {IAP_FALLBACK_PRICE}
+            </Text>
             <Text style={styles.helper}>
               Faça o teste em uma build instalada com App Store ou Play Store para concluir a
               compra.

@@ -4,7 +4,7 @@
 
 - Expo 56 mobile app (iOS + Android only) for a SAC/Price loan calculator.
 - PT-BR only, offline-first; no backend or sign-in.
-- Freemium: ads for free users; one-time IAP (R$ 10,00) removes ads and unlocks exports (PDF/XLSX/CSV).
+- Freemium: ads for free users; a one-time IAP removes ads and unlocks exports (PDF/XLSX/CSV). The UI uses the store-localized price, with the owner-confirmed fallback from `src/lib/iap.ts` only when the store is unreachable.
 - Premium users can also configure a professional brand profile and generate branded PDF reports.
 - Ignore automated content/social pipeline and any server/database persistence.
 

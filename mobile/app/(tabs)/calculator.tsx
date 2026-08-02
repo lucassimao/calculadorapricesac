@@ -227,7 +227,9 @@ function PremiumSectionIap({
     <View ref={sectionRef} style={styles.section}>
       <Text style={styles.sectionTitle}>Plano Premium</Text>
       <Text style={styles.label}>
-        Desbloqueie recursos premium por {priceLabel} (pagamento único).
+        {priceLabel
+          ? `Desbloqueie recursos premium por ${priceLabel} (pagamento único).`
+          : 'Desbloqueie recursos premium (pagamento único). Preço indisponível no momento.'}
       </Text>
       <View style={styles.rowWrap}>
         <Pressable

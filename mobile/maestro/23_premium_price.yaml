@@ -1,0 +1,17 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-premium'
+    timeout: 8000
+- scrollUntilVisible:
+    element:
+      id: 'premium-price-label'
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    text: 'R$ 24,90'

@@ -7,7 +7,7 @@ import {
   type AnalyticsEventMap,
   type PaywallSource,
 } from '../lib/analytics';
-import { IAP_FALLBACK_PRICE, IAP_PRODUCT_ID } from '../lib/iap';
+import { IAP_PRODUCT_ID, resolveIapPriceLabel } from '../lib/iap';
 import {
   completePurchaseAttempt,
   createPurchaseAttempt,
@@ -98,7 +98,10 @@ export function useIapPurchase({
     () => availablePurchases.some((purchase) => purchase.productId === IAP_PRODUCT_ID),
     [availablePurchases],
   );
-  const priceLabel = product?.displayPrice ?? IAP_FALLBACK_PRICE;
+  const priceLabel = resolveIapPriceLabel({
+    connected,
+    localizedStorePrice: product?.displayPrice,
+  });
   const isStoreReady = connected && !!product;
   const restoreInProgress = restoreRequestedAt !== null;
   const getPurchaseEventProps = useCallback(
@@ -109,7 +112,7 @@ export function useIapPurchase({
       store_ready: isStoreReady,
       product_loaded: !!product,
       is_premium: isPremium,
-      price_label: priceLabel,
+      ...(priceLabel ? { price_label: priceLabel } : {}),
     }),
     [connected, isPremium, isStoreReady, priceLabel, product, source],
   );

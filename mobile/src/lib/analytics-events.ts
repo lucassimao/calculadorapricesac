@@ -63,7 +63,7 @@ type PurchaseContext = {
   store_ready: boolean;
   product_loaded: boolean;
   is_premium: boolean;
-  price_label: string;
+  price_label?: string;
 };
 
 type RewardedContext = {
@@ -171,7 +171,7 @@ export interface AnalyticsEventMap {
     iap_availability: string;
     store_connected: boolean;
     store_ready: boolean;
-    price_label: string;
+    price_label?: string;
     purchased_product_count: number;
   };
   premium_status_sync_requested: {

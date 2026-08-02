@@ -12,7 +12,7 @@ Este documento reúne os passos necessários antes de publicar a Calculadora Pri
   - Substituir IDs de teste.
 - **In‑App Purchase** (remover anúncios):
   - Criar o produto **não‑consumível** com SKU `remove_ads` em **App Store Connect** e **Play Console**.
-  - Definir preço **R$ 10,00** (one‑time).
+  - Confirmar o preço one-time vigente nas duas lojas e manter `IAP_FALLBACK_PRICE`, em `src/lib/iap.ts`, exatamente igual; o app exibe o preço localizado retornado pela loja quando ela está acessível.
   - IAP não funciona no Expo Go; testar em build instalada.
 
 ## 2) IDs e configurações no projeto

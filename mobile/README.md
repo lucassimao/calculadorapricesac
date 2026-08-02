@@ -54,7 +54,7 @@ SKU usado no app: `remove_ads` (one-time).
 2. Type: **Non-Consumable** (remover ads + liberar exportacao).
 3. Reference Name: algo legivel (ex.: "Remover anuncios").
 4. Product ID: `remove_ads` (mesmo do app).
-5. Preco: R$ 10,00 (ou tier equivalente).
+5. Preço: escolha o valor vigente e mantenha `IAP_FALLBACK_PRICE`, em `src/lib/iap.ts`, exatamente igual; em execução, o app exibe o preço localizado retornado pela loja.
 6. Enviar para revisao com uma build que referencie o SKU.
 
 ### Google Play Console (Android)

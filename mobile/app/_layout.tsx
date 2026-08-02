@@ -19,7 +19,6 @@ import { loadBrandProfile } from '../src/lib/storage/brand-profile';
 import { getBrandProfileAnalyticsProperties } from '../src/types/brand-profile';
 import { loadScenarios } from '../src/lib/storage/scenarios';
 import { reconcileStalePurchaseAttempt } from '../src/lib/purchase-attempt';
-import { IAP_FALLBACK_PRICE } from '../src/lib/iap';
 
 function RootLayout() {
   const [analyticsReady, setAnalyticsReady] = useState(() => !analyticsEnabled());
@@ -43,7 +42,6 @@ function RootLayout() {
           store_ready: false,
           product_loaded: false,
           is_premium: isPremium,
-          price_label: IAP_FALLBACK_PRICE,
           attempt_id: attempt.id,
           error_code: attempt.errorCode,
         });
