@@ -80,8 +80,9 @@ export default function Home() {
             Simule financiamento imobiliário com SAC e Price, sem perder tempo.
           </h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeUp} ${styles.delay2}`}>
-            Calcule parcelas, juros, custos e CET com precisão. Compare os sistemas lado a lado e
-            veja o impacto de FGTS, amortizações extras e taxas opcionais no seu bolso.
+            Calcule parcelas, juros, custos e CET com metodologia transparente. Compare os sistemas
+            lado a lado e veja o impacto de FGTS, amortizações extras e taxas opcionais no seu
+            bolso.
           </p>
           <div className={`${styles.heroActions} ${styles.fadeUp} ${styles.delay3}`}>
             <AppStoreLink className={styles.primaryButton} href={appStoreUrl} location="hero">
@@ -197,6 +198,13 @@ export default function Home() {
             <div className={styles.featureTitle}>Comparativo SAC vs Price</div>
             <p className={styles.featureText}>
               Compare os dois sistemas lado a lado e entenda a diferença total de juros.
+            </p>
+          </div>
+          <div className={styles.featureCard}>
+            <div className={styles.featureTitle}>Valores conferidos</div>
+            <p className={styles.featureText}>
+              SAC e Price conferidos com simulação bancária publicada para crédito prefixado sem
+              seguros individualizados.
             </p>
           </div>
           <div className={styles.featureCard}>

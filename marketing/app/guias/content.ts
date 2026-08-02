@@ -131,7 +131,7 @@ export const guides: Guide[] = [
     metaTitle: 'CET: o que é o Custo Efetivo Total do financiamento',
     description:
       'O CET mostra o custo real do financiamento, incluindo juros, seguros e tarifas. Entenda por que ele é mais importante que a taxa de juros anunciada.',
-    updated: UPDATED,
+    updated: '2026-08-01',
     hook: 'A taxa anunciada não é o custo real. O CET é.',
     intro:
       'O CET (Custo Efetivo Total) é a taxa que reúne tudo o que você paga em um financiamento — não só os juros, mas também seguros e tarifas. É o número que permite comparar propostas de forma justa.',
@@ -183,6 +183,27 @@ export const guides: Guide[] = [
               'Negocie a taxa e as tarifas, especialmente se você é correntista.',
               'Prefira prazos menores quando o orçamento permitir.',
             ],
+          },
+        ],
+      },
+      {
+        heading: 'Como validamos os cálculos',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Conferimos os sistemas SAC e Price contra o quadro publicado no Guia do Crédito com Garantia de Imóvel Itaú, com referência de junho de 2024: crédito de R$ 100.000 em 240 meses, taxa de 1,59% a.m., parcelas e CET informados para os dois sistemas.',
+          },
+          {
+            type: 'p',
+            text: 'As parcelas foram comparadas diretamente com margem de R$ 1,50. O CET foi reconciliado com tolerância de 0,10 ponto percentual usando um custo inicial agregado implícito, porque o quadro publica o CET final sem discriminar cada encargo. Esse valor não representa uma tarifa nominal declarada pelo Itaú.',
+          },
+          {
+            type: 'p',
+            text: 'Limite da evidência: como a fonte não publica o detalhamento dos custos nem as datas dos fluxos, o custo agregado foi retrocalculado e o primeiro período do teste foi fixado em 30 dias. Assim, o fixture confere as parcelas e a reconciliação do CET, mas não valida o solver de forma independente nem arbitra a convenção de juros do primeiro período entre mês cheio e pro rata.',
+          },
+          {
+            type: 'callout',
+            text: 'Escopo da conferência: crédito prefixado, SAC e Price, sem seguros individualizados. A validação ainda não cobre TR, IPCA, MIP ou DFI; confira sempre a proposta e o CET fornecidos pelo seu banco.',
           },
         ],
       },
@@ -482,5 +503,4 @@ export const guides: Guide[] = [
   },
 ];
 
-export const guideBySlug = (slug: string): Guide | undefined =>
-  guides.find((g) => g.slug === slug);
+export const guideBySlug = (slug: string): Guide | undefined => guides.find((g) => g.slug === slug);

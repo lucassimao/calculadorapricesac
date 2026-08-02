@@ -10,6 +10,7 @@ import {
   validateScenario,
 } from '@loan-engine/calculations';
 import type { Scenario } from '@loan-engine/loan';
+import { bankParityFixtures } from './fixtures/bank-parity.fixtures';
 
 const baseScenario: Scenario = {
   id: 'test',
@@ -742,6 +743,31 @@ describe('calculateLoanSummary', () => {
     expect(schedule).toHaveLength(332);
     // P0.2 moved installment 1 from Jan 5 to Feb 5: CET changed from 15.58% to 15.36% a.a.
     expect(summary.cet).toEqual({ status: 'available', root: 'positive', annualRate: 15.36 });
+  });
+});
+
+describe('published bank parity', () => {
+  it.each(bankParityFixtures)('$id matches the published schedule and CET', (fixture) => {
+    expect(fixture.source.url).toMatch(/^https:\/\/www\.itau\.com\.br\//);
+    expect(fixture.source.referenceDate).toBe('2024-06');
+    expect(fixture.source.methodology).toContain('nem arbitra mês cheio versus pro rata');
+
+    const schedule = generateAmortizationSchedule(fixture.scenario);
+    const summary = calculateLoanSummary(schedule, fixture.scenario);
+
+    expect(Math.abs(summary.firstPayment - fixture.expected.firstPayment)).toBeLessThanOrEqual(
+      fixture.expected.paymentTolerance,
+    );
+    expect(Math.abs(summary.lastPayment - fixture.expected.lastPayment)).toBeLessThanOrEqual(
+      fixture.expected.paymentTolerance,
+    );
+    expect(summary.cet.status).toBe('available');
+    if (summary.cet.status === 'available') {
+      const actualCetPercent = summary.cet.annualRate;
+      expect(Math.abs(actualCetPercent - fixture.expected.cetAnnualPercent)).toBeLessThanOrEqual(
+        fixture.expected.cetTolerancePercentagePoints,
+      );
+    }
   });
 });
 
