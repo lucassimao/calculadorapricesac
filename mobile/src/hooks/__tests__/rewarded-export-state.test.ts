@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canUseRewardedExportPlacement,
+  classifyRewardedFailure,
   isTabActionExportBusy,
   REWARDED_EXPORT_TIMEOUT_MS,
   shouldLoadPendingRewardedRequest,
@@ -9,6 +10,27 @@ import {
 } from '../rewarded-export-state';
 
 describe('rewarded export state helpers', () => {
+  it('normalizes namespaced native codes while preserving the exact SDK code', () => {
+    expect(
+      classifyRewardedFailure(
+        Object.assign(new Error('No inventory'), {
+          code: 'googleMobileAds/error-code-no-fill',
+        }),
+      ),
+    ).toEqual({
+      errorKind: 'no_fill',
+      errorCode: 'googleMobileAds/error-code-no-fill',
+    });
+    expect(
+      classifyRewardedFailure(
+        Object.assign(new Error('Timed out'), { code: 'googleMobileAds/timeout' }),
+      ),
+    ).toEqual({ errorKind: 'load_timeout', errorCode: 'googleMobileAds/timeout' });
+    expect(classifyRewardedFailure(new Error('Network unavailable'))).toEqual({
+      errorKind: 'network',
+    });
+  });
+
   it('allows rewarded export in stub mode even without a configured unit id', () => {
     expect(
       canUseRewardedExportPlacement({

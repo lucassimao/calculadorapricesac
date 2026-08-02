@@ -3,10 +3,15 @@ import { Alert } from 'react-native';
 import { useRewardedAd } from 'react-native-google-mobile-ads';
 import { useAdTest } from '../contexts/AdTestContext';
 import { getAdUnitId, isRewardedExportEnabled } from '../lib/ads';
-import { getNextRewardedChoiceCount, trackEvent } from '../lib/analytics';
+import { getNextRewardedChoiceCount, trackEvent, type RewardedFailureKind } from '../lib/analytics';
 import type { ExportFormat } from '../lib/exports/access';
 import {
+  grantRewardedCourtesyExport,
+  isCourtesyEligibleRewardedFailure,
+} from '../lib/storage/rewarded-courtesy';
+import {
   canUseRewardedExportPlacement,
+  classifyRewardedFailure,
   REWARDED_EXPORT_TIMEOUT_MS,
   shouldLoadPendingRewardedRequest,
   shouldStartRewardedTimeout,
@@ -15,25 +20,22 @@ import {
 interface RewardedExportRequest {
   format: ExportFormat;
   source: string;
-  onUnlocked: () => Promise<void>;
+  onUnlocked: () => Promise<boolean>;
 }
 
 function formatExportTypeLabel(format: ExportFormat) {
   return format.toUpperCase();
 }
 
-function getRewardedErrorKind(message: string) {
-  const normalized = message.toLowerCase();
-  if (normalized.includes('timeout')) return 'load_timeout';
-  if (
-    normalized.includes('no fill') ||
-    normalized.includes('no-fill') ||
-    normalized.includes('no_fill')
-  ) {
-    return 'no_fill';
-  }
-  if (normalized.includes('network')) return 'network';
-  return 'unknown';
+function confirmCourtesyExport() {
+  return new Promise<void>((resolve) => {
+    Alert.alert(
+      'Hoje é por nossa conta 🎁',
+      'Não encontramos um anúncio agora, então liberamos esta exportação grátis. No Premium, você exporta sempre, sem anúncios e sem marca d’água.',
+      [{ text: 'Exportar grátis', onPress: () => resolve() }],
+      { cancelable: false },
+    );
+  });
 }
 
 export function useRewardedExport(isPremium: boolean) {
@@ -70,27 +72,61 @@ export function useRewardedExport(isPremium: boolean) {
     openedTrackedRef.current = false;
   }, []);
 
-  const handleRewardedFailure = useCallback(
-    (errorMessage: string) => {
-      if (!pendingFormat || handledRequestRef.current) return;
-
-      handledRequestRef.current = true;
-      const request = requestRef.current;
+  const resolveRewardedFailure = useCallback(
+    async ({
+      request,
+      errorKind,
+      errorCode,
+      errorMessage,
+      stub = false,
+    }: {
+      request: RewardedExportRequest | null;
+      errorKind: RewardedFailureKind;
+      errorCode?: string;
+      errorMessage: string;
+      stub?: boolean;
+    }) => {
       trackEvent('rewarded_export_ad_failed', {
-        format: request?.format ?? pendingFormat,
+        format: request?.format ?? pendingFormat ?? 'pdf',
         source: request?.source ?? 'unknown',
-        error_kind: getRewardedErrorKind(errorMessage),
+        error_kind: errorKind,
+        ...(errorCode ? { error_code: errorCode } : {}),
         error_message: errorMessage,
+        ...(stub ? { stub: true } : {}),
       });
+
+      if (request && isCourtesyEligibleRewardedFailure(errorKind)) {
+        const courtesyResult = await grantRewardedCourtesyExport(async () => {
+          await confirmCourtesyExport();
+          return request.onUnlocked();
+        });
+        if (courtesyResult !== 'cap_reached') return;
+      }
+
       Alert.alert(
         'Anúncio indisponível',
         'Não foi possível carregar o anúncio agora. Tente novamente em instantes ou assine o Premium.',
       );
-      clearPending();
-      if (!canUseRealRewarded) return;
-      load();
     },
-    [pendingFormat, clearPending, canUseRealRewarded, load],
+    [pendingFormat],
+  );
+
+  const handleRewardedFailure = useCallback(
+    (errorKind: RewardedFailureKind, errorMessage: string, errorCode?: string) => {
+      if (!pendingFormat || handledRequestRef.current) return;
+
+      handledRequestRef.current = true;
+      const request = requestRef.current;
+      void (async () => {
+        try {
+          await resolveRewardedFailure({ request, errorKind, errorCode, errorMessage });
+        } finally {
+          clearPending();
+          if (canUseRealRewarded) load();
+        }
+      })();
+    },
+    [pendingFormat, resolveRewardedFailure, clearPending, canUseRealRewarded, load],
   );
 
   useEffect(() => {
@@ -121,7 +157,7 @@ export function useRewardedExport(isPremium: boolean) {
     if (!shouldStartRewardedTimeout({ pendingFormat, canUseRealRewarded, isOpened })) return;
 
     timeoutRef.current = setTimeout(() => {
-      handleRewardedFailure('timeout');
+      handleRewardedFailure('load_timeout', 'Rewarded ad load timed out', 'load-timeout');
     }, REWARDED_EXPORT_TIMEOUT_MS);
 
     return () => {
@@ -158,7 +194,8 @@ export function useRewardedExport(isPremium: boolean) {
 
   useEffect(() => {
     if (!pendingFormat || !error) return;
-    handleRewardedFailure(error.message);
+    const { errorKind, errorCode } = classifyRewardedFailure(error);
+    handleRewardedFailure(errorKind, error.message, errorCode);
   }, [pendingFormat, error, handleRewardedFailure]);
 
   useEffect(() => {
@@ -232,17 +269,21 @@ export function useRewardedExport(isPremium: boolean) {
               'Conclua o anúncio para exportar grátis ou assine o Premium para liberar exportações ilimitadas.',
             );
           } else if (stubResult === 'error') {
-            trackEvent('rewarded_export_ad_failed', {
-              format,
-              source,
+            await resolveRewardedFailure({
+              request: { format, source, onUnlocked },
+              errorKind: 'unknown',
+              errorCode: 'stub-failure',
+              errorMessage: 'stub_failure',
               stub: true,
-              error_kind: 'unknown',
-              error_message: 'stub_failure',
             });
-            Alert.alert(
-              'Anúncio indisponível',
-              'Não foi possível carregar o anúncio agora. Tente novamente em instantes ou assine o Premium.',
-            );
+          } else if (stubResult === 'no-fill') {
+            await resolveRewardedFailure({
+              request: { format, source, onUnlocked },
+              errorKind: 'no_fill',
+              errorCode: 'googleMobileAds/error-code-no-fill',
+              errorMessage: 'stub_no_fill',
+              stub: true,
+            });
           } else {
             return false;
           }
@@ -268,6 +309,7 @@ export function useRewardedExport(isPremium: boolean) {
       isLoaded,
       isOpened,
       load,
+      resolveRewardedFailure,
     ],
   );
 

@@ -13,7 +13,7 @@ import {
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../lib/theme';
 
-type RewardedStubResult = 'earned' | 'cancelled' | 'error';
+type RewardedStubResult = 'earned' | 'cancelled' | 'error' | 'no-fill';
 type StubAdResult = RewardedStubResult | 'closed';
 
 type PendingStubAd =
@@ -135,6 +135,20 @@ function StubAdOverlay({
               >
                 <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
                   Falhar anúncio
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.secondaryButton,
+                  { borderColor: colors.border, backgroundColor: colors.backgroundSecondary },
+                ]}
+                onPress={() => closePendingAd('no-fill')}
+                accessibilityRole="button"
+                accessibilityLabel="Simular anúncio sem inventário"
+                testID="stub-ad-rewarded-no-fill"
+              >
+                <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>
+                  Simular sem anúncio
                 </Text>
               </Pressable>
             </View>

@@ -1,6 +1,21 @@
 import type { ExportFormat } from '../lib/exports/access';
+import type { RewardedFailureKind } from '../lib/analytics';
 
 export const REWARDED_EXPORT_TIMEOUT_MS = 15_000;
+
+export function classifyRewardedFailure(error: Error & { code?: unknown }): {
+  errorCode?: string;
+  errorKind: RewardedFailureKind;
+} {
+  const errorCode =
+    typeof error.code === 'string' && error.code.length > 0 ? error.code : undefined;
+  const normalized = (errorCode ?? error.message).toLowerCase();
+  let errorKind: RewardedFailureKind = 'unknown';
+  if (normalized.includes('no-fill') || normalized.includes('no_fill')) errorKind = 'no_fill';
+  else if (normalized.includes('timeout')) errorKind = 'load_timeout';
+  else if (normalized.includes('network')) errorKind = 'network';
+  return { errorKind, ...(errorCode ? { errorCode } : {}) };
+}
 
 export type TabActionExportPhase = 'idle' | 'rewarded' | 'exporting';
 

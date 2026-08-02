@@ -121,7 +121,7 @@ describe('AdTestProvider', () => {
       await flushMicrotasks();
     });
 
-    let rewardedResult: Promise<'earned' | 'cancelled' | 'error' | false> | undefined;
+    let rewardedResult: Promise<'earned' | 'cancelled' | 'error' | 'no-fill' | false> | undefined;
     await act(async () => {
       rewardedResult = getLatestValue().showRewardedStub();
       await flushMicrotasks();

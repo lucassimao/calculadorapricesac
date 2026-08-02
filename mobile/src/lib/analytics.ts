@@ -18,6 +18,7 @@ export type {
   AnalyticsPersonProperties,
   AnalyticsSuperProperties,
   PaywallSource,
+  RewardedFailureKind,
 } from './analytics-events';
 
 const extra = Constants.expoConfig?.extra ?? {};

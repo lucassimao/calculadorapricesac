@@ -11,6 +11,8 @@ export type PaywallSource =
   | 'prepayment_optimizer'
   | 'onboarding';
 
+export type RewardedFailureKind = 'no_fill' | 'load_timeout' | 'network' | 'unknown';
+
 type ScenarioContext = {
   system?: 'SAC' | 'PRICE';
   loan_mode?: 'standard' | 'property';
@@ -201,7 +203,11 @@ export interface AnalyticsEventMap {
   rewarded_export_ad_opened: RewardedContext;
   rewarded_export_ad_reward_earned: RewardedContext;
   rewarded_export_ad_cancelled: RewardedContext;
-  rewarded_export_ad_failed: RewardedContext & { error_kind: string; error_message?: string };
+  rewarded_export_ad_failed: RewardedContext & {
+    error_kind: RewardedFailureKind;
+    error_code?: string;
+    error_message?: string;
+  };
   rewarded_export_unlocked: RewardedContext;
   interstitial_shown: { source: string; stub?: boolean };
   app_open_ad_shown: { stub?: boolean };

@@ -4,24 +4,33 @@ import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REWARDED_EXPORT_TIMEOUT_MS } from '../rewarded-export-state';
 
-const { alertMock, trackEventMock, adTestState, rewardedAdState } = vi.hoisted(() => ({
-  alertMock: vi.fn(),
-  trackEventMock: vi.fn(),
-  adTestState: {
-    loading: false,
-    stubModeEnabled: false,
-    showRewardedStub: vi.fn<() => Promise<'earned' | 'cancelled' | 'error' | false>>(),
-  },
-  rewardedAdState: {
-    isLoaded: false,
-    isOpened: false,
-    isClosed: false,
-    isEarnedReward: false,
-    error: null as Error | null,
-    load: vi.fn(),
-    show: vi.fn(),
-  },
-}));
+const { alertMock, trackEventMock, claimCourtesyMock, adTestState, rewardedAdState } = vi.hoisted(
+  () => ({
+    alertMock: vi.fn(),
+    trackEventMock: vi.fn(),
+    claimCourtesyMock:
+      vi.fn<
+        (
+          exportCourtesy: () => Promise<boolean>,
+        ) => Promise<'granted' | 'cap_reached' | 'export_failed'>
+      >(),
+    adTestState: {
+      loading: false,
+      stubModeEnabled: false,
+      showRewardedStub:
+        vi.fn<() => Promise<'earned' | 'cancelled' | 'error' | 'no-fill' | false>>(),
+    },
+    rewardedAdState: {
+      isLoaded: false,
+      isOpened: false,
+      isClosed: false,
+      isEarnedReward: false,
+      error: null as Error | null,
+      load: vi.fn(),
+      show: vi.fn(),
+    },
+  }),
+);
 
 vi.mock('react-native', () => ({
   Alert: {
@@ -45,6 +54,12 @@ vi.mock('../../lib/analytics', () => ({
 vi.mock('../../lib/ads', () => ({
   getAdUnitId: () => 'ca-app-pub-111/222',
   isRewardedExportEnabled: () => true,
+}));
+
+vi.mock('../../lib/storage/rewarded-courtesy', () => ({
+  grantRewardedCourtesyExport: claimCourtesyMock,
+  isCourtesyEligibleRewardedFailure: (errorKind: string) =>
+    ['no_fill', 'load_timeout'].includes(errorKind),
 }));
 
 import { useRewardedExport } from '../useRewardedExport';
@@ -101,6 +116,13 @@ describe('useRewardedExport', () => {
     });
   }
 
+  function acceptCourtesyPrompt() {
+    alertMock.mockImplementation(
+      (_title: string, _message: string, buttons?: { onPress?: () => void }[]) =>
+        buttons?.[0]?.onPress?.(),
+    );
+  }
+
   beforeEach(() => {
     vi.useFakeTimers();
     latestValue = null;
@@ -116,6 +138,10 @@ describe('useRewardedExport', () => {
     rewardedAdState.show.mockReset();
     alertMock.mockReset();
     trackEventMock.mockReset();
+    claimCourtesyMock.mockReset();
+    claimCourtesyMock.mockImplementation(async (exportCourtesy) =>
+      (await exportCourtesy()) ? 'granted' : 'export_failed',
+    );
   });
 
   afterEach(async () => {
@@ -130,7 +156,7 @@ describe('useRewardedExport', () => {
   it('unlocks the export through the stub flow and clears the pending format', async () => {
     adTestState.stubModeEnabled = true;
     adTestState.showRewardedStub.mockResolvedValue('earned');
-    const onUnlocked = vi.fn(async () => {});
+    const onUnlocked = vi.fn(async () => true);
 
     await renderHook(false);
 
@@ -156,7 +182,7 @@ describe('useRewardedExport', () => {
   });
 
   it('shows a loaded rewarded ad, clears the timeout once opened, and unlocks on close', async () => {
-    const onUnlocked = vi.fn(async () => {});
+    const onUnlocked = vi.fn(async () => true);
 
     await renderHook(false);
     rewardedAdState.load.mockClear();
@@ -210,8 +236,9 @@ describe('useRewardedExport', () => {
     expect(rewardedAdState.load).toHaveBeenCalled();
   });
 
-  it('fails a pending rewarded export after the timeout and resets the request state', async () => {
-    const onUnlocked = vi.fn(async () => {});
+  it('grants a courtesy export after a load timeout and records the exact failure kind', async () => {
+    const onUnlocked = vi.fn(async () => true);
+    acceptCourtesyPrompt();
 
     await renderHook(false);
     rewardedAdState.load.mockClear();
@@ -231,20 +258,143 @@ describe('useRewardedExport', () => {
       await flushMicrotasks();
     });
 
-    expect(onUnlocked).not.toHaveBeenCalled();
+    expect(onUnlocked).toHaveBeenCalledTimes(1);
+    expect(claimCourtesyMock).toHaveBeenCalledTimes(1);
     expect(alertMock).toHaveBeenCalledWith(
-      'Anúncio indisponível',
-      'Não foi possível carregar o anúncio agora. Tente novamente em instantes ou assine o Premium.',
+      'Hoje é por nossa conta 🎁',
+      expect.stringContaining('Premium'),
+      expect.any(Array),
+      { cancelable: false },
     );
     expect(trackEventMock).toHaveBeenCalledWith(
       'rewarded_export_ad_failed',
       expect.objectContaining({
         format: 'csv',
         source: 'tab_action',
-        error_message: 'timeout',
+        error_kind: 'load_timeout',
+        error_code: 'load-timeout',
       }),
     );
     expect(latestValue?.rewardedExportFormat).toBeNull();
     expect(rewardedAdState.load).toHaveBeenCalled();
+  });
+
+  it('simulates no-fill by exporting and emitting failure plus export-success events', async () => {
+    adTestState.stubModeEnabled = true;
+    adTestState.showRewardedStub.mockResolvedValue('no-fill');
+    const onUnlocked = vi.fn(async () => {
+      trackEventMock('export_success', { access: 'free_rewarded' });
+      return true;
+    });
+    acceptCourtesyPrompt();
+
+    await renderHook(false);
+
+    await act(async () => {
+      await latestValue?.requestRewardedExport({
+        format: 'pdf',
+        source: 'tab_action',
+        onUnlocked,
+      });
+      await flushMicrotasks();
+    });
+
+    expect(onUnlocked).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith(
+      'rewarded_export_ad_failed',
+      expect.objectContaining({
+        error_kind: 'no_fill',
+        error_code: 'googleMobileAds/error-code-no-fill',
+        stub: true,
+      }),
+    );
+    expect(trackEventMock).toHaveBeenCalledWith(
+      'export_success',
+      expect.objectContaining({ access: 'free_rewarded' }),
+    );
+    expect(alertMock).toHaveBeenCalledWith(
+      'Hoje é por nossa conta 🎁',
+      expect.stringContaining('Premium'),
+      expect.any(Array),
+      { cancelable: false },
+    );
+  });
+
+  it('preserves the exact native no-fill code in analytics', async () => {
+    const onUnlocked = vi.fn(async () => true);
+    acceptCourtesyPrompt();
+
+    await renderHook(false);
+    await act(async () => {
+      await latestValue?.requestRewardedExport({
+        format: 'xlsx',
+        source: 'table_only',
+        onUnlocked,
+      });
+      await flushMicrotasks();
+    });
+
+    rewardedAdState.error = Object.assign(new Error('No ad inventory'), {
+      code: 'googleMobileAds/error-code-no-fill',
+    });
+    await rerenderHook(false);
+
+    expect(onUnlocked).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith(
+      'rewarded_export_ad_failed',
+      expect.objectContaining({
+        error_kind: 'no_fill',
+        error_code: 'googleMobileAds/error-code-no-fill',
+        error_message: 'No ad inventory',
+      }),
+    );
+  });
+
+  it('does not grant when the courtesy cap is exhausted', async () => {
+    claimCourtesyMock.mockResolvedValue('cap_reached');
+    const onUnlocked = vi.fn(async () => true);
+
+    await renderHook(false);
+    await act(async () => {
+      await latestValue?.requestRewardedExport({
+        format: 'csv',
+        source: 'tab_action',
+        onUnlocked,
+      });
+      await flushMicrotasks();
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(REWARDED_EXPORT_TIMEOUT_MS);
+      await flushMicrotasks();
+    });
+
+    expect(onUnlocked).not.toHaveBeenCalled();
+    expect(alertMock).toHaveBeenCalledWith(
+      'Anúncio indisponível',
+      expect.stringContaining('Tente novamente'),
+    );
+  });
+
+  it('does not grant when the user cancels the ad', async () => {
+    adTestState.stubModeEnabled = true;
+    adTestState.showRewardedStub.mockResolvedValue('cancelled');
+    const onUnlocked = vi.fn(async () => true);
+
+    await renderHook(false);
+    await act(async () => {
+      await latestValue?.requestRewardedExport({
+        format: 'pdf',
+        source: 'tab_action',
+        onUnlocked,
+      });
+      await flushMicrotasks();
+    });
+
+    expect(onUnlocked).not.toHaveBeenCalled();
+    expect(claimCourtesyMock).not.toHaveBeenCalled();
+    expect(trackEventMock).toHaveBeenCalledWith(
+      'rewarded_export_ad_cancelled',
+      expect.objectContaining({ format: 'pdf', source: 'tab_action', stub: true }),
+    );
   });
 });

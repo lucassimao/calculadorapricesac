@@ -956,10 +956,10 @@ export default function CalculatorScreen() {
       brandProfile?: BrandProfile;
       clientName?: string;
     }) => {
-      if (exporting) return;
+      if (exporting) return false;
       if (validation.errors.length > 0) {
         Alert.alert('Revise os dados', 'Corrija os erros do cenário antes de exportar.');
-        return;
+        return false;
       }
 
       setExporting(true);
@@ -1015,6 +1015,7 @@ export default function CalculatorScreen() {
         } else {
           requestReviewIfAppropriate().catch(() => {});
         }
+        return true;
       } catch {
         trackEvent('export_failed', {
           format,
@@ -1029,6 +1030,7 @@ export default function CalculatorScreen() {
           ...getScenarioAnalyticsContext(scenario, schedule.length),
         });
         Alert.alert('Erro', 'Não foi possível exportar o arquivo.');
+        return false;
       } finally {
         setExporting(false);
         setExportingFormat(null);
