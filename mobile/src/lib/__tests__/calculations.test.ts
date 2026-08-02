@@ -198,6 +198,19 @@ describe('cent-ledger reconciliation', () => {
     ).toBe(true);
     expectReconciled(schedule);
   });
+
+  it('caps defensive schedule generation at 600 installments for an oversized term', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      principal: 3606,
+      rate: 0,
+      term: 601,
+    });
+
+    expect(schedule).toHaveLength(601);
+    expect(schedule.at(-1)?.installmentNumber).toBe(600);
+    expect(schedule.every((row) => row.interest === 0)).toBe(true);
+  });
 });
 
 describe('same-month prepayment strategy semantics', () => {
@@ -534,6 +547,33 @@ describe('calculateLoanSummary', () => {
     }
   });
 
+  it('ignores ITBI and registry fees outside property mode', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      loanMode: 'standard',
+      propertyValue: 500000,
+      itbiRate: 2,
+      registryFee: 3500,
+    };
+    const summary = calculateLoanSummary(generateAmortizationSchedule(scenario), scenario);
+
+    expect(summary.totalUpfrontCosts).toBe(0);
+  });
+
+  it('includes ITBI and registry fees in property mode', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      loanMode: 'property',
+      propertyValue: 100000,
+      downPayment: 20000,
+      itbiRate: 2,
+      registryFee: 3500,
+    };
+    const summary = calculateLoanSummary(generateAmortizationSchedule(scenario), scenario);
+
+    expect(summary.totalUpfrontCosts).toBe(5500);
+  });
+
   it('applies FGTS down payment and installment subsidy', () => {
     const scenario = {
       ...baseScenario,
@@ -851,6 +891,47 @@ describe('validateScenario', () => {
     // Should not have rate-related errors
     const rateErrors = result.errors.filter((e) => e.toLowerCase().includes('taxa'));
     expect(rateErrors.length).toBe(0);
+  });
+
+  it.each([
+    ['zero months', { term: 0, termUnit: 'months' as const }],
+    ['fractional months', { term: 12.5, termUnit: 'months' as const }],
+    ['more than 600 months', { term: 601, termUnit: 'months' as const }],
+    ['years normalizing above 600 months', { term: 50.5, termUnit: 'years' as const }],
+    ['non-finite months', { term: Number.POSITIVE_INFINITY, termUnit: 'months' as const }],
+  ])('rejects %s with the normalized-term contract', (_label, patch) => {
+    const result = validateScenario({ ...baseScenario, ...patch });
+
+    expect(result.errors).toContain('Prazo deve ser um número inteiro entre 1 e 600 meses.');
+  });
+
+  it.each([
+    ['600 months', { term: 600, termUnit: 'months' as const }],
+    ['50 years', { term: 50, termUnit: 'years' as const }],
+    ['half a year normalized to 6 months', { term: 0.5, termUnit: 'years' as const }],
+  ])('accepts %s', (_label, patch) => {
+    const result = validateScenario({ ...baseScenario, ...patch });
+
+    expect(result.errors).not.toContain('Prazo deve ser um número inteiro entre 1 e 600 meses.');
+  });
+
+  it('does not derive out-of-term warnings from a defensively capped invalid schedule', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      term: 601,
+      prepayments: [
+        {
+          id: 'month-601',
+          date: new Date(2076, 1, 5),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    expect(result.errors).toContain('Prazo deve ser um número inteiro entre 1 e 600 meses.');
+    expect(result.warnings.some((warning) => warning.includes('fora do período'))).toBe(false);
   });
 
   it('warns on suspicious rate types', () => {

@@ -38,6 +38,7 @@ const CET_MAX_ANNUAL_RATE = 1;
 const CET_MIN_ANNUAL_RATE = -0.99;
 const CET_RATE_TOLERANCE = 1e-10;
 const CET_MAX_ITERATIONS = 100;
+const MAX_TERM_MONTHS = 600;
 export const CET_UNAVAILABLE_LABEL = 'CET indisponível para este cenário';
 export const MIXED_PREPAYMENT_STRATEGIES_WARNING =
   'Amortizações na mesma parcela com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.';
@@ -155,8 +156,12 @@ function getUpfrontCosts(scenario: Scenario, principal: number): CostSummary {
 
   const propertyValue = scenario.propertyValue ?? 0;
   const itbiRate = scenario.itbiRate ?? 0;
-  const itbi = propertyValue > 0 && itbiRate > 0 ? propertyValue * (itbiRate / 100) : 0;
-  const registryFee = scenario.registryFee ?? 0;
+  const includesPropertyCosts = scenario.loanMode === 'property';
+  const itbi =
+    includesPropertyCosts && propertyValue > 0 && itbiRate > 0
+      ? propertyValue * (itbiRate / 100)
+      : 0;
+  const registryFee = includesPropertyCosts ? (scenario.registryFee ?? 0) : 0;
 
   return {
     upfront: iof + openingFee + itbi + registryFee,
@@ -354,7 +359,12 @@ function getFirstDueDate(startDate: Date, dueDay: number): Date {
 
 export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] {
   const monthlyRate = convertRateToMonthly(scenario.rate, scenario.rateType === 'annual');
-  const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
+  const normalizedTerm = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
+  // Validation rejects invalid/oversized terms; this cap only keeps eager UI callers bounded.
+  const termMonths =
+    Number.isFinite(normalizedTerm) && normalizedTerm > 0 && Number.isInteger(normalizedTerm)
+      ? Math.min(normalizedTerm, MAX_TERM_MONTHS)
+      : 0;
 
   const schedule: ScheduleRow[] = [];
   const fgtsDownPayment = getFgtsDownPayment(scenario);
@@ -813,8 +823,14 @@ export function validateScenario(
       }
     }
   }
-  if (Number.isFinite(scenario.term) && scenario.term <= 0) {
-    errors.push('Prazo deve ser maior que zero.');
+  const normalizedTerm = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
+  const isTermValid =
+    Number.isFinite(normalizedTerm) &&
+    normalizedTerm > 0 &&
+    Number.isInteger(normalizedTerm) &&
+    normalizedTerm <= MAX_TERM_MONTHS;
+  if (!isTermValid) {
+    errors.push('Prazo deve ser um número inteiro entre 1 e 600 meses.');
   }
   if (!Number.isInteger(scenario.dueDay) || scenario.dueDay < 1 || scenario.dueDay > 31) {
     errors.push('Dia de vencimento deve ser um inteiro entre 1 e 31.');
@@ -867,7 +883,6 @@ export function validateScenario(
     errors.push('Entrada com FGTS deve ser menor que o valor financiado.');
   }
 
-  const normalizedTerm = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
   const scheduledEvents = [
     ...prepayments.map((event) => ({ date: event.date })),
     ...fgtsEvents
@@ -877,9 +892,7 @@ export function validateScenario(
   if (
     scheduledEvents.length > 0 &&
     !hasInvalidDate &&
-    Number.isFinite(normalizedTerm) &&
-    normalizedTerm > 0 &&
-    Number.isInteger(normalizedTerm) &&
+    isTermValid &&
     Number.isInteger(scenario.dueDay) &&
     scenario.dueDay >= 1 &&
     scenario.dueDay <= 31
