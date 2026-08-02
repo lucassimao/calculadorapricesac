@@ -137,9 +137,10 @@ Trust in the numbers is the product. Fix these before shipping any new feature.
 
 Order matters: improve the paywall BEFORE adding more paywall exposure.
 
-- [ ] **P1.1 Paywall screen revamp (benefits + framing).**
+- [x] **P1.1 Paywall screen revamp (benefits + framing).**
       104 views → 4 purchases (~4%) in Jul. Rework `mobile/app/(tabs)/premium.tsx` (and the sheet component added in P1.2/P1.3): (a) benefits checklist — sem anúncios, exportações ilimitadas sem marca d'água, PDF profissional com sua marca, cenários ilimitados; (b) one-time framing — "pague uma vez, use para sempre — sem assinatura" (this is the honest differentiator; do NOT quote competitor prices in-app and do not claim "objectively the best deal"); (c) price displayed from the store product (P0.9). Social proof slot activates once ratings grow (P1.5).
       Accept: conversion measurable per `source` (P0.1 events); copy pt-BR; snapshot/E2E of the screen.
+  - 2026-08-01 — Entregue card reutilizável de oferta Premium nas variantes com e sem suporte à loja, com os quatro benefícios exigidos, framing de compra vitalícia, preço localizado/fallback de P0.9 e CTA preservando a origem do paywall. Slot de prova social permanece oculto com 2 avaliações e ativa somente a partir de 10 avaliações e nota ≥4,0 via `APP_STORE_RATING_COUNT`/`APP_STORE_RATING_AVERAGE`. Evidência: snapshot TDD vermelho→verde, 196 testes mobile e 25 fluxos Maestro Android-only verdes com preço, framing e benefícios verificados; revisão adversarial Claude concluída e achados reais de rolagem E2E, nota inválida, estado sem loja e estilos órfãos corrigidos; typecheck, lint e formatter verdes.
 
 - [ ] **P1.2 Turn the free-scenario-limit error into a paywall moment.**
       `scenario_save_blocked_free_limit` is firing — users hit `FREE_SCENARIO_LIMIT = 1` and get an error. Replace with a bottom-sheet paywall ("Salve cenários ilimitados no Premium") reusing P1.1's content. Fire `premium_paywall_viewed` with `source: 'scenario_limit'`.

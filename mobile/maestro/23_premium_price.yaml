@@ -15,3 +15,37 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - assertVisible:
     text: 'R$ 24,90'
+- assertVisible:
+    id: 'premium-offer-card'
+- scrollUntilVisible:
+    element:
+      text: 'Pague uma vez, use para sempre — sem assinatura.'
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    text: 'Pague uma vez, use para sempre — sem assinatura.'
+- scrollUntilVisible:
+    element:
+      text: 'Exportações ilimitadas'
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    text: 'Exportações ilimitadas'
+- scrollUntilVisible:
+    element:
+      text: 'PDF profissional com sua marca'
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    text: 'PDF profissional com sua marca'
+- scrollUntilVisible:
+    element:
+      text: 'Cenários ilimitados'
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    text: 'Cenários ilimitados'

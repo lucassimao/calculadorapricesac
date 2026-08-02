@@ -11,6 +11,7 @@ import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useIapAvailability } from '../../src/hooks/useIapAvailability';
 import { AdBanner } from '../../src/components/AdBanner';
 import { BrandProfileCard } from '../../src/components/premium/BrandProfileCard';
+import { PremiumOfferCard } from '../../src/components/premium/premium-offer-card';
 import {
   consumePendingPaywallSource,
   getPaywallViewContext,
@@ -21,6 +22,11 @@ import { useIapPurchase } from '../../src/hooks/useIapPurchase';
 import { shouldShowAds } from '../../src/lib/premium';
 import { resetAdMonetizationTimestamps } from '../../src/lib/storage/ad-monetization';
 import { saveScenarios } from '../../src/lib/storage/scenarios';
+import {
+  PREMIUM_BENEFITS,
+  PREMIUM_ONE_TIME_MESSAGE,
+  getPremiumSocialProof,
+} from '../../src/lib/premium-offer';
 
 interface BenefitItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -411,6 +417,10 @@ function PremiumIapScreen() {
   const [paywallSource, setPaywallSource] =
     useState<ReturnType<typeof consumePendingPaywallSource>>('premium_tab');
   const diagnosticsVisible = diagnosticsTapCount >= 7;
+  const socialProof = getPremiumSocialProof({
+    average: Number(Constants.expoConfig?.extra?.appStoreRatingAverage),
+    count: Number(Constants.expoConfig?.extra?.appStoreRatingCount),
+  });
   const {
     connected,
     priceLabel,
@@ -599,48 +609,7 @@ function PremiumIapScreen() {
         </>
       ) : (
         <>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>O que você ganha</Text>
-            <View style={styles.benefitsList}>
-              <BenefitItem
-                icon="ban-outline"
-                title="Sem anúncios"
-                description="Navegue sem interrupções publicitárias"
-                color="#EF4444"
-              />
-              <BenefitItem
-                icon="share-outline"
-                title="Exportar simulação"
-                description="Gere arquivos PDF, XLSX e CSV com tabela completa, resumo e os principais dados do cenário"
-                color="#2563EB"
-              />
-              <BenefitItem
-                icon="logo-whatsapp"
-                title="Suporte prioritário"
-                description="Atendimento direto via WhatsApp para dúvidas e sugestões"
-                color="#25D366"
-              />
-              <BenefitItem
-                icon="infinite-outline"
-                title="Cenários ilimitados"
-                description="Salve e compare quantos cenários precisar"
-                color="#8B5CF6"
-              />
-            </View>
-          </View>
-
-          <BrandProfileCard isPremium={isPremium} />
-
-          <View style={styles.card}>
-            <Text style={styles.priceLabel}>Pagamento único</Text>
-            {priceLabel ? (
-              <Text style={styles.price} testID="premium-price-label">
-                {priceLabel}
-              </Text>
-            ) : (
-              <Text style={styles.helper}>Preço indisponível no momento.</Text>
-            )}
-            <Text style={styles.helper}>Compra única, sem assinatura recorrente.</Text>
+          <PremiumOfferCard priceLabel={priceLabel} socialProof={socialProof}>
             <View style={styles.row}>
               <Pressable
                 style={[
@@ -667,7 +636,9 @@ function PremiumIapScreen() {
                 </Text>
               </Pressable>
             </View>
-          </View>
+          </PremiumOfferCard>
+
+          <BrandProfileCard isPremium={isPremium} />
         </>
       )}
       {__DEV__ ? (
@@ -727,18 +698,17 @@ function PremiumIapScreen() {
           >
             <Text style={[styles.modalTitle, { color: colors.text }]}>Desbloqueie o Premium</Text>
             <Text style={[styles.modalText, { color: colors.textSecondary }]}>
-              Remova anúncios e exporte sua análise para compartilhar ou guardar.
+              {PREMIUM_ONE_TIME_MESSAGE}
             </Text>
             <View style={styles.modalList}>
-              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>
-                • PDF com resumo e tabela
-              </Text>
-              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>
-                • XLSX para editar planilhas
-              </Text>
-              <Text style={[styles.modalItem, { color: colors.textSecondary }]}>
-                • CSV para integrar com outros apps
-              </Text>
+              {PREMIUM_BENEFITS.map((benefit) => (
+                <Text
+                  key={benefit.title}
+                  style={[styles.modalItem, { color: colors.textSecondary }]}
+                >
+                  • {benefit.title}
+                </Text>
+              ))}
             </View>
             <View style={styles.modalRow}>
               <Pressable
@@ -782,6 +752,10 @@ function PremiumUnsupportedScreen() {
   const showAds = shouldShowAds(isPremium);
   const [diagnosticsTapCount, setDiagnosticsTapCount] = useState(0);
   const diagnosticsVisible = diagnosticsTapCount >= 7;
+  const socialProof = getPremiumSocialProof({
+    average: Number(Constants.expoConfig?.extra?.appStoreRatingAverage),
+    count: Number(Constants.expoConfig?.extra?.appStoreRatingCount),
+  });
 
   return (
     <ScrollView
@@ -818,17 +792,15 @@ function PremiumUnsupportedScreen() {
         </>
       ) : (
         <>
+          <PremiumOfferCard priceLabel={IAP_FALLBACK_PRICE} socialProof={socialProof}>
+            <View style={styles.bannerWarning}>
+              <Text style={styles.bannerWarningText}>
+                A compra não pode ser concluída nesta instalação. Use uma build instalada pela App
+                Store ou Play Store.
+              </Text>
+            </View>
+          </PremiumOfferCard>
           <BrandProfileCard isPremium={isPremium} />
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Pagamento único</Text>
-            <Text style={styles.price} testID="premium-price-label">
-              {IAP_FALLBACK_PRICE}
-            </Text>
-            <Text style={styles.helper}>
-              Faça o teste em uma build instalada com App Store ou Play Store para concluir a
-              compra.
-            </Text>
-          </View>
         </>
       )}
       {__DEV__ ? (
@@ -906,16 +878,6 @@ const styles = StyleSheet.create({
   },
   benefitsList: {
     gap: 16,
-  },
-  priceLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textTransform: 'uppercase',
-  },
-  price: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
   },
   premiumStatusCard: {
     borderWidth: 1,

@@ -116,6 +116,9 @@ export default {
       adsDisabled: false,
       posthogApiKey: process.env.POSTHOG_API_KEY ?? '',
       posthogHost: process.env.POSTHOG_HOST ?? 'https://us.i.posthog.com',
+      // Use a dot decimal (for example, 4.8); invalid/low values keep social proof hidden.
+      appStoreRatingAverage: Number(process.env.APP_STORE_RATING_AVERAGE ?? '5'),
+      appStoreRatingCount: Number(process.env.APP_STORE_RATING_COUNT ?? '2'),
       admobBannerUnitIdAndroid: adMobConfig.admobBannerUnitIdAndroid,
       admobBannerUnitIdIos: adMobConfig.admobBannerUnitIdIos,
       admobInterstitialUnitIdAndroid: adMobConfig.admobInterstitialUnitIdAndroid,
