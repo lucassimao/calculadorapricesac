@@ -385,7 +385,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   // Row 0 (spreadsheet parity)
   schedule.push({
     installmentNumber: 0,
-    date: new Date(currentDate),
+    date: new Date(scenario.startDate),
     payment: 0,
     interest: 0,
     amortization: 0,

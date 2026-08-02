@@ -1340,6 +1340,23 @@ describe('rate conversions and payment edge cases', () => {
 });
 
 describe('date handling edge cases', () => {
+  it('keeps the balance-only row at disbursement while installment 1 uses the first due date', () => {
+    const startDate = new Date(2026, 0, 20);
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      startDate,
+      dueDay: 5,
+      term: 3,
+    });
+
+    expect(schedule[0]).toMatchObject({
+      installmentNumber: 0,
+      date: startDate,
+      payment: 0,
+    });
+    expect(schedule[1].date).toEqual(new Date(2026, 2, 5));
+  });
+
   it.each([
     {
       relation: 'before the due day',
