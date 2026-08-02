@@ -242,7 +242,7 @@ Order matters: improve the paywall BEFORE adding more paywall exposure.
 
 - [ ] **P3.4 Use-case showcase pages on the marketing site (SEO + app showcase).**
   Owner request 2026-08-02. A set of static pages, each covering ONE common use case or important existing feature, to attract specific searches and show the app doing the job. These are NOT guias (guias = educational deep-dives); showcase pages are short, direct, and screenshot-driven. Cross-link both ways (guia ↔ showcase page where topics overlap).
-  **Route & structure:** new section `marketing/app/recursos/[slug]` following the same pattern as `guias/` (a `content.ts` registry, static generation, metadata + JSON-LD, sitemap auto-inclusion). Landing page gets a "Recursos" nav link and a card grid.
+  **Route & structure:** new section `marketing/app/recursos/[slug]` following the same pattern as `guias/` (a `content.ts` registry, static generation, metadata + JSON-LD). Landing page gets a "Recursos" nav link and a card grid. **Sitemap is mandatory:** extend `marketing/app/sitemap.ts` to enumerate the `/recursos` index and every `/recursos/[slug]` page directly from the content registry (same mechanism as guias — new slugs must appear in the sitemap automatically, with no manual list to forget), and verify each URL is present in the generated `sitemap.xml` on every page's acceptance.
   **Page template (keep every page this shape — simple, direct):**
   1. H1 = the search phrase (e.g. "Simulador de amortização: reduzir prazo ou parcela");
   2. 2–3 sentence intro stating the outcome the user gets;
