@@ -140,6 +140,25 @@ Criados via API no projeto `calculadorapricesac` (id 389897) em 2026-08-01:
    - Trends de usuários únicos: `calculation_performed` com breakdowns separados por `system`, `index_type`, `entry_mode`.
    - `prepayment_added` e `fgts_added` por `recurrence`; `comparison_started`; `professional_export_started`; `optimizer_plan_generated` quando disponíveis.
 
+## Funil de exportação e regra de decisão (P1.6)
+
+O funil é totalmente derivável dos eventos do app:
+
+1. `export_sheet_opened` → `export_sheet_abandoned` mede escolha de formato. Abandono = `export_sheet_abandoned / export_sheet_opened` na mesma versão e janela pós-release.
+2. `export_clicked` inicia uma tentativa após a escolha do formato e contém `format`, `source`, `is_premium` e `rewarded_available`.
+3. Para usuário gratuito, o gate termina em `rewarded_export_requested` e depois `rewarded_export_ad_opened` / `rewarded_export_ad_reward_earned` / `rewarded_export_ad_cancelled` / `rewarded_export_ad_failed` / `rewarded_export_unlocked`, ou em `export_blocked_premium`. Queda no gate de anúncio = `(rewarded_export_requested - export_success com access = free_rewarded) / rewarded_export_requested`; assim uma cortesia por no-fill que realmente entregou o arquivo não é falsamente classificada como abandono.
+4. `export_success` e `export_failed` são os terminais da geração/compartilhamento iniciada. Não inferir sucesso pelo fechamento do share sheet.
+
+Filtrar todos os passos pela versão que contiver P1.6 e por timestamp igual ou posterior à publicação dessa versão. Avaliar uma única vez quando o primeiro limiar ocorrer: 100 eventos `export_clicked` ou 60 dias completos desde a publicação. Guardar também o timestamp do 100º `export_clicked`, para que uma avaliação atrasada ainda identifique corretamente qual limiar ocorreu primeiro. A função `evaluateExportFunnelDecision` codifica os limites estritos:
+
+- abandono > 30% → simplificar a sheet para PDF padrão + expansor “outros formatos”;
+- senão, queda no gate de anúncio > 40% → revisar a copy do gate;
+- senão → manter o fluxo atual.
+
+O resultado deve ser registrado na nota de conclusão de P1.6. Até a versão ser publicada e um dos limiares ocorrer, não há decisão de produto válida a tomar.
+
+Executar a regra com Node.js ≥ 22.18 via `npm run decision:export-funnel -- '<snapshot-json>'`; o JSON segue `ExportFunnelSnapshot` em `src/lib/export-funnel-decision.ts`, com timestamps Unix em milissegundos. A regra rejeita contagens impossíveis em vez de mascarar defeitos de instrumentação.
+
 Não criar funil review→rating: o SO não informa exibição nem avaliação. Não criar métricas dependentes de installs/reembolsos das lojas; os proxies aceitos são `app_installed`, `app_open` e a reconciliação de entitlement no app.
 
 ## Ações do proprietário
