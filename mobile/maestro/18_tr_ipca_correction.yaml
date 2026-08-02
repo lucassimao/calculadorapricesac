@@ -57,6 +57,13 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - assertVisible:
     id: 'summary-index-type-ipca'
+- scrollUntilVisible:
+    element:
+      id: 'summary-total-index-correction'
+    centerElement: false
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
 - assertVisible:
     id: 'summary-total-index-correction'
 - assertVisible: '0,50000% a.m.'

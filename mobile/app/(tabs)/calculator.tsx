@@ -20,6 +20,7 @@ import {
   formatCurrency,
   generateAmortizationSchedule,
   MIXED_PREPAYMENT_STRATEGIES_WARNING,
+  OUT_OF_TERM_EVENT_WARNING_FRAGMENT,
   validateScenario,
 } from '@loan-engine/calculations';
 import { fetchLatestIndexRate } from '../../src/lib/bacen';
@@ -365,6 +366,7 @@ export default function CalculatorScreen() {
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
   const hasSkippedInitialCalculation = useRef(false);
   const mixedStrategyWarningShown = useRef(false);
+  const outOfTermWarningShown = useRef(false);
   const inlinePaywallRef = useRef<View>(null);
   const balanceChartRef = useRef<View>(null);
   const paymentChartRef = useRef<View>(null);
@@ -568,8 +570,11 @@ export default function CalculatorScreen() {
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
   const scheduleForTable = useMemo(() => schedule.slice(0, MAX_TABLE_ROWS + 1), [schedule]);
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
-  const validation = useMemo(() => validateScenario(scenario), [scenario]);
+  const validation = useMemo(() => validateScenario(scenario, schedule), [scenario, schedule]);
   const hasMixedStrategyWarning = validation.warnings.includes(MIXED_PREPAYMENT_STRATEGIES_WARNING);
+  const hasOutOfTermWarning = validation.warnings.some((warning) =>
+    warning.includes(OUT_OF_TERM_EVENT_WARNING_FRAGMENT),
+  );
   const totalInstallments = Math.max(schedule.length - 1, 0);
   const exportFlowBusy = exporting || rewardedExportFormat !== null;
 
@@ -581,6 +586,15 @@ export default function CalculatorScreen() {
     }
     mixedStrategyWarningShown.current = hasMixedStrategyWarning;
   }, [hasMixedStrategyWarning]);
+
+  useEffect(() => {
+    if (hasOutOfTermWarning && !outOfTermWarningShown.current) {
+      trackEvent('validation_warning_shown', {
+        warning_code: 'event_out_of_term',
+      });
+    }
+    outOfTermWarningShown.current = hasOutOfTermWarning;
+  }, [hasOutOfTermWarning]);
 
   useEffect(() => {
     if (!hasSkippedInitialCalculation.current) {
@@ -1158,6 +1172,27 @@ export default function CalculatorScreen() {
     }));
   };
 
+  const seedOutOfTermWarningForDev = () => {
+    setScenario((prev) => ({
+      ...prev,
+      startDate: new Date(2026, 0, 1),
+      dueDay: 5,
+      term: 1,
+      termUnit: 'months',
+      prepayments: [
+        {
+          id: 'dev-out-of-term',
+          amount: 1000,
+          date: new Date(2026, 2, 1),
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+          description: 'Dev fora do prazo',
+        },
+      ],
+      fgtsEvents: [],
+    }));
+  };
+
   const hasDevSeedExtras =
     (scenario.prepayments?.length ?? 0) > 0 && (scenario.fgtsEvents?.length ?? 0) > 0;
 
@@ -1420,6 +1455,15 @@ export default function CalculatorScreen() {
                 testID="btn-seed-mixed-strategies-dev"
               >
                 <Text style={styles.secondaryButtonText}>Estratégias mistas (dev)</Text>
+              </Pressable>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={seedOutOfTermWarningForDev}
+                accessibilityRole="button"
+                accessibilityLabel="Popular amortização fora do prazo (dev)"
+                testID="btn-seed-out-of-term-warning-dev"
+              >
+                <Text style={styles.secondaryButtonText}>Fora do prazo (dev)</Text>
               </Pressable>
             </View>
           ) : null}

@@ -366,7 +366,7 @@ describe('same-month prepayment strategy semantics', () => {
     },
   );
 
-  it('warns that mixed same-month strategies use reduce_payment before reduce_term', () => {
+  it('warns that mixed same-installment strategies use reduce_payment before reduce_term', () => {
     const result = validateScenario({
       ...baseScenario,
       prepayments: [
@@ -381,7 +381,7 @@ describe('same-month prepayment strategy semantics', () => {
       fgtsEvents: [
         {
           id: 'mixed-warning-term',
-          date: new Date(2026, 1, 20),
+          date: new Date(2026, 1, 3),
           amount: 500,
           usage: 'amortization',
           strategy: 'reduce_term',
@@ -390,7 +390,7 @@ describe('same-month prepayment strategy semantics', () => {
     });
 
     expect(result.warnings).toContain(
-      'Amortizações no mesmo mês com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.',
+      'Amortizações na mesma parcela com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.',
     );
   });
 });
@@ -705,6 +705,130 @@ describe('calculateLoanSummary', () => {
   });
 });
 
+describe('event application dates', () => {
+  it.each([
+    { relation: 'before', eventDate: new Date(2026, 1, 1), expectedInstallment: 1 },
+    { relation: 'on', eventDate: new Date(2026, 1, 5), expectedInstallment: 1 },
+    { relation: 'after', eventDate: new Date(2026, 1, 6), expectedInstallment: 2 },
+  ])(
+    'applies prepayment and FGTS amortization on the first due date $relation the event',
+    ({ eventDate, expectedInstallment }) => {
+      const schedule = generateAmortizationSchedule({
+        ...baseScenario,
+        prepayments: [
+          {
+            id: `prepayment-${expectedInstallment}`,
+            date: eventDate,
+            amount: 100,
+            type: 'fixed_amount',
+            strategy: 'reduce_term',
+          },
+        ],
+        fgtsEvents: [
+          {
+            id: `fgts-${expectedInstallment}`,
+            date: eventDate,
+            amount: 100,
+            usage: 'amortization',
+            strategy: 'reduce_term',
+          },
+        ],
+      });
+
+      const applicationRow = schedule.find((row) => row.installmentNumber === expectedInstallment);
+      expect(applicationRow?.prepaymentAmount).toBe(200);
+      expect(applicationRow?.fgtsAmortization).toBe(100);
+      expect(
+        schedule
+          .filter((row) => row.installmentNumber !== expectedInstallment)
+          .every((row) => row.prepaymentAmount === undefined),
+      ).toBe(true);
+    },
+  );
+
+  it('applies an FGTS installment subsidy on the first due date at or after its date', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      fgtsEvents: [
+        {
+          id: 'fgts-installment-after-due-date',
+          date: new Date(2026, 1, 28),
+          amount: 100,
+          usage: 'installment',
+        },
+      ],
+    });
+
+    expect(schedule[1].fgtsSubsidy).toBeUndefined();
+    expect(schedule[2].fgtsSubsidy).toBe(100);
+  });
+
+  it('treats different times on the same calendar due date as the same day', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      startDate: new Date(2026, 0, 1, 9),
+      prepayments: [
+        {
+          id: 'same-day-afternoon',
+          date: new Date(2026, 1, 5, 14),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    expect(schedule[1].prepaymentAmount).toBe(100);
+    expect(schedule[2].prepaymentAmount).toBeUndefined();
+  });
+
+  it('rolls a pre-window event into the first eligible installment by contract', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      prepayments: [
+        {
+          id: 'before-schedule-window',
+          date: new Date(2020, 0, 1),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const validation = validateScenario(scenario, schedule);
+
+    expect(schedule[1].prepaymentAmount).toBe(100);
+    expect(validation.warnings.some((warning) => warning.includes('fora do período'))).toBe(false);
+  });
+
+  it('caps bunched FGTS installment subsidies at the eligible payment', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      fgtsEvents: [
+        {
+          id: 'fgts-bunched-one',
+          date: new Date(2026, 1, 10),
+          amount: 600,
+          usage: 'installment',
+        },
+        {
+          id: 'fgts-bunched-two',
+          date: new Date(2026, 2, 1),
+          amount: 600,
+          usage: 'installment',
+        },
+      ],
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const summary = calculateLoanSummary(schedule, scenario);
+
+    expect(schedule[2].fgtsSubsidy).toBe(schedule[2].payment);
+    expect(schedule[3].fgtsSubsidy).toBeUndefined();
+    expect(summary.totalFgtsUsed).toBe(schedule[2].payment);
+  });
+});
+
 describe('validateScenario', () => {
   it('flags invalid inputs', () => {
     const result = validateScenario({
@@ -801,6 +925,297 @@ describe('validateScenario', () => {
 
     expect(result.warnings).toContain(
       'Taxa mensal de correção parece alta. Verifique o valor informado.',
+    );
+  });
+
+  it.each([
+    ['principal', { principal: Number.NaN }],
+    ['rate', { rate: Number.POSITIVE_INFINITY }],
+    ['term', { term: Number.NaN }],
+    ['dueDay', { dueDay: Number.NEGATIVE_INFINITY }],
+    ['propertyValue', { propertyValue: Number.NaN }],
+    ['downPayment', { downPayment: Number.POSITIVE_INFINITY }],
+    ['iofRate', { iofRate: Number.NaN }],
+    ['insuranceRate', { insuranceRate: Number.POSITIVE_INFINITY }],
+    ['adminFeeRate', { adminFeeRate: Number.NaN }],
+    ['openingFee', { openingFee: Number.POSITIVE_INFINITY }],
+    ['itbiRate', { itbiRate: Number.NaN }],
+    ['registryFee', { registryFee: Number.POSITIVE_INFINITY }],
+    ['indexRate', { indexRate: Number.NaN }],
+  ] as const)('rejects non-finite scenario field %s', (_field, patch) => {
+    const result = validateScenario({ ...baseScenario, ...patch });
+
+    expect(result.errors).toContain('Todos os valores numéricos devem ser finitos.');
+  });
+
+  it.each([
+    {
+      source: 'prepayment',
+      scenario: {
+        ...baseScenario,
+        prepayments: [
+          {
+            id: 'non-finite-prepayment',
+            date: new Date(2026, 1, 5),
+            amount: Number.NaN,
+            type: 'fixed_amount' as const,
+            strategy: 'reduce_term' as const,
+          },
+        ],
+      },
+    },
+    {
+      source: 'FGTS',
+      scenario: {
+        ...baseScenario,
+        fgtsEvents: [
+          {
+            id: 'non-finite-fgts',
+            date: new Date(2026, 1, 5),
+            amount: Number.POSITIVE_INFINITY,
+            usage: 'amortization' as const,
+          },
+        ],
+      },
+    },
+  ])('rejects non-finite $source event amounts', ({ scenario }) => {
+    expect(validateScenario(scenario).errors).toContain(
+      'Todos os valores numéricos devem ser finitos.',
+    );
+  });
+
+  it.each<{ source: string; scenario: Scenario }>([
+    { source: 'start date', scenario: { ...baseScenario, startDate: new Date('invalid') } },
+    {
+      source: 'prepayment date',
+      scenario: {
+        ...baseScenario,
+        prepayments: [
+          {
+            id: 'invalid-date-prepayment',
+            date: new Date('invalid'),
+            amount: 100,
+            type: 'fixed_amount' as const,
+            strategy: 'reduce_term' as const,
+          },
+        ],
+      },
+    },
+    {
+      source: 'FGTS date',
+      scenario: {
+        ...baseScenario,
+        fgtsEvents: [
+          {
+            id: 'invalid-date-fgts',
+            date: new Date('invalid'),
+            amount: 100,
+            usage: 'amortization' as const,
+          },
+        ],
+      },
+    },
+  ])('rejects an invalid $source', ({ scenario }) => {
+    expect(validateScenario(scenario).errors).toContain('Todas as datas devem ser válidas.');
+  });
+
+  it.each([
+    {
+      source: 'prepayment',
+      scenario: {
+        ...baseScenario,
+        prepayments: [
+          {
+            id: 'negative-prepayment',
+            date: new Date(2026, 1, 5),
+            amount: -1,
+            type: 'fixed_amount' as const,
+            strategy: 'reduce_term' as const,
+          },
+        ],
+      },
+    },
+    {
+      source: 'FGTS',
+      scenario: {
+        ...baseScenario,
+        fgtsEvents: [
+          {
+            id: 'negative-fgts',
+            date: new Date(2026, 1, 5),
+            amount: -1,
+            usage: 'amortization' as const,
+          },
+        ],
+      },
+    },
+  ])('rejects negative $source amounts', ({ scenario }) => {
+    expect(validateScenario(scenario).errors).toContain(
+      'Valores de amortização e FGTS não podem ser negativos.',
+    );
+  });
+
+  it.each([0, -1, 100.01])('rejects percentage prepayment amount %s outside (0, 100]', (amount) => {
+    const result = validateScenario({
+      ...baseScenario,
+      prepayments: [
+        {
+          id: `invalid-percentage-${amount}`,
+          date: new Date(2026, 1, 5),
+          amount,
+          type: 'percentage',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    expect(result.errors).toContain('Percentual de amortização deve ser maior que 0% e até 100%.');
+  });
+
+  it.each([0, 5.5, 32])('rejects non-integer or out-of-range due day %s', (dueDay) => {
+    const result = validateScenario({ ...baseScenario, dueDay });
+
+    expect(result.errors).toContain('Dia de vencimento deve ser um inteiro entre 1 e 31.');
+  });
+
+  it.each([10_000, 12_000])(
+    'rejects FGTS down payment %s greater than or equal to financed principal',
+    (amount) => {
+      const result = validateScenario({
+        ...baseScenario,
+        fgtsEvents: [
+          {
+            id: `invalid-fgts-down-${amount}`,
+            date: new Date(2026, 0, 1),
+            amount,
+            usage: 'down_payment',
+          },
+        ],
+      });
+
+      expect(result.errors).toContain('Entrada com FGTS deve ser menor que o valor financiado.');
+    },
+  );
+
+  it('warns when an amortization is after the final due date and ignores it', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      term: 1,
+      prepayments: [
+        {
+          id: 'outside-term',
+          date: new Date(2026, 2, 1),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+    const result = validateScenario(scenario);
+    const schedule = generateAmortizationSchedule(scenario);
+
+    expect(result.warnings).toContain(
+      'Amortização em 03/2026 está fora do período do financiamento e foi ignorada.',
+    );
+    expect(schedule.every((row) => row.prepaymentAmount === undefined)).toBe(true);
+  });
+
+  it('does not warn for an event later in the day on the final due date', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      startDate: new Date(2026, 0, 1, 9),
+      term: 1,
+      prepayments: [
+        {
+          id: 'final-due-afternoon',
+          date: new Date(2026, 1, 5, 18),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+    const result = validateScenario(scenario);
+    const schedule = generateAmortizationSchedule(scenario);
+
+    expect(result.warnings.some((warning) => warning.includes('fora do período'))).toBe(false);
+    expect(schedule[1].date).toEqual(new Date(2026, 1, 5, 9));
+  });
+
+  it('warns when early payoff leaves a later nominally in-term event unapplied', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      prepayments: [
+        {
+          id: 'payoff-first-installment',
+          date: new Date(2026, 1, 5),
+          amount: 10_000,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+        {
+          id: 'after-early-payoff',
+          date: new Date(2026, 5, 1),
+          amount: 500,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+    const schedule = generateAmortizationSchedule(scenario);
+    const result = validateScenario(scenario, schedule);
+
+    expect(schedule).toHaveLength(2);
+    expect(result.warnings).toContain(
+      'Amortização em 06/2026 está fora do período do financiamento e foi ignorada.',
+    );
+  });
+
+  it('warns only when different strategies map to the same installment', () => {
+    const sameInstallment: Scenario = {
+      ...baseScenario,
+      prepayments: [
+        {
+          id: 'january-reduce-payment',
+          date: new Date(2026, 0, 10),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_payment',
+        },
+        {
+          id: 'february-reduce-term',
+          date: new Date(2026, 1, 3),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+    const differentInstallments: Scenario = {
+      ...baseScenario,
+      prepayments: [
+        {
+          id: 'february-reduce-payment',
+          date: new Date(2026, 1, 3),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_payment',
+        },
+        {
+          id: 'february-reduce-term-after-due',
+          date: new Date(2026, 1, 20),
+          amount: 100,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    };
+
+    expect(validateScenario(sameInstallment).warnings).toContain(
+      'Amortizações na mesma parcela com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.',
+    );
+    expect(validateScenario(differentInstallments).warnings).not.toContain(
+      'Amortizações na mesma parcela com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.',
     );
   });
 });

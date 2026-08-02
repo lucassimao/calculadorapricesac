@@ -40,7 +40,9 @@ const CET_RATE_TOLERANCE = 1e-10;
 const CET_MAX_ITERATIONS = 100;
 export const CET_UNAVAILABLE_LABEL = 'CET indisponível para este cenário';
 export const MIXED_PREPAYMENT_STRATEGIES_WARNING =
-  'Amortizações no mesmo mês com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.';
+  'Amortizações na mesma parcela com estratégias diferentes serão aplicadas nesta ordem: reduzir parcela e depois reduzir prazo.';
+export const OUT_OF_TERM_EVENT_WARNING_FRAGMENT =
+  'está fora do período do financiamento e foi ignorada.';
 
 export function formatCetResult(cet: CetResult, decimalSeparator: ',' | '.' = ','): string {
   if (cet.status === 'unavailable') return CET_UNAVAILABLE_LABEL;
@@ -172,28 +174,26 @@ function getFgtsDownPayment(scenario: Scenario): number {
     .reduce((total, event) => total + event.amount, 0);
 }
 
-function getFgtsAmortizationsForMonth(fgtsEvents: FgtsEvent[], installmentDate: Date): FgtsEvent[] {
-  const month = installmentDate.getMonth();
-  const year = installmentDate.getFullYear();
-  return fgtsEvents.filter(
-    (event) =>
-      event.usage === 'amortization' &&
-      event.date.getMonth() === month &&
-      event.date.getFullYear() === year,
-  );
+function getCalendarDayStamp(date: Date): number {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function getFgtsInstallmentForMonth(fgtsEvents: FgtsEvent[], installmentDate: Date): number {
-  const month = installmentDate.getMonth();
-  const year = installmentDate.getFullYear();
-  return fgtsEvents
-    .filter(
-      (event) =>
-        event.usage === 'installment' &&
-        event.date.getMonth() === month &&
-        event.date.getFullYear() === year,
-    )
-    .reduce((total, event) => total + event.amount, 0);
+// Contract: each dated event is consumed exactly once, by the first installment whose local
+// calendar due date is greater than or equal to the event's local calendar date.
+function takeEventsDueBy<T extends { date: Date }>(
+  events: T[],
+  appliedEvents: Set<T>,
+  installmentDate: Date,
+): T[] {
+  const dueEvents = events.filter(
+    (event) =>
+      !appliedEvents.has(event) &&
+      getCalendarDayStamp(event.date) <= getCalendarDayStamp(installmentDate),
+  );
+  for (const event of dueEvents) {
+    appliedEvents.add(event);
+  }
+  return dueEvents;
 }
 
 function getMonthlyExtraCosts(balance: number, scenario: Scenario) {
@@ -367,6 +367,9 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
   const fgtsEvents = scenario.fgtsEvents ?? [];
   const sortedPrepayments = [...prepayments].sort((a, b) => a.date.getTime() - b.date.getTime());
   const sortedFgts = [...fgtsEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const appliedPrepayments = new Set<PrepaymentEvent>();
+  const appliedFgtsAmortizations = new Set<FgtsEvent>();
+  const appliedFgtsInstallments = new Set<FgtsEvent>();
   const monthlyCorrectionRate = getMonthlyCorrectionRate(scenario);
 
   // Row 0 (spreadsheet parity)
@@ -379,30 +382,39 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     balance: fromCents(balanceCents),
   });
 
-  const getPrepaymentsForMonth = (installmentDate: Date): MonthlyAmortization[] => {
-    const month = installmentDate.getMonth();
-    const year = installmentDate.getFullYear();
-    return sortedPrepayments
-      .filter((p) => p.date.getMonth() === month && p.date.getFullYear() === year)
-      .map((prepayment) => ({
+  const getPrepaymentsForInstallment = (installmentDate: Date): MonthlyAmortization[] => {
+    return takeEventsDueBy(sortedPrepayments, appliedPrepayments, installmentDate).map(
+      (prepayment) => ({
         ...prepayment,
         source: 'prepayment',
-      }));
-  };
-  const getAllAmortizationsForMonth = (installmentDate: Date): MonthlyAmortization[] => {
-    const base = getPrepaymentsForMonth(installmentDate);
-    const fgtsAmortizations = getFgtsAmortizationsForMonth(sortedFgts, installmentDate).map(
-      (event) => ({
-        id: event.id,
-        date: event.date,
-        amount: event.amount,
-        type: 'fixed_amount' as const,
-        strategy: event.strategy ?? 'reduce_term',
-        description: event.description ?? 'FGTS',
-        source: 'fgts' as const,
       }),
     );
+  };
+  const getAllAmortizationsForInstallment = (installmentDate: Date): MonthlyAmortization[] => {
+    const base = getPrepaymentsForInstallment(installmentDate);
+    const pendingFgtsAmortizations = sortedFgts.filter((event) => event.usage === 'amortization');
+    const fgtsAmortizations = takeEventsDueBy(
+      pendingFgtsAmortizations,
+      appliedFgtsAmortizations,
+      installmentDate,
+    ).map((event) => ({
+      id: event.id,
+      date: event.date,
+      amount: event.amount,
+      type: 'fixed_amount' as const,
+      strategy: event.strategy ?? 'reduce_term',
+      description: event.description ?? 'FGTS',
+      source: 'fgts' as const,
+    }));
     return [...base, ...fgtsAmortizations];
+  };
+  const getFgtsInstallmentForInstallment = (installmentDate: Date): number => {
+    const pendingFgtsInstallments = sortedFgts.filter((event) => event.usage === 'installment');
+    return takeEventsDueBy(
+      pendingFgtsInstallments,
+      appliedFgtsInstallments,
+      installmentDate,
+    ).reduce((total, event) => total + event.amount, 0);
   };
 
   if (scenario.system === 'PRICE') {
@@ -436,7 +448,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const installmentDate = new Date(currentDate);
       setDayClamped(installmentDate, scenario.dueDay);
 
-      const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
+      const prepaymentsForMonth = getAllAmortizationsForInstallment(installmentDate);
       const appliedAmortizations = applyMonthlyAmortizations(
         prepaymentsForMonth,
         balanceCents,
@@ -463,7 +475,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const isPaidOff = balanceCents === 0;
 
       const fgtsSubsidyCents = Math.min(
-        toCents(getFgtsInstallmentForMonth(sortedFgts, installmentDate)),
+        toCents(getFgtsInstallmentForInstallment(installmentDate)),
         paymentCents,
       );
       const netPaymentCents = paymentCents - fgtsSubsidyCents;
@@ -530,7 +542,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const installmentDate = new Date(currentDate);
       setDayClamped(installmentDate, scenario.dueDay);
 
-      const prepaymentsForMonth = getAllAmortizationsForMonth(installmentDate);
+      const prepaymentsForMonth = getAllAmortizationsForInstallment(installmentDate);
       const appliedAmortizations = applyMonthlyAmortizations(
         prepaymentsForMonth,
         balanceCents,
@@ -556,7 +568,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
       const isPaidOff = balanceCents === 0;
 
       const fgtsSubsidyCents = Math.min(
-        toCents(getFgtsInstallmentForMonth(sortedFgts, installmentDate)),
+        toCents(getFgtsInstallmentForInstallment(installmentDate)),
         paymentCents,
       );
       const netPaymentCents = paymentCents - fgtsSubsidyCents;
@@ -681,13 +693,21 @@ export function formatCurrency(value: number): string {
   });
 }
 
-function hasMixedSameMonthAmortizationStrategies(scenario: Scenario): boolean {
-  const strategiesByMonth = new Map<string, Set<PrepaymentEvent['strategy']>>();
+function hasMixedSameInstallmentAmortizationStrategies(
+  scenario: Scenario,
+  schedule: ScheduleRow[],
+): boolean {
+  const installments = schedule.filter((row) => row.installmentNumber > 0);
+  const strategiesByInstallment = new Map<number, Set<PrepaymentEvent['strategy']>>();
   const addStrategy = (date: Date, strategy: PrepaymentEvent['strategy']) => {
-    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-    const strategies = strategiesByMonth.get(monthKey) ?? new Set();
+    const applicationRow = installments.find(
+      (row) => getCalendarDayStamp(row.date) >= getCalendarDayStamp(date),
+    );
+    if (!applicationRow) return;
+
+    const strategies = strategiesByInstallment.get(applicationRow.installmentNumber) ?? new Set();
     strategies.add(strategy);
-    strategiesByMonth.set(monthKey, strategies);
+    strategiesByInstallment.set(applicationRow.installmentNumber, strategies);
   };
 
   for (const prepayment of scenario.prepayments ?? []) {
@@ -699,18 +719,86 @@ function hasMixedSameMonthAmortizationStrategies(scenario: Scenario): boolean {
     }
   }
 
-  return [...strategiesByMonth.values()].some((strategies) => strategies.size > 1);
+  return [...strategiesByInstallment.values()].some((strategies) => strategies.size > 1);
 }
 
-export function validateScenario(scenario: Scenario): ValidationResult {
+export function validateScenario(
+  scenario: Scenario,
+  existingSchedule?: ScheduleRow[],
+): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const prepayments = scenario.prepayments ?? [];
+  const fgtsEvents = scenario.fgtsEvents ?? [];
+
+  const numericValues = [
+    scenario.principal,
+    scenario.rate,
+    scenario.term,
+    scenario.dueDay,
+    scenario.propertyValue,
+    scenario.downPayment,
+    scenario.iofRate,
+    scenario.insuranceRate,
+    scenario.adminFeeRate,
+    scenario.openingFee,
+    scenario.itbiRate,
+    scenario.registryFee,
+    scenario.indexRate,
+    ...prepayments.map((event) => event.amount),
+    ...fgtsEvents.map((event) => event.amount),
+  ].filter((value): value is number => value !== undefined);
+  const hasNonFiniteNumber = numericValues.some((value) => !Number.isFinite(value));
+  if (hasNonFiniteNumber) {
+    errors.push('Todos os valores numéricos devem ser finitos.');
+  }
+
+  const dates = [
+    scenario.startDate,
+    ...prepayments.map((event) => event.date),
+    ...fgtsEvents.map((event) => event.date),
+  ];
+  const hasInvalidDate = dates.some((date) => !Number.isFinite(date.getTime()));
+  if (hasInvalidDate) {
+    errors.push('Todas as datas devem ser válidas.');
+  }
+
+  if (
+    prepayments.some((event) => Number.isFinite(event.amount) && event.amount < 0) ||
+    fgtsEvents.some((event) => Number.isFinite(event.amount) && event.amount < 0)
+  ) {
+    errors.push('Valores de amortização e FGTS não podem ser negativos.');
+  }
+  if (
+    prepayments.some(
+      (event) =>
+        event.type === 'percentage' &&
+        Number.isFinite(event.amount) &&
+        (event.amount <= 0 || event.amount > 100),
+    )
+  ) {
+    errors.push('Percentual de amortização deve ser maior que 0% e até 100%.');
+  }
+
+  const optionalNonNegativeValues = [
+    scenario.propertyValue,
+    scenario.downPayment,
+    scenario.iofRate,
+    scenario.insuranceRate,
+    scenario.adminFeeRate,
+    scenario.openingFee,
+    scenario.itbiRate,
+    scenario.registryFee,
+  ].filter((value): value is number => value !== undefined && Number.isFinite(value));
+  if (optionalNonNegativeValues.some((value) => value < 0)) {
+    errors.push('Valores monetários e taxas de custos não podem ser negativos.');
+  }
 
   const financedPrincipal = getFinancedPrincipal(scenario);
-  if (financedPrincipal <= 0) {
+  if (Number.isFinite(financedPrincipal) && financedPrincipal <= 0) {
     errors.push('Valor do financiamento deve ser maior que zero.');
   }
-  if (scenario.rate < 0) {
+  if (Number.isFinite(scenario.rate) && scenario.rate < 0) {
     errors.push('Taxa de juros não pode ser negativa.');
   }
   if (scenario.indexType) {
@@ -725,11 +813,11 @@ export function validateScenario(scenario: Scenario): ValidationResult {
       }
     }
   }
-  if (scenario.term <= 0) {
+  if (Number.isFinite(scenario.term) && scenario.term <= 0) {
     errors.push('Prazo deve ser maior que zero.');
   }
-  if (scenario.dueDay < 1 || scenario.dueDay > 31) {
-    errors.push('Dia de vencimento deve estar entre 1 e 31.');
+  if (!Number.isInteger(scenario.dueDay) || scenario.dueDay < 1 || scenario.dueDay > 31) {
+    errors.push('Dia de vencimento deve ser um inteiro entre 1 e 31.');
   }
 
   if (scenario.loanMode === 'property' && (scenario.propertyValue ?? 0) > 0) {
@@ -742,10 +830,10 @@ export function validateScenario(scenario: Scenario): ValidationResult {
     }
   }
 
-  if (scenario.rateType === 'monthly' && scenario.rate > 10) {
+  if (Number.isFinite(scenario.rate) && scenario.rateType === 'monthly' && scenario.rate > 10) {
     warnings.push('Taxa mensal parece alta. Verifique se não é anual.');
   }
-  if (scenario.rateType === 'annual' && scenario.rate < 5) {
+  if (Number.isFinite(scenario.rate) && scenario.rateType === 'annual' && scenario.rate < 5) {
     warnings.push('Taxa anual parece baixa. Verifique se não é mensal.');
   }
   if (scenario.loanMode === 'property') {
@@ -768,8 +856,51 @@ export function validateScenario(scenario: Scenario): ValidationResult {
   if ((scenario.includeOpeningFee ?? false) && (scenario.openingFee ?? 0) <= 0) {
     warnings.push('Taxa de abertura ativada sem valor informado.');
   }
-  if (hasMixedSameMonthAmortizationStrategies(scenario)) {
-    warnings.push(MIXED_PREPAYMENT_STRATEGIES_WARNING);
+  const fgtsDownPayment = fgtsEvents
+    .filter((event) => event.usage === 'down_payment')
+    .reduce((total, event) => total + event.amount, 0);
+  if (
+    Number.isFinite(fgtsDownPayment) &&
+    Number.isFinite(financedPrincipal) &&
+    fgtsDownPayment >= financedPrincipal
+  ) {
+    errors.push('Entrada com FGTS deve ser menor que o valor financiado.');
+  }
+
+  const normalizedTerm = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
+  const scheduledEvents = [
+    ...prepayments.map((event) => ({ date: event.date })),
+    ...fgtsEvents
+      .filter((event) => event.usage !== 'down_payment')
+      .map((event) => ({ date: event.date })),
+  ];
+  if (
+    scheduledEvents.length > 0 &&
+    !hasInvalidDate &&
+    Number.isFinite(normalizedTerm) &&
+    normalizedTerm > 0 &&
+    Number.isInteger(normalizedTerm) &&
+    Number.isInteger(scenario.dueDay) &&
+    scenario.dueDay >= 1 &&
+    scenario.dueDay <= 31
+  ) {
+    const schedule = existingSchedule ?? generateAmortizationSchedule(scenario);
+    const installments = schedule.filter((row) => row.installmentNumber > 0);
+    const finalDueDate = installments.at(-1)?.date;
+    if (hasMixedSameInstallmentAmortizationStrategies(scenario, schedule)) {
+      warnings.push(MIXED_PREPAYMENT_STRATEGIES_WARNING);
+    }
+
+    const warnedMonths = new Set<string>();
+    for (const event of scheduledEvents) {
+      if (finalDueDate && getCalendarDayStamp(event.date) <= getCalendarDayStamp(finalDueDate)) {
+        continue;
+      }
+      const monthYear = `${String(event.date.getMonth() + 1).padStart(2, '0')}/${event.date.getFullYear()}`;
+      if (warnedMonths.has(monthYear)) continue;
+      warnedMonths.add(monthYear);
+      warnings.push(`Amortização em ${monthYear} ${OUT_OF_TERM_EVENT_WARNING_FRAGMENT}`);
+    }
   }
 
   return { errors, warnings };
