@@ -10,9 +10,17 @@ appId: com.lsimaocosta.calculadorapricesac
           end: 50%, 80%
 - scrollUntilVisible:
     element:
-      id: 'professional-profile-name'
+      id: 'professional-profile-analytics-notice'
     timeout: 12000
     speed: 60
+    visibilityPercentage: 50
+- assertVisible:
+    id: 'professional-profile-analytics-notice'
+- scrollUntilVisible:
+    element:
+      id: 'professional-profile-name'
+    timeout: 8000
+    speed: 40
     visibilityPercentage: 10
 - tapOn:
     id: 'professional-profile-name'

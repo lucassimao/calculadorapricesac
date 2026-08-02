@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { isBrandProfileComplete } from '../../types/brand-profile';
+import {
+  getBrandProfileIdentityProperties,
+  isBrandProfileComplete,
+} from '../../types/brand-profile';
 import { clearBrandProfile, loadBrandProfile, saveBrandProfile } from '../storage/brand-profile';
 
 const storage = new Map<string, string>();
@@ -99,5 +102,23 @@ describe('brand profile storage', () => {
         accentColor: '#2563EB',
       }),
     ).toBe(true);
+  });
+
+  it('maps the saved professional profile to trimmed PostHog person properties', () => {
+    expect(
+      getBrandProfileIdentityProperties({
+        nameOrCompany: '  Prime Credito  ',
+        registration: ' CRECI 123 ',
+        phone: ' 11999990000 ',
+        email: ' contato@prime.example ',
+        website: ' ',
+      }),
+    ).toEqual({
+      name: 'Prime Credito',
+      registration: 'CRECI 123',
+      phone: '11999990000',
+      email: 'contato@prime.example',
+      website: '',
+    });
   });
 });

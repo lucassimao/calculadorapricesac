@@ -10,6 +10,10 @@ export const Alert = {
   alert: () => {},
 };
 
+export const Linking = {
+  openURL: async () => {},
+};
+
 export const Platform = {
   OS: 'android',
   select<T>(config: { android?: T; ios?: T; default?: T }) {
@@ -25,7 +29,10 @@ export const Modal = ({
   visible ? React.createElement('Modal', props, children) : null;
 
 export const Pressable = createHostComponent('Pressable');
+export const ActivityIndicator = createHostComponent('ActivityIndicator');
+export const Image = createHostComponent('Image');
 export const Text = createHostComponent('Text');
+export const TextInput = createHostComponent('TextInput');
 export const View = createHostComponent('View');
 
 export const StyleSheet = {

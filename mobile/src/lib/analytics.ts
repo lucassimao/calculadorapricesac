@@ -8,6 +8,8 @@ import type {
   AnalyticsEvent,
   AnalyticsEventMap,
   AnalyticsPersonProperties,
+  AnalyticsPremiumPersonProperties,
+  AnalyticsProfessionalPersonProperties,
   AnalyticsProperties,
   AnalyticsSuperProperties,
   PaywallSource,
@@ -17,6 +19,8 @@ export type {
   AnalyticsEvent,
   AnalyticsEventMap,
   AnalyticsPersonProperties,
+  AnalyticsPremiumPersonProperties,
+  AnalyticsProfessionalPersonProperties,
   AnalyticsSuperProperties,
   PaywallSource,
   RewardedFailureKind,
@@ -63,6 +67,7 @@ export interface AnalyticsDryRunCapture {
 let posthogClient: PostHog | null = null;
 let dryRunOverride: boolean | null = null;
 let dryRunSink: AnalyticsDryRunCapture[] = [];
+let dryRunPersonPropertiesSink: AnalyticsPersonProperties[] = [];
 let coldOpenTracked = false;
 let pendingPaywallSource: PaywallSource | null = null;
 let superProperties: AnalyticsSuperProperties = {
@@ -192,13 +197,32 @@ export function registerAnalyticsProperties(properties: Partial<AnalyticsSuperPr
   registerCurrentSuperProperties();
 }
 
-export async function setAnalyticsPersonProperties(properties: AnalyticsPersonProperties) {
-  if (!posthogClient) return false;
-  posthogClient.identify(
-    posthogClient.getDistinctId(),
-    properties as unknown as AnalyticsProperties,
-  );
-  return true;
+function setAnalyticsPersonProperties(properties: AnalyticsPersonProperties) {
+  if (dryRunEnabled()) {
+    // Raw values stay in-memory only so tests can assert the exact identity contract.
+    dryRunPersonPropertiesSink.push({ ...properties });
+    console.info(
+      '[analytics:dry-run:identify]',
+      JSON.stringify({ property_keys: Object.keys(properties) }),
+    );
+  }
+  if (posthogClient) {
+    posthogClient.identify(
+      posthogClient.getDistinctId(),
+      properties as unknown as AnalyticsProperties,
+    );
+  }
+  return posthogClient !== null;
+}
+
+export function setAnalyticsPremiumPersonProperties(properties: AnalyticsPremiumPersonProperties) {
+  return setAnalyticsPersonProperties(properties);
+}
+
+export function setAnalyticsProfessionalPersonProperties(
+  properties: AnalyticsProfessionalPersonProperties,
+) {
+  return setAnalyticsPersonProperties(properties);
 }
 
 export async function syncPremiumAnalyticsStatus(isPremium: boolean) {
@@ -212,7 +236,7 @@ export async function syncPremiumAnalyticsStatus(isPremium: boolean) {
     await AsyncStorage.setItem(FIRST_APP_VERSION_KEY, firstAppVersion);
   }
   if (storedPremiumStatus !== String(isPremium)) {
-    const identified = await setAnalyticsPersonProperties({
+    const identified = setAnalyticsPremiumPersonProperties({
       is_premium: isPremium,
       first_app_version: firstAppVersion,
     });
@@ -265,12 +289,6 @@ export function trackScreen(screen: string, properties?: AnalyticsProperties) {
   posthogClient?.screen(screen, payload);
 }
 
-export function resetAnalyticsIdentity() {
-  if (!posthogClient) return;
-  posthogClient.reset();
-  registerCurrentSuperProperties();
-}
-
 export function flushAnalytics() {
   return posthogClient?.flush() ?? Promise.resolve();
 }
@@ -281,9 +299,14 @@ export function setAnalyticsDryRunForTests(enabled: boolean | null) {
 
 export function clearAnalyticsDryRunSink() {
   dryRunSink = [];
+  dryRunPersonPropertiesSink = [];
   coldOpenTracked = false;
 }
 
 export function getAnalyticsDryRunSink(): readonly AnalyticsDryRunCapture[] {
   return dryRunSink;
+}
+
+export function getAnalyticsDryRunPersonPropertiesSink(): readonly AnalyticsPersonProperties[] {
+  return dryRunPersonPropertiesSink;
 }

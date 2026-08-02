@@ -248,7 +248,19 @@ export interface AnalyticsSuperProperties {
   has_brand_profile?: boolean;
 }
 
-export interface AnalyticsPersonProperties {
+export interface AnalyticsPremiumPersonProperties {
   is_premium: boolean;
   first_app_version: string;
 }
+
+export interface AnalyticsProfessionalPersonProperties {
+  name: string;
+  email: string;
+  phone: string;
+  registration: string;
+  website: string;
+}
+
+export type AnalyticsPersonProperties =
+  | AnalyticsPremiumPersonProperties
+  | AnalyticsProfessionalPersonProperties;

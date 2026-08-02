@@ -16,6 +16,7 @@ import {
 } from '../src/lib/analytics';
 import { AppOpenAdGate } from '../src/components/AppOpenAdGate';
 import { loadBrandProfile } from '../src/lib/storage/brand-profile';
+import { syncBrandProfileAnalyticsIdentity } from '../src/lib/brand-profile-analytics';
 import { getBrandProfileAnalyticsProperties } from '../src/types/brand-profile';
 import { loadScenarios } from '../src/lib/storage/scenarios';
 import { reconcileStalePurchaseAttempt } from '../src/lib/purchase-attempt';
@@ -59,6 +60,7 @@ function RootLayout() {
           has_brand_profile:
             getBrandProfileAnalyticsProperties(profile).professional_profile_complete,
         });
+        return syncBrandProfileAnalyticsIdentity(profile);
       })
       .catch(() => {});
   }, []);

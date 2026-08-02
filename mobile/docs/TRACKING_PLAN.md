@@ -5,9 +5,9 @@ Auditoria concluída em 2026-08-01. Este documento e `src/lib/analytics-events.t
 ## Regras do contrato
 
 - O PostHog recebe somente sinais capturados pelo app em runtime. Nenhuma métrica depende de App Store Connect, notificações de servidor ou Play Console.
-- Todos os eventos recebem `app_platform`, `app_version`, `is_premium` e `saved_scenario_count`. `has_brand_profile` é um booleano opcional; dados da marca continuam apenas no dispositivo.
-- Person properties permitidas: `is_premium` e `first_app_version`. Nome, e-mail, telefone, registro e site são proibidos.
-- Valores brutos de empréstimo, imóvel, parcela e cliente são proibidos. Use faixas (`principal_bucket`, `rate_bucket`) e booleanos.
+- Todos os eventos recebem `app_platform`, `app_version`, `is_premium` e `saved_scenario_count`. `has_brand_profile` é um booleano opcional.
+- Person properties permitidas: `is_premium`, `first_app_version` e, por decisão do proprietário em 2026-08-02, os dados do próprio profissional que usa o app (`name`, `email`, `phone`, `registration`, `website`). Esses campos são enviados ao salvar o perfil profissional ou numa migração única de perfil completo já salvo; nunca entram nos eventos de negócio do app. O SDK do PostHog materializa atualizações de person properties como eventos internos `$set`, que contêm esses campos.
+- Valores brutos de empréstimo, imóvel, parcela e dados dos clientes do profissional são proibidos. Use faixas (`principal_bucket`, `rate_bucket`) e booleanos; `has_client_name` pode indicar preenchimento sem transmitir o nome.
 - Em desenvolvimento, `EXPO_PUBLIC_ANALYTICS_DRYRUN=1` escreve no console e no sink em memória, sem rede.
 - Convenções: nomes em `snake_case`, preferencialmente `objeto_acao`; eventos históricos de alto valor são estendidos, não renomeados.
 
@@ -46,9 +46,9 @@ Auditoria concluída em 2026-08-01. Este documento e `src/lib/analytics-events.t
 | `professional_profile_logo_selected`           | flags + MIME                                                      | igual                                                                                                                                            | manter                                      |
 | `professional_profile_logo_removed`            | flags + tinha logo                                                | igual                                                                                                                                            | manter                                      |
 | `professional_profile_save_blocked_incomplete` | flags                                                             | igual                                                                                                                                            | manter                                      |
-| `professional_profile_saved`                   | flags e `identify` com nome/e-mail/telefone/registro/site         | flags; super property `has_brand_profile`; sem identify PII                                                                                      | retirar identity PII                        |
+| `professional_profile_saved`                   | flags e `identify` com nome/e-mail/telefone/registro/site         | flags; `has_brand_profile=true`; identificar com os dados do próprio profissional, conforme decisão do proprietário                              | restaurar identity PII permitida            |
 | `professional_profile_save_failed`             | flags                                                             | igual                                                                                                                                            | manter                                      |
-| `professional_profile_cleared`                 | flags e reset de identidade                                       | flags + `has_brand_profile=false`; não havia motivo válido para identificar                                                                      | corrigir                                    |
+| `professional_profile_cleared`                 | flags e reset de identidade                                       | flags + `has_brand_profile=false`; limpar os cinco campos pessoais com valores vazios, preservando a identidade analítica                        | corrigir                                    |
 | `professional_profile_clear_failed`            | nenhuma                                                           | nenhuma                                                                                                                                          | manter                                      |
 | `premium_entry_clicked`                        | origem e posição                                                  | igual                                                                                                                                            | manter                                      |
 | `premium_paywall_viewed`                       | estado da loja sem origem                                         | `source` obrigatório, `nth_view` + estado da loja; `price_label` somente após a loja fornecer preço localizado                                   | estender                                    |
@@ -161,6 +161,6 @@ Executar a regra com Node.js ≥ 22.18 via `npm run decision:export-funnel -- '<
 
 Não criar funil review→rating: o SO não informa exibição nem avaliação. Não criar métricas dependentes de installs/reembolsos das lojas; os proxies aceitos são `app_installed`, `app_open` e a reconciliação de entitlement no app.
 
-## Ações do proprietário
+## Decisão do proprietário
 
-- `[b] BLOCKED — owner action: no PostHog, abrir Persons no projeto 389897, localizar propriedades históricas name, email, phone, registration e website originadas do perfil profissional e executar delete/redact; confirmar que não restaram valores dessas chaves.`
+- Em 2026-08-02, o proprietário cancelou a exclusão histórica e determinou que os dados do próprio profissional sejam person properties para permitir identificar quem usa o perfil profissional. A proibição permanece para dados financeiros brutos em eventos e para nomes/dados dos clientes desse profissional.

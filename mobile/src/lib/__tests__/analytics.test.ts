@@ -2,15 +2,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearAnalyticsDryRunSink,
+  getAnalyticsDryRunPersonPropertiesSink,
   getAnalyticsDryRunSink,
   getAnnualRateBucket,
   markAppBackground,
   registerAnalyticsProperties,
   setAnalyticsDryRunForTests,
+  setAnalyticsProfessionalPersonProperties,
   trackAppOpen,
   trackEvent,
 } from '../analytics';
 import { recordReviewPositiveAction, resetReviewSessionStateForTests } from '../storage/review';
+import { syncBrandProfileAnalyticsIdentity } from '../brand-profile-analytics';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -116,6 +119,59 @@ describe('typed analytics runtime', () => {
     expect(payload).not.toContain('registration');
   });
 
+  it('allows app-user profile fields only through typed person properties', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    await setAnalyticsProfessionalPersonProperties({
+      name: 'Prime Credito',
+      email: 'contato@prime.example',
+      phone: '11999990000',
+      registration: 'CRECI 123',
+      website: 'prime.example',
+    });
+
+    expect(getAnalyticsDryRunPersonPropertiesSink()).toEqual([
+      {
+        name: 'Prime Credito',
+        email: 'contato@prime.example',
+        phone: '11999990000',
+        registration: 'CRECI 123',
+        website: 'prime.example',
+      },
+    ]);
+    expect(getAnalyticsDryRunSink()).toEqual([]);
+    expect(JSON.stringify(info.mock.calls)).not.toContain('Prime Credito');
+    expect(JSON.stringify(info.mock.calls)).not.toContain('contato@prime.example');
+    info.mockRestore();
+  });
+
+  it('does not add person properties to sinks when analytics is disabled', () => {
+    setAnalyticsDryRunForTests(false);
+
+    expect(
+      setAnalyticsProfessionalPersonProperties({
+        name: 'Prime Credito',
+        email: '',
+        phone: '11999990000',
+        registration: '',
+        website: '',
+      }),
+    ).toBe(false);
+    expect(getAnalyticsDryRunPersonPropertiesSink()).toEqual([]);
+    setAnalyticsDryRunForTests(true);
+  });
+
+  it('does not persist the network migration latch from dry-run captures', async () => {
+    setAnalyticsDryRunForTests(true);
+    const profile = { nameOrCompany: 'Prime Credito', phone: '11999990000' };
+
+    await expect(syncBrandProfileAnalyticsIdentity(profile)).resolves.toBe(false);
+    await expect(syncBrandProfileAnalyticsIdentity(profile)).resolves.toBe(false);
+
+    expect(getAnalyticsDryRunPersonPropertiesSink()).toHaveLength(2);
+    expect(await AsyncStorage.getItem('brand-profile:analytics-identity-enqueued:v1')).toBeNull();
+  });
+
   it('emits one canonical app_open per cold open and qualified foreground', async () => {
     await trackAppOpen(1_000);
     await trackAppOpen(60 * 60 * 1000);
@@ -141,4 +197,15 @@ if (false) {
   trackEvent('made_up_event');
   // @ts-expect-error raw principal is not an allowed scenario property
   trackEvent('scenario_saved', { principal: 300_000 });
+  // @ts-expect-error person properties must be one complete supported shape
+  setAnalyticsProfessionalPersonProperties({});
+  setAnalyticsProfessionalPersonProperties({
+    name: 'Prime Credito',
+    email: '',
+    phone: '',
+    registration: '',
+    website: '',
+    // @ts-expect-error premium person properties cannot leak into the professional shape
+    is_premium: true,
+  });
 }

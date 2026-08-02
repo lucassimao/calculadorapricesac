@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -24,6 +25,10 @@ import {
   saveBrandProfile,
 } from '../../lib/storage/brand-profile';
 import { registerAnalyticsProperties, trackEvent } from '../../lib/analytics';
+import {
+  clearBrandProfileAnalyticsIdentity,
+  saveBrandProfileAnalyticsIdentity,
+} from '../../lib/brand-profile-analytics';
 
 interface BrandProfileCardProps {
   isPremium: boolean;
@@ -125,6 +130,12 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
       const analyticsProperties = getBrandProfileAnalyticsProperties(saved);
       registerAnalyticsProperties({ has_brand_profile: true });
       trackEvent('professional_profile_saved', analyticsProperties);
+      await saveBrandProfileAnalyticsIdentity(saved).catch(() => {
+        console.warn(
+          'Não foi possível sincronizar a identificação analítica do perfil profissional.',
+        );
+        return false;
+      });
     } catch {
       setMessage('Não foi possível salvar o perfil profissional.');
       trackEvent(
@@ -139,16 +150,20 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
   const handleClear = () => {
     if (!isPremium || saving) return;
 
-    Alert.alert('Limpar perfil profissional', 'Isso remove os dados salvos neste dispositivo.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Limpar',
-        style: 'destructive',
-        onPress: () => {
-          void clearProfile();
+    Alert.alert(
+      'Limpar perfil profissional',
+      'Isso remove os dados deste dispositivo e solicita a limpeza dos campos associados no PostHog.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Limpar',
+          style: 'destructive',
+          onPress: () => {
+            void clearProfile();
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const clearProfile = async () => {
@@ -160,6 +175,10 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
       setMessage('Perfil profissional removido.');
       registerAnalyticsProperties({ has_brand_profile: false });
       trackEvent('professional_profile_cleared', priorAnalyticsProperties);
+      await clearBrandProfileAnalyticsIdentity().catch(() => {
+        console.warn('Não foi possível limpar os campos do perfil profissional no analytics.');
+        return false;
+      });
     } catch {
       setMessage('Não foi possível limpar o perfil profissional.');
       trackEvent('professional_profile_clear_failed');
@@ -246,6 +265,23 @@ export function BrandProfileCard({ isPremium }: BrandProfileCardProps) {
 
           <Text style={styles.requirementText}>
             Obrigatório: nome/empresa e pelo menos um contato (telefone, email ou website).
+          </Text>
+          <Text style={styles.privacyNotice} testID="professional-profile-analytics-notice">
+            Ao salvar, esses dados são associados ao seu perfil de uso no PostHog. Consulte a{' '}
+            <Text
+              style={styles.privacyLink}
+              onPress={() => {
+                void Linking.openURL('https://www.calculadorapricesac.com.br/privacidade').catch(
+                  () => undefined,
+                );
+              }}
+              accessibilityRole="link"
+              accessibilityLabel="Abrir Política de Privacidade"
+              testID="professional-profile-privacy-link"
+            >
+              Política de Privacidade
+            </Text>
+            . Dados dos seus clientes não são enviados.
           </Text>
 
           <Text style={styles.fieldLabel}>Nome ou empresa *</Text>
@@ -419,6 +455,16 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 11,
     lineHeight: 15,
+  },
+  privacyNotice: {
+    color: '#4B5563',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  privacyLink: {
+    color: '#2563EB',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   fieldLabel: {
     color: '#374151',

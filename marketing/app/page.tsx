@@ -74,7 +74,7 @@ export default function Home() {
       <section className={styles.hero}>
         <div>
           <span className={`${styles.heroBadge} ${styles.fadeUp}`}>
-            100% offline • sem cadastro
+            Funciona offline • sem cadastro
           </span>
           <h1 className={`${styles.heroTitle} ${styles.fadeUp} ${styles.delay1}`}>
             Simule financiamento imobiliário com SAC e Price, sem perder tempo.
@@ -143,7 +143,7 @@ export default function Home() {
           <h2 className={styles.sectionTitle}>Decida com clareza</h2>
           <p className={styles.sectionLead}>
             A Calculadora Price &amp; SAC foi pensada para quem precisa comparar propostas e
-            entender o custo real do financiamento. Tudo acontece no aparelho, sem login.
+            entender o custo real do financiamento. As simulações acontecem no aparelho, sem login.
           </p>
         </div>
         <div className={styles.shotsGrid}>
@@ -240,8 +240,10 @@ export default function Home() {
             <div className={styles.numberLabel}>Exportações Premium: PDF, XLSX e CSV.</div>
           </div>
           <div className={styles.numberCard}>
-            <div className={styles.numberValue}>100%</div>
-            <div className={styles.numberLabel}>Offline, sem login e sem cadastros.</div>
+            <div className={styles.numberValue}>0</div>
+            <div className={styles.numberLabel}>
+              Cadastros obrigatórios; simulações disponíveis offline.
+            </div>
           </div>
           <div className={styles.numberCard}>
             <div className={styles.numberValue}>1</div>
@@ -290,8 +292,8 @@ export default function Home() {
         <div className={styles.ctaBlock}>
           <h2 className={styles.sectionTitle}>Pronto para simular?</h2>
           <p>
-            Baixe agora e descubra o cenário ideal para o seu financiamento imobiliário. Tudo
-            offline.
+            Baixe agora e descubra o cenário ideal para o seu financiamento imobiliário. As
+            simulações funcionam offline.
           </p>
           <div className={styles.ctaActions}>
             <AppStoreLink className={styles.primaryButton} href={appStoreUrl} location="cta">

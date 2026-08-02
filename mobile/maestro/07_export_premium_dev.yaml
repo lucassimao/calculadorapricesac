@@ -3,6 +3,12 @@ appId: com.lsimaocosta.calculadorapricesac
 - runFlow: helpers/launch_dev_client.yaml
 - tapOn:
     id: 'tab-premium'
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-premium'
+    timeout: 8000
 - scrollUntilVisible:
     element:
       id: 'btn-dev-prepare-premium'
@@ -27,6 +33,12 @@ appId: com.lsimaocosta.calculadorapricesac
 - runFlow: helpers/launch_dev_client.yaml
 - tapOn:
     id: 'tab-premium'
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-premium'
+    timeout: 8000
 - scrollUntilVisible:
     element:
       id: 'btn-dev-prepare-premium'
@@ -51,6 +63,12 @@ appId: com.lsimaocosta.calculadorapricesac
 - runFlow: helpers/launch_dev_client.yaml
 - tapOn:
     id: 'tab-premium'
+- tapOn:
+    id: 'tab-premium'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-premium'
+    timeout: 8000
 - scrollUntilVisible:
     element:
       id: 'btn-dev-prepare-premium'

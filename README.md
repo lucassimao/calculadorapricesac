@@ -45,5 +45,5 @@ Run tools from the `tools/` folder as needed.
 
 After deploy:
 
-- Support URL: `https://calculadorapricesac.com/suporte`
-- Privacy Policy URL: `https://calculadorapricesac.com/privacidade`
+- Support URL: `https://www.calculadorapricesac.com.br/suporte`
+- Privacy Policy URL: `https://www.calculadorapricesac.com.br/privacidade`

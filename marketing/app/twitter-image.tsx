@@ -30,7 +30,7 @@ export default function TwitterImage() {
           Simule financiamento imobiliário com SAC e Price.
         </div>
         <div style={{ fontSize: 28, color: '#4a4f4b' }}>
-          100% offline • tabela completa • FGTS • exportações Premium
+          Funciona offline • tabela completa • FGTS • exportações Premium
         </div>
       </div>
       <div

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import styles from '../legal.module.css';
+import { siteUrl } from '../site-url';
 
 export const metadata: Metadata = {
   title: 'Suporte',
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Suporte',
     description: 'Suporte e contato da Calculadora Price & SAC.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com'}/suporte`,
+    url: `${siteUrl}/suporte`,
   },
 };
 
@@ -48,7 +49,7 @@ export default function SupportPage() {
         name: 'Onde ficam meus dados salvos?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Salvos localmente no dispositivo. O app não envia dados para servidores externos.',
+          text: 'Simulações e cenários ficam salvos localmente no dispositivo. Quando você salva o Perfil profissional, os dados informados podem ser associados ao seu perfil de uso no PostHog, conforme a Política de Privacidade.',
         },
       },
     ],
@@ -93,7 +94,9 @@ export default function SupportPage() {
             Premium.
           </li>
           <li>
-            <strong>Onde ficam meus dados?</strong> Salvos localmente no dispositivo.
+            <strong>Onde ficam meus dados?</strong> Simulações e cenários ficam no dispositivo. Os
+            dados informados no Perfil profissional podem ser associados ao perfil de uso no
+            PostHog, conforme a Política de Privacidade.
           </li>
         </ul>
       </section>

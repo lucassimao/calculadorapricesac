@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: '%s · Calculadora Price & SAC',
   },
   description:
-    'Simulador de financiamento imobiliário SAC e Price. 100% offline, com tabela completa, FGTS, custos e comparativo.',
+    'Simulador de financiamento imobiliário SAC e Price. Funciona offline, com tabela completa, FGTS, custos e comparativo.',
   keywords: [
     'calculadora',
     'financiamento',
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Calculadora Price & SAC',
     description:
-      'Simulador de financiamento imobiliário SAC e Price. 100% offline, com tabela completa, FGTS, custos e comparativo.',
+      'Simulador de financiamento imobiliário SAC e Price. Funciona offline, com tabela completa, FGTS, custos e comparativo.',
     url: siteUrl,
     siteName: 'Calculadora Price & SAC',
     locale: 'pt_BR',
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Calculadora Price & SAC',
     description:
-      'Simulador de financiamento imobiliário SAC e Price. 100% offline, com tabela completa, FGTS, custos e comparativo.',
+      'Simulador de financiamento imobiliário SAC e Price. Funciona offline, com tabela completa, FGTS, custos e comparativo.',
     images: [
       {
         url: '/twitter-image',

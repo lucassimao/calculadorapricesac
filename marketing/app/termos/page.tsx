@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import styles from '../legal.module.css';
+import { siteUrl } from '../site-url';
 
 export const metadata: Metadata = {
   title: 'Termos de Uso',
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Termos de Uso',
     description: 'Termos de uso da Calculadora Price & SAC.',
-    url: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://calculadorapricesac.com'}/termos`,
+    url: `${siteUrl}/termos`,
   },
 };
 

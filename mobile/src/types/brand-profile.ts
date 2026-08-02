@@ -1,3 +1,5 @@
+import type { AnalyticsProfessionalPersonProperties } from '../lib/analytics-events';
+
 export interface BrandProfile {
   nameOrCompany: string;
   registration?: string;
@@ -86,5 +88,19 @@ export function getBrandProfileAnalyticsProperties(profile: BrandProfile | null 
     professional_profile_has_logo: completion.hasLogo,
     professional_profile_has_custom_accent_color: completion.hasCustomAccentColor,
     professional_profile_contact_field_count: completion.contactFieldCount,
+  };
+}
+
+export function getBrandProfileIdentityProperties(
+  profile: BrandProfile | null | undefined,
+): AnalyticsProfessionalPersonProperties {
+  const normalized = normalizeBrandProfile(profile);
+
+  return {
+    name: normalized.nameOrCompany,
+    email: normalized.email,
+    phone: normalized.phone,
+    registration: normalized.registration,
+    website: normalized.website,
   };
 }
