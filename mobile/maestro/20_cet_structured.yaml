@@ -5,6 +5,15 @@ appId: com.lsimaocosta.calculadorapricesac
     id: 'tab-calculator'
 - scrollUntilVisible:
     element:
+      id: 'system-price'
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: 'system-price'
+- tapOn:
+    id: 'loan-mode-standard'
+- scrollUntilVisible:
+    element:
       id: 'input-principal'
     centerElement: true
     timeout: 12000
@@ -40,6 +49,7 @@ appId: com.lsimaocosta.calculadorapricesac
 - scrollUntilVisible:
     element:
       id: 'input-opening-fee'
+    direction: UP
     centerElement: true
     timeout: 30000
     speed: 60

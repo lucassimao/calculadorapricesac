@@ -40,6 +40,7 @@ export function SystemSelector({
             accessibilityRole="radio"
             accessibilityState={{ selected: system === s }}
             accessibilityLabel={`Sistema ${s}`}
+            testID={`system-${s.toLowerCase()}`}
           >
             <Text
               style={[
@@ -79,6 +80,7 @@ export function SystemSelector({
             accessibilityRole="radio"
             accessibilityState={{ selected: loanMode === mode.value }}
             accessibilityLabel={`Modo ${mode.label}`}
+            testID={`loan-mode-${mode.value}`}
           >
             <Text
               style={[

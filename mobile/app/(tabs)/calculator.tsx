@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+  type SetStateAction,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -72,6 +80,10 @@ import { ScenarioLimitPaywall } from '../../src/components/premium/scenario-limi
 import { SCENARIO_LIMIT_PAYWALL_SOURCE, getScenarioSaveGate } from '../../src/lib/scenario-limit';
 import { PostExportPaywall } from '../../src/components/premium/post-export-paywall';
 import { shouldShowPostExportPaywall } from '../../src/lib/post-export-paywall';
+import {
+  createOnboardingExampleScenario,
+  isOnboardingExampleScenario,
+} from '../../src/lib/onboarding-example';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -87,6 +99,7 @@ const DEFAULT_SCENARIO: Scenario = {
   dueDay: 5,
   prepayments: [],
 };
+const INITIAL_ONBOARDING_EXAMPLE = createOnboardingExampleScenario(new Date());
 
 const MAX_TABLE_ROWS = 10;
 interface PendingProfessionalExport {
@@ -316,12 +329,18 @@ export default function CalculatorScreen() {
   const { width, height } = useWindowDimensions();
   // 768px = iPad Mini/iPad portrait, 1024px = iPad landscape
   const isTablet = width >= 768;
-  const [scenario, setScenario] = useState<Scenario>(DEFAULT_SCENARIO);
+  const [scenario, setScenarioState] = useState<Scenario>(INITIAL_ONBOARDING_EXAMPLE);
+  const [onboardingExampleVisible, setOnboardingExampleVisible] = useState(true);
+  const onboardingExampleScenarioRef = useRef<Scenario>(INITIAL_ONBOARDING_EXAMPLE);
+  const updateScenarioFromUser = useCallback((update: SetStateAction<Scenario>) => {
+    setOnboardingExampleVisible(false);
+    setScenarioState(update);
+  }, []);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
-  const [principalText, setPrincipalText] = useState('R$ 300.000');
-  const [propertyValueText, setPropertyValueText] = useState('');
-  const [downPaymentText, setDownPaymentText] = useState('');
-  const [rateText, setRateText] = useState('1,2');
+  const [principalText, setPrincipalText] = useState('R$ 320.000');
+  const [propertyValueText, setPropertyValueText] = useState('R$ 400.000');
+  const [downPaymentText, setDownPaymentText] = useState('R$ 80.000');
+  const [rateText, setRateText] = useState('11,5');
   const [indexRateText, setIndexRateText] = useState('');
   const [indexRateLabel, setIndexRateLabel] = useState<string | null>(null);
   const [indexRateHelper, setIndexRateHelper] = useState<string | null>(null);
@@ -329,7 +348,9 @@ export default function CalculatorScreen() {
   const lastAutoFetchIndexType = useRef<CorrectionIndexType | null>(null);
   const manualIndexRateEdited = useRef(false);
   const [termText, setTermText] = useState('360');
-  const [startDateText, setStartDateText] = useState(formatDateBR(new Date()));
+  const [startDateText, setStartDateText] = useState(
+    formatDateBR(INITIAL_ONBOARDING_EXAMPLE.startDate),
+  );
   const [dueDayText, setDueDayText] = useState('5');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [insuranceRateText, setInsuranceRateText] = useState('0');
@@ -532,6 +553,13 @@ export default function CalculatorScreen() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const example = onboardingExampleScenarioRef.current;
+    if (onboardingExampleVisible && example && !isOnboardingExampleScenario(scenario, example)) {
+      setOnboardingExampleVisible(false);
+    }
+  }, [onboardingExampleVisible, scenario]);
+
   // Sync principal display when in property mode
   useEffect(() => {
     if (isPropertyMode && scenario.propertyValue && scenario.downPayment !== undefined) {
@@ -541,7 +569,9 @@ export default function CalculatorScreen() {
           ? `R$ ${computed.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
           : '';
       setPrincipalText(formatted);
-      setScenario((prev) => ({ ...prev, principal: computed }));
+      setScenarioState((prev) =>
+        prev.principal === computed ? prev : { ...prev, principal: computed },
+      );
     }
   }, [isPropertyMode, scenario.propertyValue, scenario.downPayment]);
 
@@ -582,7 +612,7 @@ export default function CalculatorScreen() {
         if (didCancel || manualIndexRateEdited.current) {
           return;
         }
-        setScenario((prev) =>
+        setScenarioState((prev) =>
           prev.indexType === activeIndexType && prev.indexRate === undefined
             ? { ...prev, indexRate: rate }
             : prev,
@@ -750,7 +780,7 @@ export default function CalculatorScreen() {
     } else {
       const newId = Date.now().toString();
       nextList.unshift({ ...scenario, id: newId });
-      setScenario((prev) => ({ ...prev, id: newId }));
+      updateScenarioFromUser((prev) => ({ ...prev, id: newId }));
     }
     await persistScenarios(nextList);
     registerAnalyticsProperties({ saved_scenario_count: nextList.length });
@@ -783,7 +813,7 @@ export default function CalculatorScreen() {
     trackEvent('scenario_loaded', {
       ...getScenarioAnalyticsContext(target, targetScheduleLength),
     });
-    setScenario(target);
+    updateScenarioFromUser(target);
     setPrincipalText(formatCurrencyValue(target.principal));
     setPropertyValueText(formatCurrencyValue(target.propertyValue));
     setDownPaymentText(formatCurrencyValue(target.downPayment));
@@ -838,7 +868,7 @@ export default function CalculatorScreen() {
       strategy: newPrepayment.strategy as PrepaymentEvent['strategy'],
       description: newPrepayment.description,
     };
-    setScenario((prev) => ({
+    updateScenarioFromUser((prev) => ({
       ...prev,
       prepayments: [...(prev.prepayments ?? []), next],
     }));
@@ -860,7 +890,7 @@ export default function CalculatorScreen() {
 
   const handleRemovePrepayment = (id: string) => {
     const nextPrepayments = (scenario.prepayments ?? []).filter((p) => p.id !== id);
-    setScenario((prev) => ({
+    updateScenarioFromUser((prev) => ({
       ...prev,
       prepayments: nextPrepayments,
     }));
@@ -883,7 +913,7 @@ export default function CalculatorScreen() {
       strategy: newFgts.strategy,
       description: newFgts.description,
     };
-    setScenario((prev) => ({
+    updateScenarioFromUser((prev) => ({
       ...prev,
       fgtsEvents: [...(prev.fgtsEvents ?? []), next],
     }));
@@ -905,7 +935,7 @@ export default function CalculatorScreen() {
 
   const handleRemoveFgts = (id: string) => {
     const nextFgtsEvents = (scenario.fgtsEvents ?? []).filter((event) => event.id !== id);
-    setScenario((prev) => ({
+    updateScenarioFromUser((prev) => ({
       ...prev,
       fgtsEvents: nextFgtsEvents,
     }));
@@ -921,7 +951,7 @@ export default function CalculatorScreen() {
       setShowDatePicker(false);
     }
     if (event.type === 'dismissed' || !selectedDate) return;
-    setScenario((prev) => ({ ...prev, startDate: selectedDate }));
+    updateScenarioFromUser((prev) => ({ ...prev, startDate: selectedDate }));
     setStartDateText(formatDateBR(selectedDate));
   };
 
@@ -1186,8 +1216,9 @@ export default function CalculatorScreen() {
   const seedExportExtrasForDev = () => {
     const fixedDate = new Date(2026, 0, 1);
     const firstDueDate = new Date(2026, 1, 5);
-    setScenario((prev) => ({
-      ...prev,
+    updateScenarioFromUser((prev) => ({
+      ...DEFAULT_SCENARIO,
+      id: prev.id,
       name: 'Teste Exportacao',
       system: 'PRICE',
       loanMode: 'standard',
@@ -1219,13 +1250,31 @@ export default function CalculatorScreen() {
         },
       ],
     }));
+    setPrincipalText('R$ 300.000');
+    setPropertyValueText('');
+    setDownPaymentText('');
+    setRateText('1,2');
+    setTermText('360');
+    setStartDateText(formatDateBR(fixedDate));
+    setDueDayText('5');
+    setIndexRateText('');
+    setIndexRateLabel(null);
+    setIndexRateHelper(null);
+    manualIndexRateEdited.current = false;
+    setInsuranceRateText('0');
+    setAdminFeeRateText('0');
+    setIofRateText('0');
+    setOpeningFeeText('');
+    setItbiRateText('0');
+    setRegistryFeeText('');
   };
 
   const seedMixedStrategiesForDev = () => {
     const fixedDate = new Date(2026, 0, 1);
     const firstDueDate = new Date(2026, 1, 5);
-    setScenario((prev) => ({
-      ...prev,
+    updateScenarioFromUser((prev) => ({
+      ...DEFAULT_SCENARIO,
+      id: prev.id,
       startDate: fixedDate,
       dueDay: 5,
       prepayments: [
@@ -1249,12 +1298,31 @@ export default function CalculatorScreen() {
         },
       ],
     }));
+    setPrincipalText('R$ 300.000');
+    setPropertyValueText('');
+    setDownPaymentText('');
+    setRateText('1,2');
+    setTermText('360');
+    setStartDateText(formatDateBR(fixedDate));
+    setDueDayText('5');
+    setIndexRateText('');
+    setIndexRateLabel(null);
+    setIndexRateHelper(null);
+    manualIndexRateEdited.current = false;
+    setInsuranceRateText('0');
+    setAdminFeeRateText('0');
+    setIofRateText('0');
+    setOpeningFeeText('');
+    setItbiRateText('0');
+    setRegistryFeeText('');
   };
 
   const seedOutOfTermWarningForDev = () => {
-    setScenario((prev) => ({
-      ...prev,
-      startDate: new Date(2026, 0, 1),
+    const fixedDate = new Date(2026, 0, 1);
+    updateScenarioFromUser((prev) => ({
+      ...DEFAULT_SCENARIO,
+      id: prev.id,
+      startDate: fixedDate,
       dueDay: 5,
       term: 1,
       termUnit: 'months',
@@ -1270,6 +1338,23 @@ export default function CalculatorScreen() {
       ],
       fgtsEvents: [],
     }));
+    setPrincipalText('R$ 300.000');
+    setPropertyValueText('');
+    setDownPaymentText('');
+    setRateText('1,2');
+    setTermText('1');
+    setStartDateText(formatDateBR(fixedDate));
+    setDueDayText('5');
+    setIndexRateText('');
+    setIndexRateLabel(null);
+    setIndexRateHelper(null);
+    manualIndexRateEdited.current = false;
+    setInsuranceRateText('0');
+    setAdminFeeRateText('0');
+    setIofRateText('0');
+    setOpeningFeeText('');
+    setItbiRateText('0');
+    setRegistryFeeText('');
   };
 
   const hasDevSeedExtras =
@@ -1503,10 +1588,37 @@ export default function CalculatorScreen() {
       <View style={[styles.columns, isTablet && styles.columnsTablet]}>
         {/* Column 1: Input Forms */}
         <View style={[styles.column, isTablet && styles.columnTablet]}>
+          {onboardingExampleVisible ? (
+            <View
+              style={[
+                styles.onboardingExampleChip,
+                { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+              ]}
+              testID="onboarding-example-chip"
+            >
+              <View style={styles.onboardingExampleCopy}>
+                <Text style={[styles.onboardingExampleTitle, { color: colors.primary }]}>
+                  Exemplo
+                </Text>
+                <Text style={[styles.onboardingExampleText, { color: colors.textSecondary }]}>
+                  Imóvel de R$ 400.000, entrada de 20%, 11,5% a.a., 360 meses, SAC
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setOnboardingExampleVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Dispensar exemplo"
+                hitSlop={8}
+                testID="btn-dismiss-onboarding-example"
+              >
+                <Text style={[styles.onboardingExampleDismiss, { color: colors.primary }]}>×</Text>
+              </Pressable>
+            </View>
+          ) : null}
           <ScenarioSection
             scenario={scenario}
             scenarios={scenarios}
-            onNameChange={(name) => setScenario((prev) => ({ ...prev, name }))}
+            onNameChange={(name) => updateScenarioFromUser((prev) => ({ ...prev, name }))}
             onSave={handleSaveScenario}
             onNew={handleNewScenario}
             onLoad={handleLoadScenario}
@@ -1550,12 +1662,12 @@ export default function CalculatorScreen() {
           <SystemSelector
             system={scenario.system}
             loanMode={scenario.loanMode ?? 'standard'}
-            onSystemChange={(system) => setScenario((prev) => ({ ...prev, system }))}
+            onSystemChange={(system) => updateScenarioFromUser((prev) => ({ ...prev, system }))}
             onLoanModeChange={(mode) => {
               if (mode === 'standard') {
                 setPropertyValueText('');
                 setDownPaymentText('');
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   loanMode: 'standard',
                   propertyValue: undefined,
@@ -1564,7 +1676,7 @@ export default function CalculatorScreen() {
                   registryFee: undefined,
                 }));
               } else {
-                setScenario((prev) => ({ ...prev, loanMode: 'property' }));
+                updateScenarioFromUser((prev) => ({ ...prev, loanMode: 'property' }));
               }
             }}
           />
@@ -1578,7 +1690,7 @@ export default function CalculatorScreen() {
               onChangeText={(text) => {
                 const { display, value } = maskCurrencyInput(text);
                 setPrincipalText(display);
-                setScenario((prev) => ({ ...prev, principal: value }));
+                updateScenarioFromUser((prev) => ({ ...prev, principal: value }));
               }}
               keyboardType="numeric"
               style={[styles.input, themedStyles.input]}
@@ -1596,13 +1708,14 @@ export default function CalculatorScreen() {
                   onChangeText={(text) => {
                     const { display, value } = maskCurrencyInput(text);
                     setPropertyValueText(display);
-                    setScenario((prev) => ({ ...prev, propertyValue: value }));
+                    updateScenarioFromUser((prev) => ({ ...prev, propertyValue: value }));
                   }}
                   keyboardType="numeric"
                   style={[styles.input, themedStyles.input]}
                   placeholder="R$ 500.000"
                   placeholderTextColor={colors.textTertiary}
                   accessibilityLabel="Valor do imóvel"
+                  testID="input-property-value"
                 />
 
                 <Text style={[styles.label, themedStyles.label]}>Entrada (R$)</Text>
@@ -1611,13 +1724,14 @@ export default function CalculatorScreen() {
                   onChangeText={(text) => {
                     const { display, value } = maskCurrencyInput(text);
                     setDownPaymentText(display);
-                    setScenario((prev) => ({ ...prev, downPayment: value }));
+                    updateScenarioFromUser((prev) => ({ ...prev, downPayment: value }));
                   }}
                   keyboardType="numeric"
                   style={[styles.input, themedStyles.input]}
                   placeholder="R$ 100.000"
                   placeholderTextColor={colors.textTertiary}
                   accessibilityLabel="Entrada"
+                  testID="input-down-payment"
                 />
               </>
             )}
@@ -1628,7 +1742,7 @@ export default function CalculatorScreen() {
                 value={rateText}
                 onChangeText={(text) => {
                   setRateText(text);
-                  setScenario((prev) => ({ ...prev, rate: parseNumberInput(text) }));
+                  updateScenarioFromUser((prev) => ({ ...prev, rate: parseNumberInput(text) }));
                 }}
                 keyboardType="numeric"
                 style={[styles.input, styles.inputFlex, themedStyles.input]}
@@ -1641,7 +1755,7 @@ export default function CalculatorScreen() {
                 {(['monthly', 'annual'] as const).map((rateType) => (
                   <Pressable
                     key={rateType}
-                    onPress={() => setScenario((prev) => ({ ...prev, rateType }))}
+                    onPress={() => updateScenarioFromUser((prev) => ({ ...prev, rateType }))}
                     style={[
                       styles.chip,
                       themedStyles.chip,
@@ -1677,7 +1791,7 @@ export default function CalculatorScreen() {
                 setIndexRateText('');
                 setIndexRateLabel(null);
                 setIndexRateHelper(null);
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   indexType: type,
                   indexRate: undefined,
@@ -1690,7 +1804,7 @@ export default function CalculatorScreen() {
                 setIndexRateHelper(text.trim() ? 'Taxa informada manualmente.' : null);
                 const normalized = text.trim().replace(',', '.');
                 const value = Number.parseFloat(normalized);
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   indexRate: normalized === '' || Number.isNaN(value) ? undefined : value,
                 }));
@@ -1704,7 +1818,10 @@ export default function CalculatorScreen() {
                 onChangeText={(text) => {
                   setTermText(text);
                   const parsed = Number.parseInt(text || '0', 10);
-                  setScenario((prev) => ({ ...prev, term: Number.isNaN(parsed) ? 0 : parsed }));
+                  updateScenarioFromUser((prev) => ({
+                    ...prev,
+                    term: Number.isNaN(parsed) ? 0 : parsed,
+                  }));
                 }}
                 keyboardType="numeric"
                 style={[styles.input, styles.inputFlex, themedStyles.input]}
@@ -1717,7 +1834,7 @@ export default function CalculatorScreen() {
                 {(['months', 'years'] as const).map((termUnit) => (
                   <Pressable
                     key={termUnit}
-                    onPress={() => setScenario((prev) => ({ ...prev, termUnit }))}
+                    onPress={() => updateScenarioFromUser((prev) => ({ ...prev, termUnit }))}
                     style={[
                       styles.chip,
                       themedStyles.chip,
@@ -1766,7 +1883,7 @@ export default function CalculatorScreen() {
                 setDueDayText(text);
                 const parsed = Number.parseInt(text || '0', 10);
                 if (!Number.isNaN(parsed)) {
-                  setScenario((prev) => ({ ...prev, dueDay: parsed }));
+                  updateScenarioFromUser((prev) => ({ ...prev, dueDay: parsed }));
                 }
               }}
               keyboardType="numeric"
@@ -1790,7 +1907,7 @@ export default function CalculatorScreen() {
               value={iofRateText}
               onChangeText={(text) => {
                 setIofRateText(text);
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   iofRate: parseNumberInput(text),
                   includeIOF: parseNumberInput(text) > 0,
@@ -1807,7 +1924,7 @@ export default function CalculatorScreen() {
               value={insuranceRateText}
               onChangeText={(text) => {
                 setInsuranceRateText(text);
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   insuranceRate: parseNumberInput(text),
                   includeInsurance: parseNumberInput(text) > 0,
@@ -1826,7 +1943,7 @@ export default function CalculatorScreen() {
               value={adminFeeRateText}
               onChangeText={(text) => {
                 setAdminFeeRateText(text);
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   adminFeeRate: parseNumberInput(text),
                   includeAdminFee: parseNumberInput(text) > 0,
@@ -1844,7 +1961,7 @@ export default function CalculatorScreen() {
               onChangeText={(text) => {
                 const { display, value } = maskCurrencyInput(text);
                 setOpeningFeeText(display);
-                setScenario((prev) => ({
+                updateScenarioFromUser((prev) => ({
                   ...prev,
                   openingFee: value,
                   includeOpeningFee: value > 0,
@@ -1865,7 +1982,10 @@ export default function CalculatorScreen() {
                   value={itbiRateText}
                   onChangeText={(text) => {
                     setItbiRateText(text);
-                    setScenario((prev) => ({ ...prev, itbiRate: parseNumberInput(text) }));
+                    updateScenarioFromUser((prev) => ({
+                      ...prev,
+                      itbiRate: parseNumberInput(text),
+                    }));
                   }}
                   keyboardType="numeric"
                   style={[styles.input, themedStyles.input]}
@@ -1879,7 +1999,7 @@ export default function CalculatorScreen() {
                   onChangeText={(text) => {
                     const { display, value } = maskCurrencyInput(text);
                     setRegistryFeeText(display);
-                    setScenario((prev) => ({ ...prev, registryFee: value }));
+                    updateScenarioFromUser((prev) => ({ ...prev, registryFee: value }));
                   }}
                   keyboardType="numeric"
                   style={[styles.input, themedStyles.input]}
@@ -2700,6 +2820,35 @@ const styles = StyleSheet.create({
   columnTablet: {
     flex: 1,
     minWidth: 0,
+  },
+  onboardingExampleChip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  onboardingExampleCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  onboardingExampleTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  onboardingExampleText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  onboardingExampleDismiss: {
+    fontSize: 24,
+    lineHeight: 24,
+    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 16,

@@ -138,7 +138,12 @@ export function SummarySection({
         value={formatCurrency(summary.totalInterest)}
         colors={colors}
       />
-      <SummaryRow label="1ª Parcela" value={formatCurrency(summary.firstPayment)} colors={colors} />
+      <SummaryRow
+        label="1ª Parcela"
+        value={formatCurrency(summary.firstPayment)}
+        colors={colors}
+        testID="summary-first-payment"
+      />
       <SummaryRow
         label="Última Parcela"
         value={formatCurrency(summary.lastPayment)}

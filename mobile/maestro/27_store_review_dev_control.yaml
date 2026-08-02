@@ -7,6 +7,8 @@ appId: com.lsimaocosta.calculadorapricesac
     element:
       id: btn-dev-force-store-review
     direction: DOWN
-    timeout: 12000
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
 - assertVisible:
     id: btn-dev-force-store-review

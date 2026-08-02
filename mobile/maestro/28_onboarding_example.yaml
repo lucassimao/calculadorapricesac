@@ -1,0 +1,36 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- assertVisible:
+    id: onboarding-example-chip
+- assertVisible:
+    id: input-scenario-name
+    text: 'Exemplo: imóvel de R$ 400 mil'
+- tapOn:
+    id: input-scenario-name
+- eraseText
+- inputText: 'Meu cenario'
+- hideKeyboard
+- assertNotVisible:
+    id: onboarding-example-chip
+- scrollUntilVisible:
+    element:
+      id: input-property-value
+    direction: DOWN
+    timeout: 12000
+- assertVisible:
+    id: input-property-value
+    text: 'R$ 400.000'
+- assertVisible:
+    id: input-down-payment
+    text: 'R$ 80.000'
+- scrollUntilVisible:
+    element:
+      id: section-summary
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: section-summary
+- assertVisible:
+    id: summary-first-payment-value
+    text: '.*3\.804,88'
