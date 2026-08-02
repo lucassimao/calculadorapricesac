@@ -239,3 +239,25 @@ Order matters: improve the paywall BEFORE adding more paywall exposure.
   - [ ] **P2.7 Prepayment Optimization Assistant** → new guide "Qual a melhor estratégia para amortizar o financiamento?" (goal-based framing) + UnlockCTA bullet ("assistente que calcula seu melhor plano de amortização — Premium").
   - [ ] **P1.7 onboarding example** → no site work (internal UX). Listed to make the "no counterpart" decision explicit.
         Accept (per sub-item): site builds green; new pages in sitemap; pt-BR copy with app CTA; completion note records surfaces changed (+ any suggested store copy for Lucas).
+
+- [ ] **P3.4 Use-case showcase pages on the marketing site (SEO + app showcase).**
+  Owner request 2026-08-02. A set of static pages, each covering ONE common use case or important existing feature, to attract specific searches and show the app doing the job. These are NOT guias (guias = educational deep-dives); showcase pages are short, direct, and screenshot-driven. Cross-link both ways (guia ↔ showcase page where topics overlap).
+  **Route & structure:** new section `marketing/app/recursos/[slug]` following the same pattern as `guias/` (a `content.ts` registry, static generation, metadata + JSON-LD, sitemap auto-inclusion). Landing page gets a "Recursos" nav link and a card grid.
+  **Page template (keep every page this shape — simple, direct):**
+  1. H1 = the search phrase (e.g. "Simulador de amortização: reduzir prazo ou parcela");
+  2. 2–3 sentence intro stating the outcome the user gets;
+  3. "Como fazer no app" — 3–5 numbered steps, each step referencing what's on screen;
+  4. 2–4 **real app screenshots** of the specific screens involved (not mockups, not store art), with descriptive pt-BR `alt` text and `loading="lazy"`;
+  5. App Store CTA (reuse the existing tracked `AppStoreLink`);
+  6. optional 2–3 question mini-FAQ (with FAQPage JSON-LD) when real search questions exist.
+  **Screenshot pipeline:** capture on the Android emulator via Maestro (`takeScreenshot` in dedicated flows under `mobile/maestro/screenshots/`), using the P1.7 example scenario for consistent, realistic data (never real user data). Store optimized WebP (≤200 KB each) under `marketing/public/recursos/<slug>/`; keep the capture flows in-repo so screenshots are reproducible after UI changes. Note in each page's completion note that screenshots are Android captures (acceptable for showcasing; swap for iOS captures if the owner provides them later).
+  **Initial pages (existing features only — future features get their pages via P3.3 when they ship):**
+  - [ ] `simulador-sac-ou-price` — compare SAC vs Price side by side (comparison view + summary tiles).
+  - [ ] `amortizacao-reduzir-prazo-ou-parcela` — the most-used feature: add an extra amortization, see interest saved and new payoff (prepayment form + before/after).
+  - [ ] `fgts-no-financiamento-simulador` — simulate FGTS usage (down payment / amortization / installment) with the rules explained in one paragraph.
+  - [ ] `cet-custo-real-financiamento` — CET with costs (IOF, seguros, taxas) and the accuracy claim from P0.8, scoped as in that item.
+  - [ ] `financiamento-tr-ou-ipca` — indexed loans: TR/IPCA correction with live BACEN rates.
+  - [ ] `exportar-simulacao-pdf-excel` — export to PDF/XLSX/CSV, including the professional PDF with broker branding (targets corretores — a distinct search audience).
+  - [ ] `salvar-e-comparar-cenarios` — save scenarios and compare conditions.
+  **SEO specs:** unique title/description per page; one H1; headings phrased as the actual searches; internal links from landing, from the two related guias, and between related showcase pages; og-image per page (can reuse the hero screenshot). No keyword stuffing — each page must read like a 1-minute product tour.
+  Accept (per page): `cd marketing && npm run build` green; page in sitemap; screenshots real, optimized, with alt text; CTA tracked; capture flow committed under `mobile/maestro/screenshots/`; Lighthouse-sane image weights (no page ships >1 MB of images).
