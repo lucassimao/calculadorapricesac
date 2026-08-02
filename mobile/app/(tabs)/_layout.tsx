@@ -15,8 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/lib/theme';
 import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useExport } from '../../src/contexts/ExportContext';
+import type { ExportTriggerResult } from '../../src/contexts/ExportContext';
 import type { ExportFormat } from '../../src/lib/exports/access';
 import { setPendingPaywallSource, trackEvent } from '../../src/lib/analytics';
+import {
+  resolveIosExportSheetOutcome,
+  shouldTrackExportSheetAbandoned,
+  type ExportSheetOutcome,
+} from '../../src/lib/export-sheet-outcome';
 
 type AndroidExportAction = ExportFormat | 'pdf_professional';
 
@@ -56,17 +62,58 @@ export default function TabsLayout() {
   const [androidExportModalVisible, setAndroidExportModalVisible] = useState(false);
   const [androidExportFormat, setAndroidExportFormat] = useState<AndroidExportAction | null>(null);
   const exportStartedRef = useRef(false);
+  const androidExportInProgressRef = useRef(false);
+  const exportSheetOpenRef = useRef(false);
 
-  const trackExportSheetAbandoned = () => {
+  const finishExportSheet = (outcome: ExportSheetOutcome) => {
     if (exportStartedRef.current) return;
+    exportStartedRef.current = true;
+    if (
+      outcome === 'blocked_busy' ||
+      outcome === 'blocked_unavailable' ||
+      outcome === 'blocked_validation'
+    ) {
+      trackEvent('export_sheet_blocked', {
+        is_premium: contextPremium,
+        platform: Platform.OS,
+        reason:
+          outcome === 'blocked_busy'
+            ? 'busy'
+            : outcome === 'blocked_unavailable'
+              ? 'unavailable'
+              : 'validation',
+      });
+      return;
+    }
+    if (outcome === 'upgrade') {
+      trackEvent('export_sheet_upgrade_selected', {
+        is_premium: contextPremium,
+        platform: Platform.OS,
+      });
+      return;
+    }
+    if (!shouldTrackExportSheetAbandoned(outcome)) return;
     trackEvent('export_sheet_abandoned', {
       is_premium: contextPremium,
       platform: Platform.OS,
     });
   };
 
+  const finishTriggeredExport = (result: ExportTriggerResult) => {
+    finishExportSheet(
+      result === 'started' || result === 'handled'
+        ? 'export'
+        : result === 'validation_blocked'
+          ? 'blocked_validation'
+          : result === 'busy'
+            ? 'blocked_busy'
+            : 'blocked_unavailable',
+    );
+  };
+
   const showExportActionSheet = () => {
-    if (isExporting) return;
+    if (isExporting || exportSheetOpenRef.current) return;
+    exportSheetOpenRef.current = true;
 
     trackEvent('export_sheet_opened', {
       is_premium: contextPremium,
@@ -102,22 +149,29 @@ export default function TabsLayout() {
               : 'Recurso disponível para assinantes Premium',
         },
         (buttonIndex) => {
-          if (buttonIndex === cancelButtonIndex || buttonIndex === premiumButtonIndex) {
-            trackExportSheetAbandoned();
-          } else {
-            exportStartedRef.current = true;
+          exportSheetOpenRef.current = false;
+          const outcome = resolveIosExportSheetOutcome({
+            buttonIndex,
+            cancelButtonIndex,
+            premiumButtonIndex,
+            hasPremiumOption: !contextPremium,
+            optionCount: options.length,
+          });
+          if (outcome !== 'export') {
+            finishExportSheet(outcome);
           }
           if (contextPremium) {
-            if (buttonIndex === 0) triggerExport('pdf');
-            else if (buttonIndex === 1) triggerExport('pdf', { professional: true });
-            else if (buttonIndex === 2) triggerExport('xlsx');
-            else if (buttonIndex === 3) triggerExport('csv');
+            if (buttonIndex === 0) finishTriggeredExport(triggerExport('pdf'));
+            else if (buttonIndex === 1)
+              finishTriggeredExport(triggerExport('pdf', { professional: true }));
+            else if (buttonIndex === 2) finishTriggeredExport(triggerExport('xlsx'));
+            else if (buttonIndex === 3) finishTriggeredExport(triggerExport('csv'));
             return;
           }
 
-          if (buttonIndex === 0) triggerExport('pdf');
-          else if (buttonIndex === 1) triggerExport('xlsx');
-          else if (buttonIndex === 2) triggerExport('csv');
+          if (buttonIndex === 0) finishTriggeredExport(triggerExport('pdf'));
+          else if (buttonIndex === 1) finishTriggeredExport(triggerExport('xlsx'));
+          else if (buttonIndex === 2) finishTriggeredExport(triggerExport('csv'));
           else if (buttonIndex === premiumButtonIndex) {
             trackEvent('export_upgrade_clicked', { source: 'tab_export_sheet', platform: 'ios' });
             setPendingPaywallSource('export_upgrade');
@@ -132,21 +186,51 @@ export default function TabsLayout() {
 
   const handleAndroidExport = (format: ExportFormat, options?: { professional?: boolean }) => {
     if (isExporting) return;
-    exportStartedRef.current = true;
+    const outcome = triggerExport(format, options);
+    if (outcome === 'busy' || outcome === 'unavailable') {
+      if (!exportStartedRef.current) {
+        finishExportSheet(outcome === 'busy' ? 'blocked_busy' : 'blocked_unavailable');
+        setAndroidExportModalVisible(false);
+        setAndroidExportFormat(null);
+      }
+      return;
+    }
+    finishExportSheet(
+      outcome === 'started' || outcome === 'handled' ? 'export' : 'blocked_validation',
+    );
+    if (outcome === 'validation_blocked') {
+      setAndroidExportModalVisible(false);
+      setAndroidExportFormat(null);
+      return;
+    }
+    if (outcome === 'handled') {
+      setAndroidExportModalVisible(false);
+      setAndroidExportFormat(null);
+      return;
+    }
 
     const action = options?.professional ? 'pdf_professional' : format;
     setAndroidExportFormat(action);
     if (options?.professional) {
       setAndroidExportModalVisible(false);
     }
-    void triggerExport(format, options);
   };
 
   useEffect(() => {
-    if (isExporting || !androidExportModalVisible || androidExportFormat === null) return;
+    if (!androidExportModalVisible || androidExportFormat === null) return;
+    if (isExporting) {
+      androidExportInProgressRef.current = true;
+      return;
+    }
+    if (!androidExportInProgressRef.current) return;
+    androidExportInProgressRef.current = false;
     setAndroidExportModalVisible(false);
     setAndroidExportFormat(null);
   }, [isExporting, androidExportModalVisible, androidExportFormat]);
+
+  useEffect(() => {
+    if (!androidExportModalVisible) exportSheetOpenRef.current = false;
+  }, [androidExportModalVisible]);
 
   return (
     <>
@@ -266,7 +350,7 @@ export default function TabsLayout() {
         visible={androidExportModalVisible}
         onRequestClose={() => {
           if (!isExporting) {
-            trackExportSheetAbandoned();
+            finishExportSheet('dismiss');
             setAndroidExportModalVisible(false);
             setAndroidExportFormat(null);
           }
@@ -395,7 +479,7 @@ export default function TabsLayout() {
                 ]}
                 onPress={() => {
                   if (!isExporting) {
-                    trackExportSheetAbandoned();
+                    finishExportSheet('upgrade');
                     trackEvent('export_upgrade_clicked', {
                       source: 'tab_export_sheet',
                       platform: 'android',
@@ -424,7 +508,7 @@ export default function TabsLayout() {
               ]}
               onPress={() => {
                 if (!isExporting) {
-                  trackExportSheetAbandoned();
+                  finishExportSheet('cancel');
                   setAndroidExportModalVisible(false);
                   setAndroidExportFormat(null);
                 }

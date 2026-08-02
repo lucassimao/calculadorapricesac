@@ -138,6 +138,12 @@ export interface AnalyticsEventMap {
     platform: string;
   };
   export_sheet_abandoned: { is_premium: boolean; platform: string };
+  export_sheet_blocked: {
+    is_premium: boolean;
+    platform: string;
+    reason: 'busy' | 'unavailable' | 'validation';
+  };
+  export_sheet_upgrade_selected: { is_premium: boolean; platform: string };
   export_upgrade_clicked: { source: string; placement?: string; platform?: string };
   professional_export_profile_incomplete: ScenarioContext &
     ProfessionalProfileContext & { source: string };
@@ -199,6 +205,10 @@ export interface AnalyticsEventMap {
   purchase_restore_failed: PurchaseContext & { error_code?: string };
   premium_status_lost: { days_since_purchase: number };
   rewarded_ad_chosen_over_premium: { source: string; nth_time: number };
+  rewarded_export_gate_shown: Pick<RewardedContext, 'format' | 'source'>;
+  rewarded_export_declined: Pick<RewardedContext, 'format' | 'source'> & {
+    choice: 'cancel' | 'premium';
+  };
   rewarded_export_requested: RewardedContext & { export_type: string };
   rewarded_export_ad_opened: RewardedContext;
   rewarded_export_ad_reward_earned: RewardedContext;

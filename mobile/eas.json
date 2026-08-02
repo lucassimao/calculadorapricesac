@@ -7,18 +7,25 @@
     "development": {
       "channel": "development",
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ANALYTICS_DRYRUN": "1"
+      }
     },
     "preview": {
       "channel": "preview",
       "distribution": "internal",
       "env": {
+        "EXPO_PUBLIC_ANALYTICS_DRYRUN": "1",
         "RELEASE_TARGET": "preview"
       }
     },
     "internal": {
       "channel": "preview",
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ANALYTICS_DRYRUN": "1"
+      }
     },
     "production": {
       "channel": "production",

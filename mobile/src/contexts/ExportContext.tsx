@@ -5,7 +5,14 @@ export interface ExportTriggerOptions {
   professional?: boolean;
 }
 
-type ExportHandler = (format: ExportFormat, options?: ExportTriggerOptions) => Promise<void>;
+export type ExportTriggerResult =
+  | 'started'
+  | 'handled'
+  | 'validation_blocked'
+  | 'busy'
+  | 'unavailable';
+
+type ExportHandler = (format: ExportFormat, options?: ExportTriggerOptions) => ExportTriggerResult;
 
 interface ExportContextValue {
   /** Whether export is available (calculator has data loaded) */
@@ -24,7 +31,7 @@ interface ExportContextValue {
   /** Unregister the export handler */
   unregisterExportHandler: () => void;
   /** Trigger an export with the specified format */
-  triggerExport: (format: ExportFormat, options?: ExportTriggerOptions) => Promise<void>;
+  triggerExport: (format: ExportFormat, options?: ExportTriggerOptions) => ExportTriggerResult;
   /** Set exporting state */
   setIsExporting: (value: boolean) => void;
 }
@@ -52,11 +59,8 @@ export function ExportProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const triggerExport = useCallback(
-    async (format: ExportFormat, options?: ExportTriggerOptions) => {
-      if (exportHandler) {
-        await exportHandler(format, options);
-      }
-    },
+    (format: ExportFormat, options?: ExportTriggerOptions) =>
+      exportHandler?.(format, options) ?? 'unavailable',
     [exportHandler],
   );
 

@@ -1,6 +1,6 @@
 {
   "name": "calculadora-price-sac",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -21,7 +21,7 @@
     "ui:maestro:readback": "bash scripts/run-maestro-suite.sh readback",
     "ui:maestro:captures": "bash scripts/run-maestro-suite.sh captures",
     "ui:maestro:all": "bash scripts/run-maestro-suite.sh all",
-    "ota:preview": "RELEASE_TARGET=preview npx eas-cli@latest update --channel preview --environment preview",
+    "ota:preview": "EXPO_PUBLIC_ANALYTICS_DRYRUN=1 RELEASE_TARGET=preview npx eas-cli@latest update --channel preview --environment preview",
     "ota:production": "RELEASE_TARGET=production npx eas-cli@latest update --channel production --environment production",
     "build:android:local": "eas build -p android --local --profile production",
     "build:android:local:internal": "eas build -p android --local --profile internal"

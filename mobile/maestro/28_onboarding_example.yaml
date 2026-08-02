@@ -26,7 +26,7 @@ appId: com.lsimaocosta.calculadorapricesac
     text: 'R$ 80.000'
 - scrollUntilVisible:
     element:
-      id: section-summary
+      id: summary-first-payment-value
     direction: DOWN
     timeout: 20000
 - assertVisible:

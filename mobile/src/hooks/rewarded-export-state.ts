@@ -1,7 +1,12 @@
+import type { AlertOptions } from 'react-native';
 import type { ExportFormat } from '../lib/exports/access';
 import type { RewardedFailureKind } from '../lib/analytics';
 
 export const REWARDED_EXPORT_TIMEOUT_MS = 15_000;
+
+export function createDismissSafeExportAlertOptions(onDismiss: () => void): AlertOptions {
+  return { cancelable: false, onDismiss };
+}
 
 export function classifyRewardedFailure(error: Error & { code?: unknown }): {
   errorCode?: string;
@@ -65,6 +70,18 @@ export function shouldStartRewardedTimeout({
 
 export function isTabActionExportBusy(phase: TabActionExportPhase) {
   return phase !== 'idle';
+}
+
+export function isAnyExportFlowBusy({
+  tabActionPhase,
+  rewardedExportFormat,
+  exporting,
+}: {
+  tabActionPhase: TabActionExportPhase;
+  rewardedExportFormat: ExportFormat | null;
+  exporting: boolean;
+}) {
+  return isTabActionExportBusy(tabActionPhase) || rewardedExportFormat !== null || exporting;
 }
 
 export function shouldResetTabActionExportPhase({

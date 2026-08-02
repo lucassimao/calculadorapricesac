@@ -1,5 +1,7 @@
-const EXPORT_CLICK_THRESHOLD = 100;
-const ELAPSED_DAY_THRESHOLD = 60;
+export const EXPORT_CLICK_THRESHOLD = 100;
+export const ELAPSED_DAY_THRESHOLD = 60;
+export const SHEET_ABANDONMENT_THRESHOLD = 0.3;
+export const AD_GATE_DROP_THRESHOLD = 0.4;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface ExportFunnelSnapshot {
@@ -8,9 +10,14 @@ export interface ExportFunnelSnapshot {
   exportClicked: number;
   exportClickThresholdReachedAt: number | null;
   exportSheetOpened: number;
+  exportSheetBlocked: number;
+  exportSheetUpgradeSelected: number;
   exportSheetAbandoned: number;
+  freeRewardedExportClicked: number;
   rewardedExportRequested: number;
   freeRewardedExportSuccess: number;
+  /** Whether the rewarded placement was enabled during this evaluation window. */
+  rewardedExportEnabled?: boolean;
 }
 
 export type ExportFunnelDecision =
@@ -23,8 +30,8 @@ export interface ExportFunnelDecisionResult {
   decision: ExportFunnelDecision;
   thresholdReachedBy: 'export_clicked' | 'elapsed_days' | null;
   elapsedDays: number;
-  sheetAbandonmentRate: number;
-  adGateDropRate: number;
+  sheetAbandonmentRate: number | null;
+  adGateDropRate: number | null;
 }
 
 function rate(numerator: number, denominator: number) {
@@ -45,15 +52,25 @@ export function evaluateExportFunnelDecision(
   const eventCounts = [
     snapshot.exportClicked,
     snapshot.exportSheetOpened,
+    snapshot.exportSheetBlocked,
+    snapshot.exportSheetUpgradeSelected,
     snapshot.exportSheetAbandoned,
+    snapshot.freeRewardedExportClicked,
     snapshot.rewardedExportRequested,
     snapshot.freeRewardedExportSuccess,
   ];
   if (eventCounts.some((count) => !Number.isSafeInteger(count) || count < 0)) {
     throw new Error('Informe contagens inteiras não negativas.');
   }
+  if (snapshot.exportClickThresholdReachedAt === undefined) {
+    throw new Error('Informe exportClickThresholdReachedAt como timestamp ou null.');
+  }
   if (
-    snapshot.exportSheetAbandoned > snapshot.exportSheetOpened ||
+    snapshot.exportSheetAbandoned +
+      snapshot.exportSheetBlocked +
+      snapshot.exportSheetUpgradeSelected >
+      snapshot.exportSheetOpened ||
+    snapshot.freeRewardedExportSuccess > snapshot.freeRewardedExportClicked ||
     snapshot.freeRewardedExportSuccess > snapshot.rewardedExportRequested
   ) {
     throw new Error('Há contagens inconsistentes no snapshot do funil.');
@@ -77,11 +94,17 @@ export function evaluateExportFunnelDecision(
     0,
     Math.floor((snapshot.evaluatedAt - snapshot.releaseStartedAt) / DAY_MS),
   );
-  const sheetAbandonmentRate = rate(snapshot.exportSheetAbandoned, snapshot.exportSheetOpened);
-  const adGateDropRate = rate(
-    snapshot.rewardedExportRequested - snapshot.freeRewardedExportSuccess,
-    snapshot.rewardedExportRequested,
-  );
+  const measurableSheetOpened =
+    snapshot.exportSheetOpened - snapshot.exportSheetBlocked - snapshot.exportSheetUpgradeSelected;
+  const sheetAbandonmentRate =
+    measurableSheetOpened === 0 ? null : rate(snapshot.exportSheetAbandoned, measurableSheetOpened);
+  const adGateDropRate =
+    snapshot.freeRewardedExportClicked === 0
+      ? null
+      : rate(
+          snapshot.freeRewardedExportClicked - snapshot.freeRewardedExportSuccess,
+          snapshot.freeRewardedExportClicked,
+        );
   const elapsedDayThresholdAt = snapshot.releaseStartedAt + ELAPSED_DAY_THRESHOLD * DAY_MS;
   const exportClickThresholdAt =
     snapshot.exportClicked >= EXPORT_CLICK_THRESHOLD
@@ -108,12 +131,25 @@ export function evaluateExportFunnelDecision(
     };
   }
 
-  const decision =
-    sheetAbandonmentRate > 0.3
-      ? 'simplify_export_sheet'
-      : adGateDropRate > 0.4
-        ? 'revise_ad_gate_copy'
-        : 'keep_current_flow';
+  let decision: ExportFunnelDecision;
+  if (sheetAbandonmentRate !== null && sheetAbandonmentRate > SHEET_ABANDONMENT_THRESHOLD) {
+    decision = 'simplify_export_sheet';
+  } else {
+    if (snapshot.freeRewardedExportClicked === 0) {
+      if (snapshot.rewardedExportEnabled === false) {
+        decision = 'keep_current_flow';
+      } else {
+        throw new Error(
+          'Há dados de produção insuficientes para decidir: confirme os denominadores do funil.',
+        );
+      }
+    } else {
+      decision =
+        adGateDropRate !== null && adGateDropRate > AD_GATE_DROP_THRESHOLD
+          ? 'revise_ad_gate_copy'
+          : 'keep_current_flow';
+    }
+  }
 
   return {
     decision,

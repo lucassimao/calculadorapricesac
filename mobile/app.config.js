@@ -1,4 +1,6 @@
 // AdMob Test IDs (used in development)
+const { version: appVersion } = require('./package.json');
+
 const ADMOB_TEST_ANDROID = 'ca-app-pub-3940256099942544~3347511713';
 const ADMOB_TEST_IOS = 'ca-app-pub-3940256099942544~1458002511';
 
@@ -65,7 +67,7 @@ export default {
     name: 'calculadora-price-sac',
     slug: 'calculadora-price-sac',
     scheme: 'calculadora-price-sac',
-    version: '1.2.0',
+    version: appVersion,
     platforms: ['ios', 'android'],
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -116,6 +118,7 @@ export default {
       adsDisabled: false,
       posthogApiKey: process.env.POSTHOG_API_KEY ?? '',
       posthogHost: process.env.POSTHOG_HOST ?? 'https://us.i.posthog.com',
+      analyticsDryRun: getReleaseTarget() !== 'production',
       // Use a dot decimal (for example, 4.8); invalid/low values keep social proof hidden.
       appStoreRatingAverage: Number(process.env.APP_STORE_RATING_AVERAGE ?? '5'),
       appStoreRatingCount: Number(process.env.APP_STORE_RATING_COUNT ?? '2'),

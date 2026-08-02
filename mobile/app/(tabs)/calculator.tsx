@@ -69,7 +69,8 @@ import { shouldShowAds } from '../../src/lib/premium';
 import { useRewardedExport } from '../../src/hooks/useRewardedExport';
 import { useInterstitialGate } from '../../src/hooks/useInterstitialGate';
 import {
-  isTabActionExportBusy,
+  createDismissSafeExportAlertOptions,
+  isAnyExportFlowBusy,
   shouldResetTabActionExportPhase,
   type TabActionExportPhase,
 } from '../../src/hooks/rewarded-export-state';
@@ -84,6 +85,7 @@ import {
   createOnboardingExampleScenario,
   isOnboardingExampleScenario,
 } from '../../src/lib/onboarding-example';
+import { canStartExportAttempt, claimExportClick } from '../../src/lib/export-sheet-outcome';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -392,6 +394,7 @@ export default function CalculatorScreen() {
   const [showPrepaymentDatePicker, setShowPrepaymentDatePicker] = useState(false);
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
   const hasSkippedInitialCalculation = useRef(false);
+  const exportClickBusyRef = useRef(false);
   const mixedStrategyWarningShown = useRef(false);
   const outOfTermWarningShown = useRef(false);
   const inlinePaywallRef = useRef<View>(null);
@@ -1123,15 +1126,25 @@ export default function CalculatorScreen() {
   );
 
   const promptUpgradeForExport = useCallback(
-    (format: ExportFormat, source: string, tableOnly = false) => {
+    (format: ExportFormat, source: string, tableOnly: boolean, onSettled: () => void) => {
+      trackEvent('rewarded_export_gate_shown', { format, source });
       Alert.alert(
         'Exportação grátis com anúncio',
         'Assista a um anúncio para liberar esta exportação ou assine o Premium para exportar sem limites e sem anúncios.',
         [
-          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => {
+              trackEvent('rewarded_export_declined', { format, source, choice: 'cancel' });
+              onSettled();
+            },
+          },
           {
             text: 'Ver Premium',
             onPress: () => {
+              trackEvent('rewarded_export_declined', { format, source, choice: 'premium' });
+              onSettled();
               trackEvent('export_upgrade_clicked', {
                 source,
                 placement: tableOnly ? 'table_only_rewarded_prompt' : 'rewarded_prompt',
@@ -1143,10 +1156,11 @@ export default function CalculatorScreen() {
           {
             text: 'Assistir anúncio',
             onPress: () => {
-              void startRewardedExportFlow({ format, source, tableOnly });
+              void startRewardedExportFlow({ format, source, tableOnly }).finally(onSettled);
             },
           },
         ],
+        createDismissSafeExportAlertOptions(onSettled),
       );
     },
     [router, startRewardedExportFlow],
@@ -1154,6 +1168,13 @@ export default function CalculatorScreen() {
 
   const handleExportTableOnly = useCallback(
     async (format: ExportFormat) => {
+      if (!canStartExportAttempt(validation.errors.length)) {
+        Alert.alert('Atenção', 'Revise os dados antes de exportar.');
+        return;
+      }
+      if (!claimExportClick(exportClickBusyRef, exporting || rewardedExportFormat !== null)) {
+        return;
+      }
       trackEvent('export_clicked', {
         format,
         source: 'table_only',
@@ -1163,11 +1184,11 @@ export default function CalculatorScreen() {
         ...getScenarioAnalyticsContext(scenario, schedule.length),
       });
 
-      if (exporting || rewardedExportFormat !== null) return;
-
       if (!isPremium) {
         if (canUseRewardedExport) {
-          promptUpgradeForExport(format, 'table_only', true);
+          promptUpgradeForExport(format, 'table_only', true, () => {
+            exportClickBusyRef.current = false;
+          });
           return;
         }
 
@@ -1181,10 +1202,17 @@ export default function CalculatorScreen() {
           'Premium',
           'Exportação disponível apenas para assinantes. Assine o Premium para liberar exportações ilimitadas.',
           [
-            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+              onPress: () => {
+                exportClickBusyRef.current = false;
+              },
+            },
             {
               text: 'Ver Premium',
               onPress: () => {
+                exportClickBusyRef.current = false;
                 trackEvent('export_upgrade_clicked', {
                   source: 'table_only',
                   placement: 'blocked_alert',
@@ -1194,11 +1222,18 @@ export default function CalculatorScreen() {
               },
             },
           ],
+          createDismissSafeExportAlertOptions(() => {
+            exportClickBusyRef.current = false;
+          }),
         );
         return;
       }
 
-      await runExport({ format, source: 'table_only', tableOnly: true });
+      try {
+        await runExport({ format, source: 'table_only', tableOnly: true });
+      } finally {
+        exportClickBusyRef.current = false;
+      }
     },
     [
       canUseRewardedExport,
@@ -1210,6 +1245,7 @@ export default function CalculatorScreen() {
       runExport,
       scenario,
       schedule.length,
+      validation.errors.length,
     ],
   );
 
@@ -1412,8 +1448,16 @@ export default function CalculatorScreen() {
 
   // Callback for the export context (used by tab bar action sheet)
   const handleExportFromContext = useCallback(
-    async (format: ExportFormat, options?: ExportTriggerOptions) => {
+    (format: ExportFormat, options?: ExportTriggerOptions) => {
       const professional = Boolean(options?.professional);
+      if (!canStartExportAttempt(validation.errors.length)) {
+        Alert.alert('Atenção', 'Revise os dados antes de exportar.');
+        return 'validation_blocked';
+      }
+      if (!claimExportClick(exportClickBusyRef, exporting || rewardedExportFormat !== null)) {
+        return 'busy';
+      }
+
       trackEvent('export_clicked', {
         format,
         source: 'tab_action',
@@ -1424,19 +1468,31 @@ export default function CalculatorScreen() {
         ...getScenarioAnalyticsContext(scenario, schedule.length),
       });
 
-      if (exporting || rewardedExportFormat !== null) return;
-
       if (professional && !isPremium) {
         Alert.alert('Premium', 'PDF Profissional disponível apenas para assinantes.');
+        trackEvent('export_blocked_premium', {
+          format,
+          source: 'tab_action',
+          professional: true,
+          rewarded_available: canUseRewardedExport,
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+        });
+        trackEvent('export_upgrade_clicked', {
+          source: 'tab_action',
+          placement: 'professional_blocked_redirect',
+        });
         setPendingPaywallSource('export_upgrade');
         router.push('/(tabs)/premium');
-        return;
+        exportClickBusyRef.current = false;
+        return 'handled';
       }
 
       if (!isPremium) {
         if (canUseRewardedExport) {
-          await startRewardedExportFlow({ format, source: 'tab_action' });
-          return;
+          void startRewardedExportFlow({ format, source: 'tab_action' }).finally(() => {
+            exportClickBusyRef.current = false;
+          });
+          return 'handled';
         }
 
         trackEvent('export_blocked_premium', {
@@ -1452,15 +1508,21 @@ export default function CalculatorScreen() {
         });
         setPendingPaywallSource('export_upgrade');
         router.push('/(tabs)/premium');
-        return;
+        exportClickBusyRef.current = false;
+        return 'handled';
       }
 
       if (professional) {
-        await startProfessionalExportFlow('tab_action');
-        return;
+        void startProfessionalExportFlow('tab_action').finally(() => {
+          exportClickBusyRef.current = false;
+        });
+        return 'handled';
       }
 
-      await runExport({ format, source: 'tab_action' });
+      void runExport({ format, source: 'tab_action' }).finally(() => {
+        exportClickBusyRef.current = false;
+      });
+      return 'started';
     },
     [
       canUseRewardedExport,
@@ -1473,6 +1535,7 @@ export default function CalculatorScreen() {
       schedule.length,
       startProfessionalExportFlow,
       startRewardedExportFlow,
+      validation.errors.length,
     ],
   );
 
@@ -1549,8 +1612,14 @@ export default function CalculatorScreen() {
   }, [tabActionExportPhase, rewardedExportFormat, exporting]);
 
   useEffect(() => {
-    setIsExporting(isTabActionExportBusy(tabActionExportPhase));
-  }, [tabActionExportPhase, setIsExporting]);
+    setIsExporting(
+      isAnyExportFlowBusy({
+        tabActionPhase: tabActionExportPhase,
+        rewardedExportFormat,
+        exporting,
+      }),
+    );
+  }, [exporting, rewardedExportFormat, tabActionExportPhase, setIsExporting]);
 
   useEffect(() => {
     return () => setIsExporting(false);

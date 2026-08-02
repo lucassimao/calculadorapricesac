@@ -65,8 +65,10 @@ appId: com.lsimaocosta.calculadorapricesac
 - scrollUntilVisible:
     element:
       id: 'chart-payment-composition'
-    centerElement: true
+    centerElement: false
     visibilityPercentage: 10
+    timeout: 30000
+    waitToSettleTimeoutMs: 1000
 - assertVisible:
     id: 'chart-payment-composition'
 - runFlow: helpers/launch_dev_client.yaml

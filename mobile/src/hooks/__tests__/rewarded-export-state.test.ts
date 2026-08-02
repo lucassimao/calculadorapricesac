@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   canUseRewardedExportPlacement,
   classifyRewardedFailure,
+  createDismissSafeExportAlertOptions,
+  isAnyExportFlowBusy,
   isTabActionExportBusy,
   REWARDED_EXPORT_TIMEOUT_MS,
   shouldLoadPendingRewardedRequest,
@@ -10,6 +12,15 @@ import {
 } from '../rewarded-export-state';
 
 describe('rewarded export state helpers', () => {
+  it('prevents Android export prompts from being dismissed without settling the click lock', () => {
+    const onDismiss = () => {};
+
+    expect(createDismissSafeExportAlertOptions(onDismiss)).toEqual({
+      cancelable: false,
+      onDismiss,
+    });
+  });
+
   it('normalizes namespaced native codes while preserving the exact SDK code', () => {
     expect(
       classifyRewardedFailure(
@@ -152,6 +163,30 @@ describe('rewarded export state helpers', () => {
     expect(
       shouldResetTabActionExportPhase({
         phase: 'exporting',
+        rewardedExportFormat: null,
+        exporting: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('keeps the global export interaction busy for rewarded flows started outside the tab', () => {
+    expect(
+      isAnyExportFlowBusy({
+        tabActionPhase: 'idle',
+        rewardedExportFormat: 'pdf',
+        exporting: false,
+      }),
+    ).toBe(true);
+    expect(
+      isAnyExportFlowBusy({
+        tabActionPhase: 'idle',
+        rewardedExportFormat: null,
+        exporting: true,
+      }),
+    ).toBe(true);
+    expect(
+      isAnyExportFlowBusy({
+        tabActionPhase: 'idle',
         rewardedExportFormat: null,
         exporting: false,
       }),
