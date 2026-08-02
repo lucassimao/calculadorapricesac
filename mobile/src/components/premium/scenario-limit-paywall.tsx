@@ -1,12 +1,11 @@
-import type { PropsWithChildren } from 'react';
 import Constants from 'expo-constants';
-import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIapPurchase } from '../../hooks/useIapPurchase';
 import { trackEvent } from '../../lib/analytics';
 import { IAP_FALLBACK_PRICE } from '../../lib/iap';
 import { getPremiumSocialProof } from '../../lib/premium-offer';
 import { SCENARIO_LIMIT_PAYWALL_SOURCE } from '../../lib/scenario-limit';
+import { PremiumBottomSheet } from './premium-bottom-sheet';
 import { PremiumOfferCard } from './premium-offer-card';
 
 interface ScenarioLimitPaywallProps {
@@ -22,43 +21,6 @@ function getConfiguredSocialProof() {
     average: Number(Constants.expoConfig?.extra?.appStoreRatingAverage),
     count: Number(Constants.expoConfig?.extra?.appStoreRatingCount),
   });
-}
-
-function SheetFrame({
-  children,
-  onClose,
-  visible,
-}: PropsWithChildren<{ onClose: () => void; visible: boolean }>) {
-  return (
-    <Modal
-      animationType="slide"
-      transparent
-      visible={visible}
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.backdrop} testID="scenario-limit-paywall">
-        <View style={styles.sheet} accessibilityViewIsModal>
-          <View style={styles.handle} />
-          <View style={styles.headerRow}>
-            <Text style={styles.sheetTitle}>Premium</Text>
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Fechar oferta Premium"
-              testID="scenario-limit-paywall-close"
-              hitSlop={12}
-            >
-              <Ionicons name="close" size={24} color="#475569" />
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {children}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
 }
 
 function ScenarioLimitPaywallIap({
@@ -88,7 +50,11 @@ function ScenarioLimitPaywallIap({
   };
 
   return (
-    <SheetFrame onClose={() => onClose('dismissed')} visible={visible}>
+    <PremiumBottomSheet
+      onClose={() => onClose('dismissed')}
+      testID="scenario-limit-paywall"
+      visible={visible}
+    >
       <PremiumOfferCard
         priceLabel={priceLabel}
         socialProof={getConfiguredSocialProof()}
@@ -121,7 +87,7 @@ function ScenarioLimitPaywallIap({
           </Pressable>
         </View>
       </PremiumOfferCard>
-    </SheetFrame>
+    </PremiumBottomSheet>
   );
 }
 
@@ -130,7 +96,11 @@ function ScenarioLimitPaywallUnsupported({
   visible,
 }: Pick<ScenarioLimitPaywallProps, 'onClose' | 'visible'>) {
   return (
-    <SheetFrame onClose={() => onClose('dismissed')} visible={visible}>
+    <PremiumBottomSheet
+      onClose={() => onClose('dismissed')}
+      testID="scenario-limit-paywall"
+      visible={visible}
+    >
       <PremiumOfferCard
         priceLabel={IAP_FALLBACK_PRICE}
         socialProof={getConfiguredSocialProof()}
@@ -142,7 +112,7 @@ function ScenarioLimitPaywallUnsupported({
           ou Play Store.
         </Text>
       </PremiumOfferCard>
-    </SheetFrame>
+    </PremiumBottomSheet>
   );
 }
 
@@ -166,41 +136,6 @@ export function ScenarioLimitPaywall({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-  },
-  sheet: {
-    maxHeight: '92%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    backgroundColor: '#F8FAFC',
-    paddingTop: 8,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 42,
-    height: 5,
-    borderRadius: 999,
-    backgroundColor: '#CBD5E1',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  sheetTitle: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 28,
-  },
   actions: {
     gap: 10,
   },

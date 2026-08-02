@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../lib/premium-offer';
 
 interface PremiumOfferCardProps extends PropsWithChildren {
+  highlight?: ReactNode;
   priceLabel: string | null;
   socialProof: PremiumSocialProof | null;
   subtitle?: string;
@@ -16,6 +17,7 @@ interface PremiumOfferCardProps extends PropsWithChildren {
 
 export function PremiumOfferCard({
   children,
+  highlight,
   priceLabel,
   socialProof,
   subtitle = 'Todas as ferramentas para analisar financiamentos com clareza e apresentar um resultado profissional.',
@@ -54,6 +56,8 @@ export function PremiumOfferCard({
           <Text style={styles.socialProofText}>{socialProof.label}</Text>
         </View>
       ) : null}
+
+      {highlight}
 
       <View style={styles.divider} />
       <View style={styles.benefits}>

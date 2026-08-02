@@ -70,6 +70,8 @@ import { getBrandProfileCompletion, isBrandProfileComplete } from '../../src/typ
 import { loadBrandProfile } from '../../src/lib/storage/brand-profile';
 import { ScenarioLimitPaywall } from '../../src/components/premium/scenario-limit-paywall';
 import { SCENARIO_LIMIT_PAYWALL_SOURCE, getScenarioSaveGate } from '../../src/lib/scenario-limit';
+import { PostExportPaywall } from '../../src/components/premium/post-export-paywall';
+import { shouldShowPostExportPaywall } from '../../src/lib/post-export-paywall';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -354,6 +356,7 @@ export default function CalculatorScreen() {
   const [pendingProfessionalExport, setPendingProfessionalExport] =
     useState<PendingProfessionalExport | null>(null);
   const [scenarioLimitPaywallVisible, setScenarioLimitPaywallVisible] = useState(false);
+  const [postExportPaywallVisible, setPostExportPaywallVisible] = useState(false);
   const [professionalClientName, setProfessionalClientName] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const { canUseRewardedExport, requestRewardedExport, rewardedExportFormat } =
@@ -390,6 +393,7 @@ export default function CalculatorScreen() {
     context: Awaited<ReturnType<typeof getPaywallViewContext>> | null;
     dismissed: boolean;
   } | null>(null);
+  const postExportPaywallShownRef = useRef(false);
 
   useEffect(() => {
     screenHeightRef.current = height;
@@ -1000,7 +1004,17 @@ export default function CalculatorScreen() {
           }),
           ...getScenarioAnalyticsContext(scenario, schedule.length),
         });
-        requestReviewIfAppropriate().catch(() => {});
+        const showPostExportPaywall = shouldShowPostExportPaywall({
+          access,
+          isPremium,
+          hasShownThisSession: postExportPaywallShownRef.current,
+        });
+        if (showPostExportPaywall) {
+          postExportPaywallShownRef.current = true;
+          setPostExportPaywallVisible(true);
+        } else {
+          requestReviewIfAppropriate().catch(() => {});
+        }
       } catch {
         trackEvent('export_failed', {
           format,
@@ -2545,6 +2559,14 @@ export default function CalculatorScreen() {
         isPremium={isPremium}
         markPremium={markPremium}
         onClose={closeScenarioLimitPaywall}
+      />
+
+      <PostExportPaywall
+        visible={postExportPaywallVisible}
+        iapAvailability={iapAvailability}
+        isPremium={isPremium}
+        markPremium={markPremium}
+        onClose={() => setPostExportPaywallVisible(false)}
       />
 
       <Modal
