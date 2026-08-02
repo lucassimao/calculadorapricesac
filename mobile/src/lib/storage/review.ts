@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const REVIEW_REQUESTED_KEY = 'app:review_requested:v1';
-const APP_OPENS_KEY = 'app:opens_count:v1';
+const EXPORT_SUCCESS_COUNT_KEY = 'app:review_export_success_count:v1';
+const SCENARIO_SAVE_COUNT_KEY = 'app:review_scenario_save_count:v1';
+const MIN_POSITIVE_ACTIONS_BEFORE_REVIEW = 2;
 
-/**
- * Track app opens and determine if we should request a review.
- * We ask for review after 5 app opens, and only once ever.
- */
-const MIN_OPENS_BEFORE_REVIEW = 5;
+export type ReviewTrigger = 'export_success' | 'scenario_saved';
+
+let reviewBlockedThisSession = false;
+let positiveActionQueue = Promise.resolve();
 
 export async function hasRequestedReview(): Promise<boolean> {
   const value = await AsyncStorage.getItem(REVIEW_REQUESTED_KEY);
@@ -18,24 +19,48 @@ export async function markReviewRequested(): Promise<void> {
   await AsyncStorage.setItem(REVIEW_REQUESTED_KEY, 'true');
 }
 
-export async function getAppOpensCount(): Promise<number> {
-  const value = await AsyncStorage.getItem(APP_OPENS_KEY);
-  return value ? parseInt(value, 10) : 0;
+export function markReviewSessionBlocked() {
+  reviewBlockedThisSession = true;
 }
 
-export async function incrementAppOpens(): Promise<number> {
-  const current = await getAppOpensCount();
-  const newCount = current + 1;
-  await AsyncStorage.setItem(APP_OPENS_KEY, String(newCount));
-  return newCount;
+export function isReviewSessionBlocked() {
+  return reviewBlockedThisSession;
 }
 
-export async function shouldRequestReview(): Promise<boolean> {
-  const [alreadyRequested, opens] = await Promise.all([hasRequestedReview(), getAppOpensCount()]);
+export function resetReviewSessionStateForTests() {
+  reviewBlockedThisSession = false;
+  positiveActionQueue = Promise.resolve();
+}
 
-  // Don't request if already requested or not enough app opens
-  if (alreadyRequested) return false;
-  if (opens < MIN_OPENS_BEFORE_REVIEW) return false;
+async function getPositiveActionCount(key: string) {
+  const stored = await AsyncStorage.getItem(key);
+  const count = stored ? Number.parseInt(stored, 10) : 0;
+  return Number.isFinite(count) && count > 0 ? count : 0;
+}
 
-  return true;
+async function recordReviewPositiveActionNow(trigger: ReviewTrigger) {
+  if (await hasRequestedReview()) return false;
+
+  const triggerKey =
+    trigger === 'export_success' ? EXPORT_SUCCESS_COUNT_KEY : SCENARIO_SAVE_COUNT_KEY;
+  const otherKey =
+    trigger === 'export_success' ? SCENARIO_SAVE_COUNT_KEY : EXPORT_SUCCESS_COUNT_KEY;
+  const [currentTriggerCount, otherCount] = await Promise.all([
+    getPositiveActionCount(triggerKey),
+    getPositiveActionCount(otherKey),
+  ]);
+  const nextTriggerCount = currentTriggerCount + 1;
+  await AsyncStorage.setItem(triggerKey, String(nextTriggerCount));
+
+  if (reviewBlockedThisSession) return false;
+  return Math.max(nextTriggerCount, otherCount) >= MIN_POSITIVE_ACTIONS_BEFORE_REVIEW;
+}
+
+export function recordReviewPositiveAction(trigger: ReviewTrigger) {
+  const result = positiveActionQueue.then(() => recordReviewPositiveActionNow(trigger));
+  positiveActionQueue = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  return result;
 }

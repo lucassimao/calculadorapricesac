@@ -19,6 +19,7 @@ import {
   trackScreen,
 } from '../../src/lib/analytics';
 import { useIapPurchase } from '../../src/hooks/useIapPurchase';
+import { useStoreReview } from '../../src/hooks/useStoreReview';
 import { shouldShowAds } from '../../src/lib/premium';
 import { resetAdMonetizationTimestamps } from '../../src/lib/storage/ad-monetization';
 import { saveScenarios } from '../../src/lib/storage/scenarios';
@@ -190,6 +191,7 @@ function PremiumDiagnosticsCard({
 
 function DevAdControls() {
   const { markPremium } = usePremiumContext();
+  const { forceReviewPromptForDev } = useStoreReview();
   const {
     stubModeEnabled,
     interstitialStubEnabled,
@@ -364,6 +366,17 @@ function DevAdControls() {
         accessibilityLabel="Resetar cenários salvos (dev)"
       >
         <Text style={styles.secondaryButtonText}>Resetar cenários salvos (dev)</Text>
+      </Pressable>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => {
+          void forceReviewPromptForDev();
+        }}
+        testID="btn-dev-force-store-review"
+        accessibilityRole="button"
+        accessibilityLabel="Forçar avaliação da loja (dev)"
+      >
+        <Text style={styles.secondaryButtonText}>Forçar avaliação da loja (dev)</Text>
       </Pressable>
     </View>
   );

@@ -760,7 +760,12 @@ export default function CalculatorScreen() {
       scenario_count: nextList.length,
       ...getScenarioAnalyticsContext(scenario, schedule.length),
     });
-    void maybeShowInterstitial(existingIndex >= 0 ? 'scenario_updated' : 'scenario_saved');
+    const interstitialShown = await maybeShowInterstitial(
+      existingIndex >= 0 ? 'scenario_updated' : 'scenario_saved',
+    ).catch(() => false);
+    requestReviewIfAppropriate('scenario_saved', {
+      suppressPrompt: interstitialShown,
+    }).catch(() => {});
   };
 
   const formatCurrencyValue = (value: number | undefined): string => {
@@ -1012,9 +1017,10 @@ export default function CalculatorScreen() {
         if (showPostExportPaywall) {
           postExportPaywallShownRef.current = true;
           setPostExportPaywallVisible(true);
-        } else {
-          requestReviewIfAppropriate().catch(() => {});
         }
+        requestReviewIfAppropriate('export_success', {
+          suppressPrompt: showPostExportPaywall,
+        }).catch(() => {});
         return true;
       } catch {
         trackEvent('export_failed', {

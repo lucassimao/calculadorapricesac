@@ -1,72 +1,66 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import * as StoreReview from 'expo-store-review';
+import { trackEvent } from '../lib/analytics';
 import {
   hasRequestedReview,
-  incrementAppOpens,
+  isReviewSessionBlocked,
   markReviewRequested,
-  shouldRequestReview,
+  recordReviewPositiveAction,
+  type ReviewTrigger,
 } from '../lib/storage/review';
 
-/**
- * Hook to manage store review requests.
- *
- * - Tracks app opens automatically
- * - Provides a function to request review at appropriate moments
- * - Only requests review once per user, after 5+ app opens
- * - Uses native in-app review dialog (non-intrusive)
- */
+let reviewRequestInFlight = false;
+
 export function useStoreReview() {
-  const hasTrackedOpen = useRef(false);
+  const requestNativeReview = useCallback(
+    async (trigger: ReviewTrigger | 'dev_force', persistRequested: boolean) => {
+      if (reviewRequestInFlight) return false;
+      reviewRequestInFlight = true;
+      try {
+        const isAvailable = await StoreReview.isAvailableAsync();
+        if (!isAvailable) return false;
+        const hasAction = await StoreReview.hasAction();
+        if (!hasAction) return false;
+        if (persistRequested && isReviewSessionBlocked()) return false;
+        trackEvent('review_prompt_requested', { trigger });
+        await StoreReview.requestReview();
+        if (persistRequested) await markReviewRequested();
+        return true;
+      } catch {
+        return false;
+      } finally {
+        reviewRequestInFlight = false;
+      }
+    },
+    [],
+  );
 
-  // Track app open on mount (once per session)
-  useEffect(() => {
-    if (hasTrackedOpen.current) return;
-    hasTrackedOpen.current = true;
-    incrementAppOpens().catch(() => {});
-  }, []);
+  const requestReviewIfAppropriate = useCallback(
+    async (
+      trigger: ReviewTrigger,
+      { suppressPrompt = false }: { suppressPrompt?: boolean } = {},
+    ) => {
+      try {
+        const eligible = await recordReviewPositiveAction(trigger);
+        if (!eligible || suppressPrompt) return false;
+        return requestNativeReview(trigger, true);
+      } catch {
+        return false;
+      }
+    },
+    [requestNativeReview],
+  );
 
-  /**
-   * Request a store review if conditions are met:
-   * - User has opened the app 5+ times
-   * - User hasn't been asked before
-   * - Device supports in-app review
-   */
-  const requestReviewIfAppropriate = useCallback(async () => {
-    try {
-      // Check if we should request
-      const should = await shouldRequestReview();
-      if (!should) return false;
+  const forceReviewPromptForDev = useCallback(
+    () => requestNativeReview('dev_force', false),
+    [requestNativeReview],
+  );
 
-      // Check if the device supports in-app review
-      const isAvailable = await StoreReview.isAvailableAsync();
-      if (!isAvailable) return false;
-
-      // Check if we can actually request (some platforms have rate limits)
-      const hasAction = await StoreReview.hasAction();
-      if (!hasAction) return false;
-
-      // Request the review
-      await StoreReview.requestReview();
-
-      // Mark as requested (even if user dismissed - we don't want to ask again)
-      await markReviewRequested();
-
-      return true;
-    } catch {
-      // Silently fail - review requests should never break the app
-      return false;
-    }
-  }, []);
-
-  /**
-   * Check if the user has already been asked for a review.
-   */
-  const checkIfAlreadyRequested = useCallback(async () => {
-    return hasRequestedReview();
-  }, []);
+  const checkIfAlreadyRequested = useCallback(async () => hasRequestedReview(), []);
 
   return {
     requestReviewIfAppropriate,
+    forceReviewPromptForDev,
     checkIfAlreadyRequested,
   };
 }

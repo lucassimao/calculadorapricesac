@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import { PostHog } from 'posthog-react-native';
+import { markReviewSessionBlocked } from './storage/review';
 import type {
   AnalyticsEvent,
   AnalyticsEventMap,
@@ -117,6 +118,9 @@ export function trackEvent<E extends AnalyticsEvent>(
   event: E,
   ...[properties]: TrackEventArguments<E>
 ) {
+  if (event === 'rewarded_export_ad_failed' || event === 'purchase_failed') {
+    markReviewSessionBlocked();
+  }
   const payload = sanitizeProperties({
     ...superProperties,
     ...((properties ?? {}) as AnalyticsProperties),

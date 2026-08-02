@@ -1,0 +1,12 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: tab-premium
+- scrollUntilVisible:
+    element:
+      id: btn-dev-force-store-review
+    direction: DOWN
+    timeout: 12000
+- assertVisible:
+    id: btn-dev-force-store-review

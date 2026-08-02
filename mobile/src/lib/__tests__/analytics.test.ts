@@ -10,6 +10,7 @@ import {
   trackAppOpen,
   trackEvent,
 } from '../analytics';
+import { recordReviewPositiveAction, resetReviewSessionStateForTests } from '../storage/review';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -39,9 +40,36 @@ vi.mock('posthog-react-native', () => ({
 describe('typed analytics runtime', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
+    resetReviewSessionStateForTests();
     setAnalyticsDryRunForTests(true);
     clearAnalyticsDryRunSink();
   });
+
+  it.each(['rewarded_export_ad_failed', 'purchase_failed'] as const)(
+    'blocks review requests in the session after %s',
+    async (event) => {
+      await expect(recordReviewPositiveAction('export_success')).resolves.toBe(false);
+
+      if (event === 'rewarded_export_ad_failed') {
+        trackEvent(event, { error_kind: 'no_fill', format: 'pdf', source: 'export_sheet' });
+      } else {
+        trackEvent(event, {
+          error_code: 'store_unavailable',
+          attempt_id: 'attempt-1',
+          source: 'premium_tab',
+          flow: 'purchase',
+          connected: false,
+          store_ready: false,
+          product_loaded: false,
+          is_premium: false,
+        });
+      }
+
+      await expect(recordReviewPositiveAction('export_success')).resolves.toBe(false);
+      resetReviewSessionStateForTests();
+      await expect(recordReviewPositiveAction('export_success')).resolves.toBe(true);
+    },
+  );
 
   it('adds the complete super-property contract to every dry-run event', () => {
     registerAnalyticsProperties({ is_premium: false, saved_scenario_count: 2 });
