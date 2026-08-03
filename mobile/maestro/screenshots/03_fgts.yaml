@@ -1,0 +1,26 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- runFlow: ../helpers/enable_premium_dev.yaml
+- tapOn:
+    id: tab-calculator
+- scrollUntilVisible:
+    element:
+      id: input-fgts-amount
+    timeout: 12000
+    speed: 70
+    visibilityPercentage: 10
+- tapOn:
+    id: input-fgts-amount
+- eraseText
+- inputText: '50000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: btn-add-fgts
+    timeout: 12000
+    speed: 70
+    visibilityPercentage: 10
+- tapOn:
+    id: btn-add-fgts
+- takeScreenshot: ../../../marketing/public/recursos/_captures/fgts

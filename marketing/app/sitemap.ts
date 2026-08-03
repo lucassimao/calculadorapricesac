@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { siteUrl } from './site-url';
 import { guides } from './guias/content';
+import { resources } from './recursos/content';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -20,6 +21,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...guides.map((g) => ({
       url: `${siteUrl}/guias/${g.slug}`,
       lastModified: new Date(g.updated),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    })),
+    {
+      url: `${siteUrl}/recursos`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    ...resources.map((resource) => ({
+      url: `${siteUrl}/recursos/${resource.slug}`,
+      lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     })),

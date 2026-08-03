@@ -6,6 +6,7 @@ import { siteUrl } from './site-url';
 import { AppStoreLink } from './AppStoreLink';
 import { Simulator } from './components/Simulator/Simulator';
 import { guides } from './guias/content';
+import { resources } from './recursos/content';
 
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
@@ -160,6 +161,36 @@ export default function Home() {
         </div>
         <Link className={styles.guidesLink} href="/guias" aria-label="Guias">
           Ver todos os guias →
+        </Link>
+      </section>
+
+      <div className={styles.sectionDivider} />
+
+      <section className={styles.section} aria-labelledby="resources-title">
+        <div>
+          <h2 id="resources-title" className={styles.sectionTitle}>
+            Recursos para decidir melhor
+          </h2>
+          <p className={styles.sectionLead}>
+            Veja o app resolvendo dúvidas reais: amortização, FGTS, CET, indexadores, exportações e
+            muito mais.
+          </p>
+        </div>
+        <div className={styles.resourceGrid}>
+          {resources.map((resource) => (
+            <Link
+              key={resource.slug}
+              className={styles.resourceCard}
+              href={`/recursos/${resource.slug}`}
+            >
+              <span className={styles.resourceCardTitle}>{resource.title}</span>
+              <span className={styles.resourceCardText}>{resource.hook}</span>
+              <span className={styles.resourceCardMore}>Ver recurso →</span>
+            </Link>
+          ))}
+        </div>
+        <Link className={styles.guidesLink} href="/recursos" aria-label="Recursos">
+          Ver todos os recursos →
         </Link>
       </section>
 

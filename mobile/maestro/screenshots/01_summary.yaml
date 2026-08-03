@@ -1,0 +1,14 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- assertVisible:
+    id: onboarding-example-chip
+- scrollUntilVisible:
+    element:
+      id: section-summary
+    centerElement: true
+    timeout: 20000
+    speed: 60
+- assertVisible:
+    id: summary-first-payment-value
+- takeScreenshot: ../../../marketing/public/recursos/_captures/summary

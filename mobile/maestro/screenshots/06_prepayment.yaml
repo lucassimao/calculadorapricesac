@@ -1,0 +1,25 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- tapOn:
+    id: tab-calculator
+- scrollUntilVisible:
+    element:
+      id: input-prepayment-amount
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: input-prepayment-amount
+- eraseText
+- inputText: '10000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: btn-add-prepayment
+    timeout: 12000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: btn-add-prepayment
+- takeScreenshot: ../../../marketing/public/recursos/_captures/prepayment

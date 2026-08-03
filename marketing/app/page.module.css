@@ -317,6 +317,49 @@
   justify-self: start;
 }
 
+.resourceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.resourceCard {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  border: 1px solid rgba(215, 210, 198, 0.7);
+  display: grid;
+  gap: 8px;
+  box-shadow: 0 12px 28px rgba(30, 30, 30, 0.06);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.resourceCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.resourceCardTitle {
+  color: var(--ink);
+  font-family: var(--font-heading), 'Fraunces', serif;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.resourceCardText {
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.resourceCardMore {
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .premiumBox {
   border-radius: var(--radius-lg);
   padding: 28px;

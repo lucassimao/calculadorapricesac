@@ -1,0 +1,22 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- tapOn:
+    id: tab-calculator
+- scrollUntilVisible:
+    element:
+      id: chip-index-ipca
+    timeout: 12000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: chip-index-ipca
+- assertVisible:
+    id: input-index-rate
+- scrollUntilVisible:
+    element:
+      id: summary-total-index-correction
+    timeout: 20000
+    speed: 60
+    visibilityPercentage: 10
+- takeScreenshot: ../../../marketing/public/recursos/_captures/indexed
