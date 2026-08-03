@@ -9,6 +9,7 @@ interface SystemSelectorProps {
   loanMode: LoanMode;
   onSystemChange: (system: AmortizationSystem) => void;
   onLoanModeChange: (mode: LoanMode) => void;
+  hideLoanMode?: boolean;
 }
 
 export function SystemSelector({
@@ -16,6 +17,7 @@ export function SystemSelector({
   loanMode,
   onSystemChange,
   onLoanModeChange,
+  hideLoanMode = false,
 }: SystemSelectorProps) {
   const { colors } = useTheme();
 
@@ -58,47 +60,51 @@ export function SystemSelector({
         Price: parcelas fixas. SAC: amortização constante e parcelas decrescentes.
       </Text>
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Modo</Text>
-      <View style={styles.toggleRow}>
-        {(
-          [
-            { value: 'standard', label: 'Padrão' },
-            { value: 'property', label: 'Imóvel' },
-          ] as const
-        ).map((mode) => (
-          <Pressable
-            key={mode.value}
-            onPress={() => onLoanModeChange(mode.value)}
-            style={[
-              styles.toggleButton,
-              { borderColor: colors.border },
-              loanMode === mode.value && {
-                backgroundColor: colors.primaryLight,
-                borderColor: colors.primary,
-              },
-            ]}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: loanMode === mode.value }}
-            accessibilityLabel={`Modo ${mode.label}`}
-            testID={`loan-mode-${mode.value}`}
-          >
-            <Text
-              style={[
-                styles.toggleButtonText,
-                { color: colors.textSecondary },
-                loanMode === mode.value && { color: colors.primary },
-              ]}
-            >
-              {mode.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <Text style={[styles.helperText, { color: colors.textTertiary }]}>
-        {loanMode === 'property'
-          ? 'Modo imobiliário: calcula pelo valor do imóvel e entrada.'
-          : 'Modo padrão: usa o valor do financiamento diretamente.'}
-      </Text>
+      {hideLoanMode ? null : (
+        <>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Modo</Text>
+          <View style={styles.toggleRow}>
+            {(
+              [
+                { value: 'standard', label: 'Padrão' },
+                { value: 'property', label: 'Imóvel' },
+              ] as const
+            ).map((mode) => (
+              <Pressable
+                key={mode.value}
+                onPress={() => onLoanModeChange(mode.value)}
+                style={[
+                  styles.toggleButton,
+                  { borderColor: colors.border },
+                  loanMode === mode.value && {
+                    backgroundColor: colors.primaryLight,
+                    borderColor: colors.primary,
+                  },
+                ]}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: loanMode === mode.value }}
+                accessibilityLabel={`Modo ${mode.label}`}
+                testID={`loan-mode-${mode.value}`}
+              >
+                <Text
+                  style={[
+                    styles.toggleButtonText,
+                    { color: colors.textSecondary },
+                    loanMode === mode.value && { color: colors.primary },
+                  ]}
+                >
+                  {mode.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+            {loanMode === 'property'
+              ? 'Modo imobiliário: calcula pelo valor do imóvel e entrada.'
+              : 'Modo padrão: usa o valor do financiamento diretamente.'}
+          </Text>
+        </>
+      )}
     </View>
   );
 }

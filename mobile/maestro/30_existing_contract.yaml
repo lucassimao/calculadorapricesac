@@ -1,0 +1,110 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- repeat:
+    times: 8
+    commands:
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 85%
+- scrollUntilVisible:
+    element:
+      id: entry-mode-existing-contract
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: entry-mode-existing-contract
+- tapOn: 'Trocar e limpar'
+- assertVisible:
+    text: 'Use o saldo e as parcelas que ainda faltam no seu contrato.'
+- scrollUntilVisible:
+    element:
+      id: input-principal
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: input-principal
+- eraseText
+- inputText: '200000'
+- hideKeyboard
+- assertVisible:
+    text: 'Informe o saldo imediatamente após a última parcela paga.'
+- scrollUntilVisible:
+    element:
+      id: input-term
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: input-term
+- eraseText
+- inputText: '180'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: input-next-due-date
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: input-next-due-date
+- tapOn:
+    text: '20'
+- tapOn:
+    text: 'OK'
+- scrollUntilVisible:
+    element:
+      id: existing-contract-computed-installment
+    direction: DOWN
+    timeout: 8000
+- assertVisible:
+    id: existing-contract-computed-installment
+- assertVisible:
+    text: 'Parcela calculada para conferência'
+- evalScript: ${output.prepaymentVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: input-prepayment-amount
+    commands:
+      - evalScript: ${output.prepaymentVisible = true}
+- repeat:
+    while:
+      true: ${output.prepaymentVisible == false}
+    times: 20
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: input-prepayment-amount
+          commands:
+            - evalScript: ${output.prepaymentVisible = true}
+- assertVisible:
+    id: input-prepayment-amount
+- tapOn:
+    id: input-prepayment-amount
+- eraseText
+- inputText: '20000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: btn-add-prepayment
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: btn-add-prepayment
+- scrollUntilVisible:
+    element:
+      id: existing-contract-prepayment-impact
+    direction: UP
+    timeout: 10000
+- assertVisible:
+    id: existing-contract-prepayment-impact
+- swipe:
+    start: 50%, 30%
+    end: 50%, 60%
+- assertVisible:
+    text: 'Juros economizados:.*'
+- assertVisible:
+    text: 'Nova quitação:.*parcelas a menos'

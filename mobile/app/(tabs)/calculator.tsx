@@ -23,7 +23,13 @@ import {
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useFocusEffect, useRouter } from 'expo-router';
-import type { CorrectionIndexType, FgtsEvent, PrepaymentEvent, Scenario } from '@loan-engine/loan';
+import type {
+  CorrectionIndexType,
+  EntryMode,
+  FgtsEvent,
+  PrepaymentEvent,
+  Scenario,
+} from '@loan-engine/loan';
 import {
   calculateLoanSummary,
   formatCurrency,
@@ -38,6 +44,7 @@ import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import {
   IndexSelector,
+  EntryModeSelector,
   ScenarioSection,
   SummarySection,
   SystemSelector,
@@ -59,7 +66,6 @@ import type { ExportTriggerOptions } from '../../src/contexts/ExportContext';
 import { useStoreReview } from '../../src/hooks/useStoreReview';
 import {
   getPaywallViewContext,
-  getAnnualRateBucket,
   registerAnalyticsProperties,
   setPendingPaywallSource,
   trackEvent,
@@ -101,6 +107,17 @@ import {
   type RecurringFgtsEvent,
   type RecurringPrepaymentEvent,
 } from '../../src/lib/recurring-events';
+import {
+  createExistingContractScenario,
+  getExistingContractBalanceDate,
+  getScenarioEntryMode,
+  inferExistingContractDueDay,
+} from '../../src/lib/existing-contract';
+import { calculatePrepaymentImpact } from '../../src/lib/prepayment-impact';
+import {
+  getScenarioAnalyticsContext,
+  trackCalculationPerformed,
+} from '../../src/lib/scenario-analytics';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -148,45 +165,6 @@ function countPrunedExistingEvents(
     ...(scenario.prepayments ?? []).map((event) => `prepayment:${event.id}`),
     ...(scenario.fgtsEvents ?? []).map((event) => `fgts:${event.id}`),
   ].filter((key) => !remainingKeys.has(key)).length;
-}
-
-function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?: number) {
-  const termMonths = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
-  const prepaymentCount = scenario.prepayments?.length ?? 0;
-  const fgtsEventCount = scenario.fgtsEvents?.length ?? 0;
-  const rateBucket = getAnnualRateBucket(scenario.rate, scenario.rateType);
-  const principalBucket =
-    scenario.principal < 100_000
-      ? '<100k'
-      : scenario.principal < 300_000
-        ? '100-300k'
-        : scenario.principal < 500_000
-          ? '300-500k'
-          : scenario.principal < 1_000_000
-            ? '500k-1M'
-            : '>1M';
-
-  return {
-    system: scenario.system,
-    loan_mode: scenario.loanMode ?? 'standard',
-    rate_type: scenario.rateType,
-    rate_bucket: rateBucket,
-    index_type: (scenario.indexType ?? 'none') as 'none' | CorrectionIndexType,
-    term_unit: scenario.termUnit,
-    term_value: scenario.term,
-    term_months: termMonths,
-    principal_bucket: principalBucket as '<100k' | '100-300k' | '300-500k' | '500k-1M' | '>1M',
-    has_prepayments: prepaymentCount > 0,
-    prepayment_count: prepaymentCount,
-    has_fgts: fgtsEventCount > 0,
-    fgts_event_count: fgtsEventCount,
-    has_insurance: Boolean(scenario.includeInsurance && (scenario.insuranceRate ?? 0) > 0),
-    has_admin_fee: Boolean(scenario.includeAdminFee && (scenario.adminFeeRate ?? 0) > 0),
-    has_iof: Boolean(scenario.includeIOF && (scenario.iofRate ?? 0) > 0),
-    entry_mode: 'new_loan' as const,
-    effective_installments:
-      typeof scheduleLength === 'number' ? Math.max(scheduleLength - 1, 0) : termMonths,
-  };
 }
 
 function getExportProgressText({
@@ -394,6 +372,7 @@ export default function CalculatorScreen() {
   const [startDateText, setStartDateText] = useState(
     formatDateBR(INITIAL_ONBOARDING_EXAMPLE.startDate),
   );
+  const [nextDueDateText, setNextDueDateText] = useState('');
   const [dueDayText, setDueDayText] = useState('5');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [insuranceRateText, setInsuranceRateText] = useState('0');
@@ -403,6 +382,7 @@ export default function CalculatorScreen() {
   const [itbiRateText, setItbiRateText] = useState('0');
   const [registryFeeText, setRegistryFeeText] = useState('0');
   const isPropertyMode = scenario.loanMode === 'property';
+  const isExistingContract = getScenarioEntryMode(scenario) === 'existing_contract';
   const [tabActionExportPhase, setTabActionExportPhase] = useState<TabActionExportPhase>('idle');
   const [newFgts, setNewFgts] = useState<Partial<FgtsEvent>>({
     amount: 0,
@@ -690,6 +670,20 @@ export default function CalculatorScreen() {
   }, [activeIndexRate, activeIndexType]);
 
   const schedule = useMemo(() => generateAmortizationSchedule(scenario), [scenario]);
+  const existingContractVerificationSchedule = useMemo(
+    () =>
+      isExistingContract
+        ? generateAmortizationSchedule({ ...scenario, prepayments: [], fgtsEvents: [] })
+        : [],
+    [isExistingContract, scenario],
+  );
+  const computedCurrentInstallment =
+    existingContractVerificationSchedule[1]?.totalCost ??
+    existingContractVerificationSchedule[1]?.payment;
+  const prepaymentImpact = useMemo(
+    () => (isExistingContract ? calculatePrepaymentImpact(scenario) : null),
+    [isExistingContract, scenario],
+  );
   const scheduleForTable = useMemo(() => schedule.slice(0, MAX_TABLE_ROWS + 1), [schedule]);
   const summary = useMemo(() => calculateLoanSummary(schedule, scenario), [schedule, scenario]);
   const validation = useMemo(() => validateScenario(scenario, schedule), [scenario, schedule]);
@@ -725,22 +719,7 @@ export default function CalculatorScreen() {
     }
     if (validation.errors.length > 0) return;
     const timeout = setTimeout(() => {
-      const context = getScenarioAnalyticsContext(scenario, schedule.length);
-      trackEvent('calculation_performed', {
-        system: context.system,
-        loan_mode: context.loan_mode,
-        rate_type: context.rate_type,
-        rate_bucket: context.rate_bucket,
-        term_months: context.term_months,
-        principal_bucket: context.principal_bucket,
-        prepayment_count: context.prepayment_count,
-        fgts_event_count: context.fgts_event_count,
-        index_type: context.index_type,
-        has_insurance: context.has_insurance,
-        has_admin_fee: context.has_admin_fee,
-        has_iof: context.has_iof,
-        entry_mode: 'new_loan',
-      });
+      trackCalculationPerformed(scenario, schedule.length);
     }, 2_000);
     return () => clearTimeout(timeout);
   }, [scenario, schedule.length, validation.errors.length]);
@@ -875,6 +854,7 @@ export default function CalculatorScreen() {
     manualIndexRateEdited.current = Boolean(target.indexType && target.indexRate !== undefined);
     setTermText(String(target.term));
     setStartDateText(formatDateBR(target.startDate));
+    setNextDueDateText(target.nextDueDate ? formatDateBR(target.nextDueDate) : '');
     setDueDayText(String(target.dueDay));
     setInsuranceRateText(
       target.insuranceRate ? String(target.insuranceRate).replace('.', ',') : '0',
@@ -939,6 +919,7 @@ export default function CalculatorScreen() {
       seriesId,
       startDate: new Date(newPrepayment.date),
       loanStartDate: scenario.startDate,
+      firstDueDate: isExistingContract ? scenario.nextDueDate : undefined,
       termMonths: getScenarioTermMonths(scenario),
       dueDay: scenario.dueDay,
       recurrence: editingPrepaymentId ? 'none' : prepaymentRecurrence,
@@ -1028,12 +1009,12 @@ export default function CalculatorScreen() {
     setEditingPrepaymentId(event.id);
   };
 
-  const resetPrepaymentDraft = () => {
+  const resetPrepaymentDraft = (date = new Date()) => {
     setNewPrepayment({
       amount: 0,
       type: 'fixed_amount',
       strategy: 'reduce_term',
-      date: new Date(),
+      date,
     });
     setPrepaymentRecurrence('none');
     setEditingPrepaymentId(null);
@@ -1071,6 +1052,7 @@ export default function CalculatorScreen() {
       seriesId,
       startDate: usage === 'down_payment' ? scenario.startDate : new Date(newFgts.date),
       loanStartDate: scenario.startDate,
+      firstDueDate: isExistingContract ? scenario.nextDueDate : undefined,
       termMonths: getScenarioTermMonths(scenario),
       dueDay: scenario.dueDay,
       recurrence: editingFgtsId ? 'none' : fgtsRecurrence,
@@ -1172,12 +1154,12 @@ export default function CalculatorScreen() {
     setEditingFgtsId(event.id);
   };
 
-  const resetFgtsDraft = () => {
+  const resetFgtsDraft = (date = new Date()) => {
     setNewFgts({
       amount: 0,
       usage: 'amortization',
       strategy: 'reduce_term',
-      date: new Date(),
+      date,
     });
     setFgtsRecurrence('biennial');
     setEditingFgtsId(null);
@@ -1202,8 +1184,19 @@ export default function CalculatorScreen() {
       setShowDatePicker(false);
     }
     if (event.type === 'dismissed' || !selectedDate) return;
-    updateScenarioFromUser((prev) => ({ ...prev, startDate: selectedDate }));
-    setStartDateText(formatDateBR(selectedDate));
+    if (isExistingContract) {
+      updateScenarioFromUser((prev) => ({
+        ...prev,
+        startDate: getExistingContractBalanceDate(selectedDate),
+        nextDueDate: selectedDate,
+        dueDay: inferExistingContractDueDay(selectedDate),
+      }));
+      setNextDueDateText(formatDateBR(selectedDate));
+      setDueDayText(String(inferExistingContractDueDay(selectedDate)));
+    } else {
+      updateScenarioFromUser((prev) => ({ ...prev, startDate: selectedDate }));
+      setStartDateText(formatDateBR(selectedDate));
+    }
   };
 
   const handlePrepaymentDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -1844,6 +1837,97 @@ export default function CalculatorScreen() {
     handleLoadScenario({ ...DEFAULT_SCENARIO, id: Date.now().toString() });
   };
 
+  const handleEntryModeChange = (entryMode: EntryMode) => {
+    if (entryMode === getScenarioEntryMode(scenario)) return;
+
+    const commit = () => {
+      if (entryMode === 'existing_contract') {
+        const nextDueDate = schedule.find((row) => row.installmentNumber === 1)?.date ?? new Date();
+        const existingScenario = createExistingContractScenario({
+          id: scenario.id,
+          name: scenario.name,
+          system: scenario.system,
+          currentBalance: scenario.principal,
+          rate: scenario.rate,
+          rateType: scenario.rateType,
+          remainingInstallments: getScenarioTermMonths(scenario),
+          nextDueDate,
+          insuranceRate: scenario.insuranceRate,
+          adminFeeRate: scenario.adminFeeRate,
+          indexType: scenario.indexType,
+          indexRate: scenario.indexRate,
+        });
+        updateScenarioFromUser(existingScenario);
+        setPrincipalText(formatCurrencyValue(existingScenario.principal));
+        setTermText(String(existingScenario.term));
+        setNextDueDateText(formatDateBR(nextDueDate));
+        setStartDateText(formatDateBR(existingScenario.startDate));
+        setDueDayText(String(existingScenario.dueDay));
+        setIofRateText('0');
+        setOpeningFeeText('');
+        setPropertyValueText('');
+        setDownPaymentText('');
+        setItbiRateText('0');
+        setRegistryFeeText('');
+      } else {
+        const nextScenario: Scenario = {
+          ...scenario,
+          entryMode: 'new_loan',
+          nextDueDate: undefined,
+          loanMode: 'standard',
+          termUnit: 'months',
+          startDate: new Date(),
+          prepayments: [],
+          fgtsEvents: [],
+          propertyValue: undefined,
+          downPayment: undefined,
+          itbiRate: undefined,
+          registryFee: undefined,
+        };
+        updateScenarioFromUser(nextScenario);
+        setStartDateText(formatDateBR(nextScenario.startDate));
+        setDueDayText(String(nextScenario.dueDay));
+        setNextDueDateText('');
+        setPropertyValueText('');
+        setDownPaymentText('');
+      }
+      const draftDate =
+        entryMode === 'existing_contract'
+          ? schedule.find((row) => row.installmentNumber === 1)?.date
+          : undefined;
+      resetPrepaymentDraft(draftDate ?? new Date());
+      resetFgtsDraft(draftDate ?? new Date());
+      setShowAllPrepayments(false);
+    };
+
+    const eventCount = (scenario.prepayments?.length ?? 0) + (scenario.fgtsEvents?.length ?? 0);
+    const hasNewLoanOnlyData =
+      entryMode === 'existing_contract' &&
+      (scenario.loanMode === 'property' ||
+        Boolean(scenario.includeIOF && (scenario.iofRate ?? 0) > 0) ||
+        Boolean(scenario.includeOpeningFee && (scenario.openingFee ?? 0) > 0) ||
+        (scenario.itbiRate ?? 0) > 0 ||
+        (scenario.registryFee ?? 0) > 0);
+    if (eventCount > 0 || hasNewLoanOnlyData) {
+      const removedParts = [
+        hasNewLoanOnlyData ? 'dados da contratação' : null,
+        eventCount > 0
+          ? `${eventCount} ${eventCount === 1 ? 'evento de amortização/FGTS' : 'eventos de amortização/FGTS'}`
+          : null,
+      ].filter((part): part is string => part !== null);
+      Alert.alert(
+        'Trocar tipo de simulação?',
+        `A troca removerá ${removedParts.join(' e ')} para iniciar o novo cálculo.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Trocar e limpar', style: 'destructive', onPress: commit },
+        ],
+      );
+      return;
+    }
+    commit();
+  };
+
   useEffect(() => {
     if (
       !shouldResetTabActionExportPhase({
@@ -1976,9 +2060,15 @@ export default function CalculatorScreen() {
             </View>
           ) : null}
 
+          <EntryModeSelector
+            entryMode={getScenarioEntryMode(scenario)}
+            onChange={handleEntryModeChange}
+          />
+
           <SystemSelector
             system={scenario.system}
             loanMode={scenario.loanMode ?? 'standard'}
+            hideLoanMode={isExistingContract}
             onSystemChange={(system) => updateScenarioFromUser((prev) => ({ ...prev, system }))}
             onLoanModeChange={(mode) => {
               if (mode === 'standard') {
@@ -2001,7 +2091,9 @@ export default function CalculatorScreen() {
           <View style={[styles.section, themedStyles.section]} testID="section-parameters">
             <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Parâmetros</Text>
 
-            <Text style={[styles.label, themedStyles.label]}>Valor do Financiamento (R$)</Text>
+            <Text style={[styles.label, themedStyles.label]}>
+              {isExistingContract ? 'Saldo devedor atual (R$)' : 'Valor do Financiamento (R$)'}
+            </Text>
             <TextInput
               value={principalText}
               onChangeText={(text) => {
@@ -2013,11 +2105,19 @@ export default function CalculatorScreen() {
               style={[styles.input, themedStyles.input]}
               placeholder="R$ 300.000"
               placeholderTextColor={colors.textTertiary}
-              accessibilityLabel="Valor do financiamento"
+              accessibilityLabel={
+                isExistingContract ? 'Saldo devedor atual' : 'Valor do financiamento'
+              }
               testID="input-principal"
             />
 
-            {isPropertyMode && (
+            {isExistingContract ? (
+              <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+                Informe o saldo imediatamente após a última parcela paga.
+              </Text>
+            ) : null}
+
+            {!isExistingContract && isPropertyMode && (
               <>
                 <Text style={[styles.label, themedStyles.label]}>Valor do Imóvel (R$)</Text>
                 <TextInput
@@ -2128,7 +2228,9 @@ export default function CalculatorScreen() {
               }}
             />
 
-            <Text style={[styles.label, themedStyles.label]}>Prazo</Text>
+            <Text style={[styles.label, themedStyles.label]}>
+              {isExistingContract ? 'Número de parcelas restantes' : 'Prazo'}
+            </Text>
             <View style={styles.rowWrap}>
               <TextInput
                 value={termText}
@@ -2144,97 +2246,148 @@ export default function CalculatorScreen() {
                 style={[styles.input, styles.inputFlex, themedStyles.input]}
                 placeholder="360"
                 placeholderTextColor={colors.textTertiary}
-                accessibilityLabel="Prazo"
+                accessibilityLabel={isExistingContract ? 'Parcelas restantes' : 'Prazo'}
                 testID="input-term"
               />
-              <View style={styles.toggleRow}>
-                {(['months', 'years'] as const).map((termUnit) => (
-                  <Pressable
-                    key={termUnit}
-                    onPress={() => updateScenarioFromUser((prev) => ({ ...prev, termUnit }))}
-                    style={[
-                      styles.chip,
-                      themedStyles.chip,
-                      scenario.termUnit === termUnit && themedStyles.chipActive,
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: scenario.termUnit === termUnit }}
-                    accessibilityLabel={`Prazo em ${termUnit === 'months' ? 'meses' : 'anos'}`}
-                  >
-                    <Text
+              {isExistingContract ? null : (
+                <View style={styles.toggleRow}>
+                  {(['months', 'years'] as const).map((termUnit) => (
+                    <Pressable
+                      key={termUnit}
+                      onPress={() => updateScenarioFromUser((prev) => ({ ...prev, termUnit }))}
                       style={[
-                        styles.chipText,
-                        themedStyles.chipText,
-                        scenario.termUnit === termUnit && themedStyles.chipActiveText,
+                        styles.chip,
+                        themedStyles.chip,
+                        scenario.termUnit === termUnit && themedStyles.chipActive,
                       ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: scenario.termUnit === termUnit }}
+                      accessibilityLabel={`Prazo em ${termUnit === 'months' ? 'meses' : 'anos'}`}
                     >
-                      {termUnit === 'months' ? 'Meses' : 'Anos'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+                      <Text
+                        style={[
+                          styles.chipText,
+                          themedStyles.chipText,
+                          scenario.termUnit === termUnit && themedStyles.chipActiveText,
+                        ]}
+                      >
+                        {termUnit === 'months' ? 'Meses' : 'Anos'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
 
-            <Text style={[styles.label, themedStyles.label]}>Data de Início</Text>
+            <Text style={[styles.label, themedStyles.label]}>
+              {isExistingContract ? 'Data da próxima parcela' : 'Data de Início'}
+            </Text>
             <Pressable
               style={[styles.input, styles.inputPressable, themedStyles.input]}
               onPress={() => setShowDatePicker(true)}
               accessibilityRole="button"
-              accessibilityLabel="Selecionar data de início"
+              accessibilityLabel={
+                isExistingContract
+                  ? 'Selecionar data da próxima parcela'
+                  : 'Selecionar data de início'
+              }
+              testID={isExistingContract ? 'input-next-due-date' : 'input-start-date'}
             >
-              <Text style={[styles.inputText, { color: colors.text }]}>{startDateText}</Text>
+              <Text style={[styles.inputText, { color: colors.text }]}>
+                {isExistingContract ? nextDueDateText : startDateText}
+              </Text>
             </Pressable>
             {showDatePicker ? (
               <DateTimePicker
-                value={scenario.startDate}
+                value={
+                  isExistingContract && scenario.nextDueDate
+                    ? scenario.nextDueDate
+                    : scenario.startDate
+                }
                 mode="date"
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
                 onChange={handleDateChange}
               />
             ) : null}
+            {isExistingContract ? (
+              <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+                Se a próxima parcela cair no fim de fevereiro, assumimos vencimento no último dia
+                dos meses seguintes. Datas no dia 30 continuam no dia 30.
+              </Text>
+            ) : null}
 
-            <Text style={[styles.label, themedStyles.label]}>Dia de Vencimento</Text>
-            <TextInput
-              value={dueDayText}
-              onChangeText={(text) => {
-                setDueDayText(text);
-                const parsed = Number.parseInt(text || '0', 10);
-                if (!Number.isNaN(parsed)) {
-                  updateScenarioFromUser((prev) => ({ ...prev, dueDay: parsed }));
-                }
-              }}
-              keyboardType="numeric"
-              style={[styles.input, themedStyles.input]}
-              placeholder="5"
-              placeholderTextColor={colors.textTertiary}
-              accessibilityLabel="Dia de vencimento"
-              testID="input-due-day"
-            />
+            {isExistingContract ? null : (
+              <>
+                <Text style={[styles.label, themedStyles.label]}>Dia de Vencimento</Text>
+                <TextInput
+                  value={dueDayText}
+                  onChangeText={(text) => {
+                    setDueDayText(text);
+                    const parsed = Number.parseInt(text || '0', 10);
+                    if (!Number.isNaN(parsed)) {
+                      updateScenarioFromUser((prev) => ({ ...prev, dueDay: parsed }));
+                    }
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.input, themedStyles.input]}
+                  placeholder="5"
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel="Dia de vencimento"
+                  testID="input-due-day"
+                />
+              </>
+            )}
+
+            {isExistingContract && computedCurrentInstallment !== undefined ? (
+              <View
+                style={[
+                  styles.computedInstallment,
+                  { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+                ]}
+                testID="existing-contract-computed-installment"
+              >
+                <Text style={[styles.computedInstallmentLabel, { color: colors.textSecondary }]}>
+                  Parcela calculada para conferência
+                </Text>
+                <Text style={[styles.computedInstallmentValue, { color: colors.primary }]}>
+                  {formatCurrency(computedCurrentInstallment)}
+                </Text>
+                <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+                  Compare com o boleto. Diferenças podem indicar seguros ou tarifas ainda não
+                  informados.
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Custos e Taxas - moved to column 1 for better balance */}
           <View style={[styles.section, themedStyles.section]}>
             <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>Custos e Taxas</Text>
             <Text style={[styles.helperText, { color: colors.textTertiary }]}>
-              Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados na
-              assinatura.
+              {isExistingContract
+                ? 'Informe apenas seguros e tarifas mensais que ainda aparecem no boleto.'
+                : 'Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados na assinatura.'}
             </Text>
-            <Text style={[styles.label, themedStyles.label]}>IOF (% do financiado)</Text>
-            <TextInput
-              value={iofRateText}
-              onChangeText={(text) => {
-                setIofRateText(text);
-                updateScenarioFromUser((prev) => ({
-                  ...prev,
-                  iofRate: parseNumberInput(text),
-                  includeIOF: parseNumberInput(text) > 0,
-                }));
-              }}
-              keyboardType="numeric"
-              style={[styles.input, themedStyles.input]}
-              placeholderTextColor={colors.textTertiary}
-              accessibilityLabel="Taxa de IOF"
-            />
+            {isExistingContract ? null : (
+              <>
+                <Text style={[styles.label, themedStyles.label]}>IOF (% do financiado)</Text>
+                <TextInput
+                  value={iofRateText}
+                  onChangeText={(text) => {
+                    setIofRateText(text);
+                    updateScenarioFromUser((prev) => ({
+                      ...prev,
+                      iofRate: parseNumberInput(text),
+                      includeIOF: parseNumberInput(text) > 0,
+                    }));
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.input, themedStyles.input]}
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel="Taxa de IOF"
+                />
+              </>
+            )}
 
             <Text style={[styles.label, themedStyles.label]}>Seguro (% do saldo ao mês)</Text>
             <TextInput
@@ -2272,27 +2425,31 @@ export default function CalculatorScreen() {
               accessibilityLabel="Taxa administrativa"
             />
 
-            <Text style={[styles.label, themedStyles.label]}>Taxa de abertura (R$)</Text>
-            <TextInput
-              value={openingFeeText}
-              onChangeText={(text) => {
-                const { display, value } = maskCurrencyInput(text);
-                setOpeningFeeText(display);
-                updateScenarioFromUser((prev) => ({
-                  ...prev,
-                  openingFee: value,
-                  includeOpeningFee: value > 0,
-                }));
-              }}
-              keyboardType="numeric"
-              style={[styles.input, themedStyles.input]}
-              placeholder="R$ 1.000"
-              placeholderTextColor={colors.textTertiary}
-              accessibilityLabel="Taxa de abertura"
-              testID="input-opening-fee"
-            />
+            {isExistingContract ? null : (
+              <>
+                <Text style={[styles.label, themedStyles.label]}>Taxa de abertura (R$)</Text>
+                <TextInput
+                  value={openingFeeText}
+                  onChangeText={(text) => {
+                    const { display, value } = maskCurrencyInput(text);
+                    setOpeningFeeText(display);
+                    updateScenarioFromUser((prev) => ({
+                      ...prev,
+                      openingFee: value,
+                      includeOpeningFee: value > 0,
+                    }));
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.input, themedStyles.input]}
+                  placeholder="R$ 1.000"
+                  placeholderTextColor={colors.textTertiary}
+                  accessibilityLabel="Taxa de abertura"
+                  testID="input-opening-fee"
+                />
+              </>
+            )}
 
-            {isPropertyMode && (
+            {!isExistingContract && isPropertyMode && (
               <>
                 <Text style={[styles.label, themedStyles.label]}>ITBI (% do imóvel)</Text>
                 <TextInput
@@ -2352,6 +2509,7 @@ export default function CalculatorScreen() {
             isCalculating={isCalculating}
             indexType={scenario.indexType}
             indexRate={scenario.indexRate}
+            cetNotApplicable={isExistingContract}
           />
 
           <AdBanner enabled={showAds} />
@@ -2490,6 +2648,41 @@ export default function CalculatorScreen() {
             >
               Amortizações Extras
             </Text>
+            {prepaymentImpact ? (
+              <View
+                style={[
+                  styles.prepaymentImpact,
+                  { backgroundColor: colors.successLight, borderColor: colors.success },
+                ]}
+                testID="existing-contract-prepayment-impact"
+              >
+                <Text style={[styles.prepaymentImpactTitle, { color: colors.success }]}>
+                  Impacto no contrato atual
+                </Text>
+                <Text style={[styles.prepaymentImpactValue, { color: colors.text }]}>
+                  Juros economizados: {formatCurrency(prepaymentImpact.interestSaved)}
+                </Text>
+                {prepaymentImpact.installmentsSaved > 0 ? (
+                  <Text style={[styles.prepaymentImpactText, { color: colors.textSecondary }]}>
+                    Nova quitação: {formatDateBR(prepaymentImpact.newPayoffDate)} ·{' '}
+                    {prepaymentImpact.installmentsSaved}{' '}
+                    {prepaymentImpact.installmentsSaved === 1
+                      ? 'parcela a menos'
+                      : 'parcelas a menos'}
+                  </Text>
+                ) : prepaymentImpact.paymentBefore !== undefined &&
+                  prepaymentImpact.paymentAfter !== undefined ? (
+                  <Text style={[styles.prepaymentImpactText, { color: colors.textSecondary }]}>
+                    Parcela seguinte: {formatCurrency(prepaymentImpact.paymentAfter)} (antes{' '}
+                    {formatCurrency(prepaymentImpact.paymentBefore)}) · prazo mantido
+                  </Text>
+                ) : (
+                  <Text style={[styles.prepaymentImpactText, { color: colors.textSecondary }]}>
+                    Prazo mantido; a economia aparece nas parcelas seguintes.
+                  </Text>
+                )}
+              </View>
+            ) : null}
             <Text style={[styles.label, themedStyles.label]}>Data</Text>
             <Pressable
               style={[styles.input, styles.inputPressable, themedStyles.input]}
@@ -2677,7 +2870,7 @@ export default function CalculatorScreen() {
             {editingPrepaymentId && (
               <Pressable
                 style={[styles.secondaryButton, styles.centeredButton]}
-                onPress={resetPrepaymentDraft}
+                onPress={() => resetPrepaymentDraft()}
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar edição da amortização"
                 testID="btn-cancel-edit-prepayment"
@@ -2814,31 +3007,37 @@ export default function CalculatorScreen() {
               testID="input-fgts-amount"
             />
             <View style={styles.row}>
-              <Pressable
-                style={[
-                  styles.chip,
-                  themedStyles.chip,
-                  newFgts.usage === 'down_payment' && themedStyles.chipActive,
-                ]}
-                onPress={() => {
-                  setNewFgts((prev) => ({ ...prev, usage: 'down_payment', strategy: undefined }));
-                  setFgtsRecurrence('none');
-                }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: newFgts.usage === 'down_payment' }}
-                accessibilityLabel="FGTS como entrada"
-                testID="chip-fgts-usage-down-payment"
-              >
-                <Text
+              {isExistingContract ? null : (
+                <Pressable
                   style={[
-                    styles.chipText,
-                    themedStyles.chipText,
-                    newFgts.usage === 'down_payment' && themedStyles.chipActiveText,
+                    styles.chip,
+                    themedStyles.chip,
+                    newFgts.usage === 'down_payment' && themedStyles.chipActive,
                   ]}
+                  onPress={() => {
+                    setNewFgts((prev) => ({
+                      ...prev,
+                      usage: 'down_payment',
+                      strategy: undefined,
+                    }));
+                    setFgtsRecurrence('none');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: newFgts.usage === 'down_payment' }}
+                  accessibilityLabel="FGTS como entrada"
+                  testID="chip-fgts-usage-down-payment"
                 >
-                  Entrada
-                </Text>
-              </Pressable>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      themedStyles.chipText,
+                      newFgts.usage === 'down_payment' && themedStyles.chipActiveText,
+                    ]}
+                  >
+                    Entrada
+                  </Text>
+                </Pressable>
+              )}
               <Pressable
                 style={[
                   styles.chip,
@@ -3019,7 +3218,7 @@ export default function CalculatorScreen() {
             {editingFgtsId && (
               <Pressable
                 style={[styles.secondaryButton, styles.centeredButton]}
-                onPress={resetFgtsDraft}
+                onPress={() => resetFgtsDraft()}
                 accessibilityRole="button"
                 accessibilityLabel="Cancelar edição do FGTS"
                 testID="btn-cancel-edit-fgts"
@@ -3680,6 +3879,38 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 12,
     lineHeight: 16,
+  },
+  computedInstallment: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+  },
+  computedInstallmentLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  computedInstallmentValue: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  prepaymentImpact: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+  },
+  prepaymentImpactTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  prepaymentImpactValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  prepaymentImpactText: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   linkText: {
     fontSize: 12,

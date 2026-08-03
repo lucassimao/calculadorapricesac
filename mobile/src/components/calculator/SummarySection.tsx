@@ -11,6 +11,7 @@ interface SummarySectionProps {
   isCalculating: boolean;
   indexType?: CorrectionIndexType;
   indexRate?: number;
+  cetNotApplicable?: boolean;
 }
 
 export function SummarySection({
@@ -20,6 +21,7 @@ export function SummarySection({
   isCalculating,
   indexType,
   indexRate,
+  cetNotApplicable = false,
 }: SummarySectionProps) {
   const { colors } = useTheme();
   const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
@@ -78,12 +80,21 @@ export function SummarySection({
         </>
       )}
 
-      <SummaryRow
-        label="CET (a.a.)"
-        value={formatCetResult(summary.cet)}
-        colors={colors}
-        testID="summary-cet"
-      />
+      {cetNotApplicable ? (
+        <SummaryRow
+          label="CET"
+          value="Não se aplica ao saldo atual"
+          colors={colors}
+          testID="summary-cet-not-applicable"
+        />
+      ) : (
+        <SummaryRow
+          label="CET (a.a.)"
+          value={formatCetResult(summary.cet)}
+          colors={colors}
+          testID="summary-cet"
+        />
+      )}
 
       {summary.propertyTotalCost > 0 && (
         <SummaryRow

@@ -14,6 +14,8 @@ import {
 } from '../analytics';
 import { recordReviewPositiveAction, resetReviewSessionStateForTests } from '../storage/review';
 import { syncBrandProfileAnalyticsIdentity } from '../brand-profile-analytics';
+import type { Scenario } from '@loan-engine/loan';
+import { trackCalculationPerformed } from '../scenario-analytics';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -188,6 +190,39 @@ describe('typed analytics runtime', () => {
     expect(getAnnualRateBucket(1.2, 'monthly')).toBe('>13');
     expect(getAnnualRateBucket(10, 'annual')).toBe('9-11');
     expect(getAnnualRateBucket(13, 'annual')).toBe('11-13');
+  });
+
+  it('captures existing-contract calculation entry mode in the dry-run sink', () => {
+    const scenario: Scenario = {
+      id: 'existing',
+      name: 'Contrato atual',
+      system: 'SAC',
+      loanMode: 'standard',
+      principal: 180_000,
+      rate: 11.5,
+      rateType: 'annual',
+      term: 120,
+      termUnit: 'months',
+      startDate: new Date(2026, 8, 10),
+      nextDueDate: new Date(2026, 9, 10),
+      dueDay: 10,
+      entryMode: 'existing_contract',
+      prepayments: [],
+      fgtsEvents: [],
+    };
+
+    trackCalculationPerformed(scenario, 121);
+
+    expect(getAnalyticsDryRunSink()).toContainEqual(
+      expect.objectContaining({
+        event: 'calculation_performed',
+        properties: expect.objectContaining({
+          entry_mode: 'existing_contract',
+          principal_bucket: '100-300k',
+          term_months: 120,
+        }),
+      }),
+    );
   });
 });
 

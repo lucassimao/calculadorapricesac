@@ -85,13 +85,26 @@ const buildCsv = (
   } else if (!options?.tableOnly) {
     lines.push('');
     lines.push(buildCsvLine(['Cenário', scenario.name]));
+    if (scenario.entryMode === 'existing_contract') {
+      lines.push(buildCsvLine(['Tipo de simulação', 'Contrato existente']));
+      lines.push(buildCsvLine(['Saldo devedor informado', formatCsvNumber(scenario.principal)]));
+      if (scenario.nextDueDate) {
+        lines.push(buildCsvLine(['Próxima parcela', formatDateBR(scenario.nextDueDate)]));
+      }
+    }
     lines.push(
       buildCsvLine(['Modalidade', scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão']),
     );
     lines.push(buildCsvLine(['Sistema', scenario.system]));
-    lines.push(buildCsvLine(['Data de início', formatDateBR(scenario.startDate)]));
-    lines.push(buildCsvLine(['Dia de vencimento', scenario.dueDay]));
-    lines.push(buildCsvLine(['Principal financiado', formatCsvNumber(summary.financedPrincipal)]));
+    if (scenario.entryMode === 'existing_contract') {
+      lines.push(buildCsvLine(['Data do saldo informado', formatDateBR(scenario.startDate)]));
+    } else {
+      lines.push(buildCsvLine(['Data de início', formatDateBR(scenario.startDate)]));
+      lines.push(buildCsvLine(['Dia de vencimento', scenario.dueDay]));
+      lines.push(
+        buildCsvLine(['Principal financiado', formatCsvNumber(summary.financedPrincipal)]),
+      );
+    }
     if (scenario.loanMode === 'property') {
       lines.push(buildCsvLine(['Valor do imóvel', formatCsvNumber(scenario.propertyValue ?? 0)]));
       lines.push(buildCsvLine(['Entrada', formatCsvNumber(scenario.downPayment ?? 0)]));
@@ -102,7 +115,12 @@ const buildCsv = (
         `${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}`,
       ]),
     );
-    lines.push(buildCsvLine(['Prazo original', originalTerm]));
+    lines.push(
+      buildCsvLine([
+        scenario.entryMode === 'existing_contract' ? 'Parcelas restantes' : 'Prazo original',
+        originalTerm,
+      ]),
+    );
     lines.push(buildCsvLine(['Prazo efetivo', effectiveTerm]));
     if (hasCorrection) {
       lines.push(buildCsvLine(['Índice de Correção', scenario.indexType ?? '']));
@@ -111,7 +129,11 @@ const buildCsv = (
         lines.push(buildCsvLine(['Correção Total', formatCsvNumber(summary.totalIndexCorrection)]));
       }
     }
-    lines.push(buildCsvLine(['CET (a.a.)', formatCetResult(summary.cet)]));
+    lines.push(
+      scenario.entryMode === 'existing_contract'
+        ? buildCsvLine(['CET', 'Não se aplica ao saldo atual'])
+        : buildCsvLine(['CET (a.a.)', formatCetResult(summary.cet)]),
+    );
     lines.push(buildCsvLine(['Custos Iniciais', formatCsvNumber(summary.totalUpfrontCosts)]));
     lines.push(buildCsvLine(['Custos Mensais', formatCsvNumber(summary.totalMonthlyCosts)]));
     lines.push(buildCsvLine(['Total com Custos', formatCsvNumber(summary.totalPaymentWithCosts)]));

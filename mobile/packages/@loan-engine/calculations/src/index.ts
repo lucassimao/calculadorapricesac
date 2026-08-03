@@ -357,6 +357,13 @@ function getFirstDueDate(startDate: Date, dueDay: number): Date {
   return candidate;
 }
 
+function getScenarioFirstDueDate(scenario: Scenario): Date {
+  if (scenario.entryMode === 'existing_contract' && scenario.nextDueDate) {
+    return new Date(scenario.nextDueDate);
+  }
+  return getFirstDueDate(scenario.startDate, scenario.dueDay);
+}
+
 export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] {
   const monthlyRate = convertRateToMonthly(scenario.rate, scenario.rateType === 'annual');
   const normalizedTerm = scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
@@ -372,7 +379,7 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     toCents(getFinancedPrincipal(scenario)) - toCents(fgtsDownPayment),
     0,
   );
-  let currentDate = getFirstDueDate(scenario.startDate, scenario.dueDay);
+  let currentDate = getScenarioFirstDueDate(scenario);
   const prepayments = scenario.prepayments ?? [];
   const fgtsEvents = scenario.fgtsEvents ?? [];
   const sortedPrepayments = [...prepayments].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -765,9 +772,10 @@ export function validateScenario(
 
   const dates = [
     scenario.startDate,
+    scenario.nextDueDate,
     ...prepayments.map((event) => event.date),
     ...fgtsEvents.map((event) => event.date),
-  ];
+  ].filter((date): date is Date => date !== undefined);
   const hasInvalidDate = dates.some((date) => !Number.isFinite(date.getTime()));
   if (hasInvalidDate) {
     errors.push('Todas as datas devem ser válidas.');
@@ -834,6 +842,13 @@ export function validateScenario(
   }
   if (!Number.isInteger(scenario.dueDay) || scenario.dueDay < 1 || scenario.dueDay > 31) {
     errors.push('Dia de vencimento deve ser um inteiro entre 1 e 31.');
+  }
+  if (scenario.entryMode === 'existing_contract') {
+    if (!scenario.nextDueDate || !Number.isFinite(scenario.nextDueDate.getTime())) {
+      errors.push('Informe uma data válida para a próxima parcela.');
+    } else if (scenario.nextDueDate.getTime() < scenario.startDate.getTime()) {
+      errors.push('A próxima parcela não pode ser anterior à data do saldo informado.');
+    }
   }
 
   if (scenario.loanMode === 'property' && (scenario.propertyValue ?? 0) > 0) {

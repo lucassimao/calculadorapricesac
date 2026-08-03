@@ -59,6 +59,7 @@ function getCalendarDayStamp(date: Date) {
 export function expandRecurringDates({
   startDate,
   loanStartDate,
+  firstDueDate,
   termMonths,
   dueDay,
   recurrence,
@@ -66,6 +67,7 @@ export function expandRecurringDates({
 }: {
   startDate: Date;
   loanStartDate: Date;
+  firstDueDate?: Date;
   termMonths: number;
   dueDay: number;
   recurrence: Recurrence;
@@ -80,13 +82,14 @@ export function expandRecurringDates({
     dueDay > 31 ||
     Number.isNaN(startDate.getTime()) ||
     Number.isNaN(loanStartDate.getTime()) ||
+    (firstDueDate !== undefined && Number.isNaN(firstDueDate.getTime())) ||
     getCalendarDayStamp(startDate) < getCalendarDayStamp(loanStartDate)
   ) {
     return [];
   }
 
-  const firstDueDate = getFirstDueDate(loanStartDate, dueDay);
-  let currentDate = new Date(firstDueDate);
+  const scheduleFirstDueDate = firstDueDate ?? getFirstDueDate(loanStartDate, dueDay);
+  let currentDate = new Date(scheduleFirstDueDate);
   const installmentDates = Array.from({ length: termMonths }, () => {
     const date = new Date(currentDate);
     setDayClamped(date, dueDay);
@@ -140,6 +143,7 @@ type RecurringEventBase = {
   seriesId: string;
   startDate: Date;
   loanStartDate: Date;
+  firstDueDate?: Date;
   termMonths: number;
   dueDay: number;
   recurrence: Recurrence;

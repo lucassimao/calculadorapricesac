@@ -3,8 +3,9 @@ import type { FgtsEvent, PrepaymentEvent, Scenario } from '@loan-engine/loan';
 
 const STORAGE_KEY = 'scenarios:v1';
 
-type StoredScenario = Omit<Scenario, 'startDate' | 'prepayments' | 'fgtsEvents'> & {
+type StoredScenario = Omit<Scenario, 'startDate' | 'nextDueDate' | 'prepayments' | 'fgtsEvents'> & {
   startDate: string;
+  nextDueDate?: string;
   prepayments?: (Omit<PrepaymentEvent, 'date'> & { date: string })[];
   fgtsEvents?: (Omit<FgtsEvent, 'date'> & { date: string })[];
 };
@@ -12,6 +13,7 @@ type StoredScenario = Omit<Scenario, 'startDate' | 'prepayments' | 'fgtsEvents'>
 const toStoredScenario = (scenario: Scenario): StoredScenario => ({
   ...scenario,
   startDate: scenario.startDate.toISOString(),
+  nextDueDate: scenario.nextDueDate?.toISOString(),
   prepayments: scenario.prepayments?.map((p) => ({
     ...p,
     date: p.date.toISOString(),
@@ -25,6 +27,7 @@ const toStoredScenario = (scenario: Scenario): StoredScenario => ({
 const fromStoredScenario = (scenario: StoredScenario): Scenario => ({
   ...scenario,
   startDate: new Date(scenario.startDate),
+  nextDueDate: scenario.nextDueDate ? new Date(scenario.nextDueDate) : undefined,
   prepayments: scenario.prepayments?.map((p) => ({
     ...p,
     date: new Date(p.date),

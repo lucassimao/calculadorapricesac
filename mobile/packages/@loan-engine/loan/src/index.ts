@@ -12,6 +12,8 @@ export type FgtsUsage = 'down_payment' | 'amortization' | 'installment';
 
 export type CorrectionIndexType = 'TR' | 'IPCA';
 
+export type EntryMode = 'new_loan' | 'existing_contract';
+
 export interface Scenario {
   id: string;
   name: string;
@@ -24,6 +26,8 @@ export interface Scenario {
   termUnit: TimeUnit;
   startDate: Date;
   dueDay: number;
+  entryMode?: EntryMode;
+  nextDueDate?: Date;
   prepayments?: PrepaymentEvent[];
   fgtsEvents?: FgtsEvent[];
   propertyValue?: number;

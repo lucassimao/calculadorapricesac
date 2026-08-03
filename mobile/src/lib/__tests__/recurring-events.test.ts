@@ -21,6 +21,18 @@ const localDates = (dates: Date[]) =>
   );
 
 describe('recurring event expansion', () => {
+  it('starts an existing-contract recurrence on its exact next due date', () => {
+    expect(
+      expandRecurringDates({
+        startDate: new Date(2026, 8, 5),
+        loanStartDate: new Date(2026, 7, 31),
+        firstDueDate: new Date(2026, 8, 5),
+        termMonths: 3,
+        dueDay: 5,
+        recurrence: 'monthly',
+      }),
+    ).toEqual([new Date(2026, 8, 5), new Date(2026, 9, 5), new Date(2026, 10, 5)]);
+  });
   it.each<[Recurrence, string[]]>([
     ['monthly', ['2026-01-31', '2026-02-28', '2026-03-31']],
     ['yearly', ['2026-01-31']],

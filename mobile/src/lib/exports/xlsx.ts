@@ -92,11 +92,24 @@ export async function exportXlsx(
     data.push(
       [],
       ['Cenário', scenario.name],
+      ...(scenario.entryMode === 'existing_contract'
+        ? ([
+            ['Tipo de simulação', 'Contrato existente'],
+            ['Saldo devedor informado', scenario.principal],
+            ...(scenario.nextDueDate
+              ? [['Próxima parcela', formatDateBR(scenario.nextDueDate)]]
+              : []),
+          ] as (string | number)[][])
+        : []),
       ['Modalidade', scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'],
       ['Sistema', scenario.system],
-      ['Data de início', formatDateBR(scenario.startDate)],
-      ['Dia de vencimento', scenario.dueDay],
-      ['Principal financiado', summary.financedPrincipal],
+      ...(scenario.entryMode === 'existing_contract'
+        ? [['Data do saldo informado', formatDateBR(scenario.startDate)]]
+        : [
+            ['Data de início', formatDateBR(scenario.startDate)],
+            ['Dia de vencimento', scenario.dueDay],
+            ['Principal financiado', summary.financedPrincipal],
+          ]),
       ...(scenario.loanMode === 'property'
         ? ([
             ['Valor do imóvel', scenario.propertyValue ?? 0],
@@ -104,7 +117,10 @@ export async function exportXlsx(
           ] as (string | number)[][])
         : []),
       ['Taxa', `${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}`],
-      ['Prazo original', originalTerm],
+      [
+        scenario.entryMode === 'existing_contract' ? 'Parcelas restantes' : 'Prazo original',
+        originalTerm,
+      ],
       ['Prazo efetivo', effectiveTerm],
       ...(hasCorrection
         ? ([
@@ -115,7 +131,9 @@ export async function exportXlsx(
               : []),
           ] as (string | number)[][])
         : []),
-      ['CET (a.a.)', formatCetResult(summary.cet, '.')],
+      ...(scenario.entryMode === 'existing_contract'
+        ? [['CET', 'Não se aplica ao saldo atual']]
+        : [['CET (a.a.)', formatCetResult(summary.cet, '.')]]),
       ['Custos Iniciais', summary.totalUpfrontCosts],
       ['Custos Mensais', summary.totalMonthlyCosts],
       ['Total com Custos', summary.totalPaymentWithCosts],

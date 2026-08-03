@@ -427,8 +427,12 @@ function buildProfessionalHtml(
               <p class="miniValue">${escapeHtml(rateLabel)}</p>
             </div>
             <div class="miniCard">
-              <p class="miniLabel">CET estimado</p>
-              <p class="miniValue">${formatCetResult(summary.cet)}${summary.cet.status === 'available' ? ' a.a.' : ''}</p>
+              <p class="miniLabel">${scenario.entryMode === 'existing_contract' ? 'Saldo atual' : 'CET estimado'}</p>
+              <p class="miniValue">${
+                scenario.entryMode === 'existing_contract'
+                  ? formatCurrency(scenario.principal)
+                  : `${formatCetResult(summary.cet)}${summary.cet.status === 'available' ? ' a.a.' : ''}`
+              }</p>
             </div>
             <div class="miniCard">
               <p class="miniLabel">1ª parcela</p>
@@ -438,9 +442,9 @@ function buildProfessionalHtml(
           <div class="coverDetails">
             <ul class="coverList">
               <li><strong>Modalidade:</strong> ${loanModeLabel}</li>
-              <li><strong>Prazo original:</strong> ${originalTerm}</li>
-              <li><strong>Data de início:</strong> ${formatDateBR(scenario.startDate)}</li>
-              <li><strong>Dia de vencimento:</strong> ${scenario.dueDay}</li>
+              <li><strong>${scenario.entryMode === 'existing_contract' ? 'Parcelas restantes' : 'Prazo original'}:</strong> ${originalTerm}</li>
+              <li><strong>${scenario.entryMode === 'existing_contract' ? 'Data do saldo informado' : 'Data de início'}:</strong> ${formatDateBR(scenario.startDate)}</li>
+              ${scenario.entryMode === 'existing_contract' ? '' : `<li><strong>Dia de vencimento:</strong> ${scenario.dueDay}</li>`}
             </ul>
             <ul class="coverList">
               <li><strong>Total de juros:</strong> ${formatCurrency(summary.totalInterest)}</li>
@@ -492,11 +496,22 @@ function buildProfessionalHtml(
             <div class="overviewCard">
               <h2>Dados do Cenário</h2>
               <p><strong>Cenário:</strong> ${escapeHtml(scenario.name)}</p>
+              ${
+                scenario.entryMode === 'existing_contract'
+                  ? `<p><strong>Tipo de simulação:</strong> Contrato existente</p>
+              <p><strong>Saldo devedor informado:</strong> ${formatCurrency(scenario.principal)}</p>
+              ${scenario.nextDueDate ? `<p><strong>Próxima parcela:</strong> ${formatDateBR(scenario.nextDueDate)}</p>` : ''}`
+                  : ''
+              }
               <p><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</p>
               <p><strong>Sistema:</strong> ${scenario.system}</p>
-              <p><strong>Data de início:</strong> ${formatDateBR(scenario.startDate)}</p>
-              <p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
-              <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>
+              <p><strong>${scenario.entryMode === 'existing_contract' ? 'Data do saldo informado' : 'Data de início'}:</strong> ${formatDateBR(scenario.startDate)}</p>
+              ${
+                scenario.entryMode === 'existing_contract'
+                  ? ''
+                  : `<p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
+              <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>`
+              }
               ${
                 scenario.loanMode === 'property'
                   ? `<p><strong>Valor do imóvel:</strong> ${formatCurrency(scenario.propertyValue ?? 0)}</p>
@@ -504,7 +519,7 @@ function buildProfessionalHtml(
                   : ''
               }
               <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
-              <p><strong>Prazo original:</strong> ${originalTerm}</p>
+              <p><strong>${scenario.entryMode === 'existing_contract' ? 'Parcelas restantes' : 'Prazo original'}:</strong> ${originalTerm}</p>
               <p><strong>Prazo efetivo:</strong> ${effectiveTerm}</p>
               ${
                 hasCorrection
@@ -525,7 +540,7 @@ function buildProfessionalHtml(
               <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
               <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
               <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
-              <p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>
+              ${scenario.entryMode === 'existing_contract' ? '<p><strong>CET:</strong> Não se aplica ao saldo atual</p>' : `<p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>`}
               <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>
               <p><strong>Total Pago Líquido:</strong> ${formatCurrency(summary.totalPaymentNet)}</p>
               <p><strong>1ª Parcela:</strong> ${formatCurrency(summary.firstPayment)}</p>
@@ -566,11 +581,22 @@ function buildPremiumHtml(
         <div class="overviewCard">
           <h2>Dados do Cenário</h2>
           <p><strong>Cenário:</strong> ${scenario.name}</p>
+          ${
+            scenario.entryMode === 'existing_contract'
+              ? `<p><strong>Tipo de simulação:</strong> Contrato existente</p>
+          <p><strong>Saldo devedor informado:</strong> ${formatCurrency(scenario.principal)}</p>
+          ${scenario.nextDueDate ? `<p><strong>Próxima parcela:</strong> ${formatDateBR(scenario.nextDueDate)}</p>` : ''}`
+              : ''
+          }
           <p><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</p>
           <p><strong>Sistema:</strong> ${scenario.system}</p>
-          <p><strong>Data de início:</strong> ${formatDateBR(scenario.startDate)}</p>
-          <p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
-          <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>
+          <p><strong>${scenario.entryMode === 'existing_contract' ? 'Data do saldo informado' : 'Data de início'}:</strong> ${formatDateBR(scenario.startDate)}</p>
+          ${
+            scenario.entryMode === 'existing_contract'
+              ? ''
+              : `<p><strong>Dia de vencimento:</strong> ${scenario.dueDay}</p>
+          <p><strong>Principal financiado:</strong> ${formatCurrency(summary.financedPrincipal)}</p>`
+          }
           ${
             scenario.loanMode === 'property'
               ? `<p><strong>Valor do imóvel:</strong> ${formatCurrency(scenario.propertyValue ?? 0)}</p>
@@ -578,7 +604,7 @@ function buildPremiumHtml(
               : ''
           }
           <p><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</p>
-          <p><strong>Prazo original:</strong> ${originalTerm}</p>
+          <p><strong>${scenario.entryMode === 'existing_contract' ? 'Parcelas restantes' : 'Prazo original'}:</strong> ${originalTerm}</p>
           <p><strong>Prazo efetivo:</strong> ${effectiveTerm}</p>
           ${
             hasCorrection
@@ -599,7 +625,7 @@ function buildPremiumHtml(
           <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
           <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
           <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
-          <p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>
+          ${scenario.entryMode === 'existing_contract' ? '<p><strong>CET:</strong> Não se aplica ao saldo atual</p>' : `<p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>`}
           <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>
           <p><strong>Total Pago Líquido:</strong> ${formatCurrency(summary.totalPaymentNet)}</p>
           <p><strong>1ª Parcela:</strong> ${formatCurrency(summary.firstPayment)}</p>
@@ -686,11 +712,18 @@ function buildFreeRewardedHtml(
     : `
       <div class="summaryInline">
         <span><strong>Cenário:</strong> ${scenario.name}</span>
+        ${
+          scenario.entryMode === 'existing_contract'
+            ? `<span><strong>Tipo de simulação:</strong> Contrato existente</span>
+        <span><strong>Saldo devedor informado:</strong> ${formatCurrency(scenario.principal)}</span>
+        ${scenario.nextDueDate ? `<span><strong>Próxima parcela:</strong> ${formatDateBR(scenario.nextDueDate)}</span>` : ''}
+        <span><strong>Data do saldo informado:</strong> ${formatDateBR(scenario.startDate)}</span>`
+            : `<span><strong>Principal:</strong> ${formatCurrency(summary.financedPrincipal)}</span>`
+        }
         <span><strong>Modalidade:</strong> ${scenario.loanMode === 'property' ? 'Imobiliário' : 'Padrão'}</span>
         <span><strong>Sistema:</strong> ${scenario.system}</span>
-        <span><strong>Principal:</strong> ${formatCurrency(summary.financedPrincipal)}</span>
         <span><strong>Taxa:</strong> ${scenario.rate}% ${scenario.rateType === 'monthly' ? 'a.m.' : 'a.a.'}</span>
-        <span><strong>Prazo original:</strong> ${originalTerm}</span>
+        <span><strong>${scenario.entryMode === 'existing_contract' ? 'Parcelas restantes' : 'Prazo original'}:</strong> ${originalTerm}</span>
         <span><strong>Prazo efetivo:</strong> ${effectiveTerm}</span>
         ${
           hasCorrection

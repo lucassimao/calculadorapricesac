@@ -225,6 +225,94 @@ beforeEach(() => {
 });
 
 describe('exports', () => {
+  it('labels existing-contract metadata and its exact next installment date', async () => {
+    const existingScenario: Scenario = {
+      ...scenario,
+      loanMode: 'standard',
+      propertyValue: undefined,
+      downPayment: undefined,
+      entryMode: 'existing_contract',
+      startDate: new Date(2026, 0, 5),
+      nextDueDate: new Date(2026, 1, 5),
+      dueDay: 5,
+      principal: 82_010,
+      term: 10,
+    };
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await exportCsv(schedule, existingScenario, summary);
+    await exportXlsx(schedule, existingScenario, summary);
+    await exportPdf(existingScenario, summary, schedule);
+
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
+    const csvRows = parseCsv(csvFile?.writes[0] as string);
+    const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array' });
+    const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(
+      workbook.Sheets.Amortizacao,
+      { header: 1 },
+    );
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(csvRows).toContainEqual(['Tipo de simulação', 'Contrato existente']);
+    expect(csvRows).toContainEqual(['Saldo devedor informado', '82010,00']);
+    expect(csvRows).toContainEqual(['Próxima parcela', '05/02/2026']);
+    expect(csvRows).toContainEqual(['Data do saldo informado', '05/01/2026']);
+    expect(csvRows).toContainEqual(['Parcelas restantes', '10 meses']);
+    expect(csvRows.some((row) => row[0] === 'Data de início')).toBe(false);
+    expect(csvRows.some((row) => row[0] === 'Prazo original')).toBe(false);
+    expect(csvRows).toContainEqual(['CET', 'Não se aplica ao saldo atual']);
+    expect(worksheetRows).toContainEqual(['Tipo de simulação', 'Contrato existente']);
+    expect(worksheetRows).toContainEqual(['Saldo devedor informado', 82010]);
+    expect(worksheetRows).toContainEqual(['Próxima parcela', '05/02/2026']);
+    expect(worksheetRows).toContainEqual(['Data do saldo informado', '05/01/2026']);
+    expect(worksheetRows).toContainEqual(['Parcelas restantes', '10 meses']);
+    expect(worksheetRows.some((row) => row[0] === 'Data de início')).toBe(false);
+    expect(worksheetRows.some((row) => row[0] === 'Prazo original')).toBe(false);
+    expect(worksheetRows).toContainEqual(['CET', 'Não se aplica ao saldo atual']);
+    expect(html).toContain('<strong>Tipo de simulação:</strong> Contrato existente');
+    expect(html).toContain('<strong>Saldo devedor informado:</strong> R$ 82.010,00');
+    expect(html).toContain('<strong>Próxima parcela:</strong> 05/02/2026');
+    expect(html).toContain('<strong>Data do saldo informado:</strong> 05/01/2026');
+    expect(html).toContain('<strong>Parcelas restantes:</strong> 10 meses');
+    expect(html).not.toContain('<strong>Data de início:</strong>');
+    expect(html).not.toContain('<strong>Prazo original:</strong>');
+    expect(html).toContain('<strong>CET:</strong> Não se aplica ao saldo atual');
+  });
+
+  it('labels an existing contract in the free rewarded PDF summary', async () => {
+    const existingScenario: Scenario = {
+      ...scenario,
+      loanMode: 'standard',
+      propertyValue: undefined,
+      downPayment: undefined,
+      entryMode: 'existing_contract',
+      startDate: new Date(2026, 0, 5),
+      nextDueDate: new Date(2026, 1, 5),
+      dueDay: 5,
+      principal: 82_010,
+      term: 10,
+    };
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+
+    await exportPdf(existingScenario, summary, buildLongSchedule(15), {
+      access: 'free_rewarded',
+    });
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(html).toContain('<strong>Tipo de simulação:</strong> Contrato existente');
+    expect(html).toContain('<strong>Saldo devedor informado:</strong> R$ 82.010,00');
+    expect(html).toContain('<strong>Próxima parcela:</strong> 05/02/2026');
+    expect(html).toContain('<strong>Data do saldo informado:</strong> 05/01/2026');
+    expect(html).not.toContain('<strong>Principal:</strong>');
+  });
+
   it('exports CSV and shares with correct mime', async () => {
     await exportCsv(schedule, scenario, summary);
 

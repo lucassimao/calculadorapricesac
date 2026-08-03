@@ -103,6 +103,8 @@ Estes eventos já fazem parte do tipo, mas o call site só nasce no item indicad
 
 `chart_viewed` dispara uma vez por sessão para `balance`, `payment` e `composition`. `bacen_rate_fetch_failed` dispara para TR/IPCA com `error_kind` sem mensagem livre.
 
+Em `calculation_performed` e nos eventos que reutilizam `ScenarioContext`, `entry_mode` é `new_loan` para contratação nova/legado e `existing_contract` quando o usuário informa saldo atual, parcelas restantes e próxima parcela no modo “Já tenho um financiamento”.
+
 ## Lifecycle e compra
 
 - O SDK está com `captureAppLifecycleEvents: false`.

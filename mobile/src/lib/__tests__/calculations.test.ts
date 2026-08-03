@@ -1480,4 +1480,99 @@ describe('date handling edge cases', () => {
     expect(schedule[2].date.getMonth()).toBe(4); // May
     expect(schedule[2].date.getDate()).toBe(31);
   });
+
+  it('uses the exact next due date for an existing contract even when it is five days away', () => {
+    const balanceReferenceDate = new Date(2026, 7, 31);
+    const nextDueDate = new Date(2026, 8, 5);
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      entryMode: 'existing_contract',
+      startDate: balanceReferenceDate,
+      nextDueDate,
+      dueDay: 5,
+    });
+
+    expect(schedule[0].date).toEqual(balanceReferenceDate);
+    expect(schedule[1].date).toEqual(nextDueDate);
+  });
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'reproduces the remaining tail of an equivalent %s contract',
+    (system) => {
+      const fullScenario: Scenario = {
+        ...baseScenario,
+        system,
+        principal: 360_000,
+        rate: 0.9,
+        term: 24,
+        startDate: new Date(2026, 0, 5),
+        dueDay: 5,
+      };
+      const fullSchedule = generateAmortizationSchedule(fullScenario);
+      const lastPaidRow = fullSchedule[9];
+      const expectedTail = fullSchedule.slice(10);
+      const existingSchedule = generateAmortizationSchedule({
+        ...fullScenario,
+        id: `existing-${system}`,
+        principal: lastPaidRow.balance,
+        term: expectedTail.length,
+        entryMode: 'existing_contract',
+        startDate: lastPaidRow.date,
+        nextDueDate: expectedTail[0].date,
+      });
+
+      expect(existingSchedule).toHaveLength(expectedTail.length + 1);
+      existingSchedule.slice(1).forEach((row, index) => {
+        const expected = expectedTail[index];
+        expect(row.installmentNumber).toBe(index + 1);
+        expect(row.date).toEqual(expected.date);
+        // Only current balance + remaining term are observable inputs. Restarting the
+        // cent ledger may move the historical final true-up by a few cents.
+        expect(Math.abs(row.payment - expected.payment)).toBeLessThanOrEqual(0.2);
+        expect(Math.abs(row.interest - expected.interest)).toBeLessThanOrEqual(0.02);
+        expect(Math.abs(row.amortization - expected.amortization)).toBeLessThanOrEqual(0.2);
+        expect(Math.abs(row.balance - expected.balance)).toBeLessThanOrEqual(0.2);
+      });
+    },
+  );
+
+  it('recovers month-end dates after an existing contract next due date falls in February', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      entryMode: 'existing_contract',
+      startDate: new Date(2027, 0, 31),
+      nextDueDate: new Date(2027, 1, 28),
+      dueDay: 31,
+      term: 3,
+    });
+
+    expect(schedule.slice(1).map((row) => row.date)).toEqual([
+      new Date(2027, 1, 28),
+      new Date(2027, 2, 31),
+      new Date(2027, 3, 30),
+    ]);
+  });
+
+  it('requires a valid next installment date for an existing contract', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      entryMode: 'existing_contract',
+      nextDueDate: undefined,
+    });
+
+    expect(result.errors).toContain('Informe uma data válida para a próxima parcela.');
+  });
+
+  it('rejects an existing-contract next installment before the balance date', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      entryMode: 'existing_contract',
+      startDate: new Date(2026, 8, 10),
+      nextDueDate: new Date(2026, 8, 5),
+    });
+
+    expect(result.errors).toContain(
+      'A próxima parcela não pode ser anterior à data do saldo informado.',
+    );
+  });
 });
