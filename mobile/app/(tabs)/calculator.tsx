@@ -28,6 +28,7 @@ import type {
   EntryMode,
   FgtsEvent,
   PrepaymentEvent,
+  RateType,
   Scenario,
 } from '@loan-engine/loan';
 import {
@@ -45,6 +46,7 @@ import { LoanCharts } from '../../src/components/LoanCharts';
 import {
   IndexSelector,
   EntryModeSelector,
+  PortabilitySection,
   ScenarioSection,
   SummarySection,
   SystemSelector,
@@ -115,8 +117,14 @@ import {
 } from '../../src/lib/existing-contract';
 import { calculatePrepaymentImpact } from '../../src/lib/prepayment-impact';
 import {
+  calculatePortabilityComparison,
+  parsePortabilityProposalInputs,
+  type NominalCashFlowComparison,
+} from '../../src/lib/portability';
+import {
   getScenarioAnalyticsContext,
   trackCalculationPerformed,
+  trackPortabilityCompared,
 } from '../../src/lib/scenario-analytics';
 
 const DEFAULT_SCENARIO: Scenario = {
@@ -381,6 +389,14 @@ export default function CalculatorScreen() {
   const [openingFeeText, setOpeningFeeText] = useState('0');
   const [itbiRateText, setItbiRateText] = useState('0');
   const [registryFeeText, setRegistryFeeText] = useState('0');
+  const [portabilityRateText, setPortabilityRateText] = useState('');
+  const [portabilityRateType, setPortabilityRateType] = useState<RateType>('annual');
+  const [portabilityTermText, setPortabilityTermText] = useState('');
+  const [portabilityCostsText, setPortabilityCostsText] = useState('');
+  const [portabilityError, setPortabilityError] = useState<string | null>(null);
+  const [portabilityResult, setPortabilityResult] = useState<NominalCashFlowComparison | null>(
+    null,
+  );
   const isPropertyMode = scenario.loanMode === 'property';
   const isExistingContract = getScenarioEntryMode(scenario) === 'existing_contract';
   const [tabActionExportPhase, setTabActionExportPhase] = useState<TabActionExportPhase>('idle');
@@ -695,6 +711,35 @@ export default function CalculatorScreen() {
   const exportFlowBusy = exporting || rewardedExportFormat !== null;
 
   useEffect(() => {
+    setPortabilityResult(null);
+    setPortabilityError(null);
+  }, [scenario]);
+
+  const handleComparePortability = () => {
+    if (!isExistingContract) {
+      setPortabilityResult(null);
+      setPortabilityError('Informe taxa, prazo e custos válidos para a nova proposta.');
+      return;
+    }
+
+    try {
+      const proposal = parsePortabilityProposalInputs({
+        rateText: portabilityRateText,
+        rateType: portabilityRateType,
+        termText: portabilityTermText,
+        costsText: portabilityCostsText,
+      });
+      const result = calculatePortabilityComparison(scenario, proposal);
+      setPortabilityResult(result);
+      setPortabilityError(null);
+      trackPortabilityCompared(result.breakEvenMonth);
+    } catch {
+      setPortabilityResult(null);
+      setPortabilityError('Não foi possível comparar. Revise os dados informados.');
+    }
+  };
+
+  useEffect(() => {
     if (hasMixedStrategyWarning && !mixedStrategyWarningShown.current) {
       trackEvent('validation_warning_shown', {
         warning_code: 'mixed_prepayment_strategies',
@@ -864,6 +909,14 @@ export default function CalculatorScreen() {
     setOpeningFeeText(formatCurrencyValue(target.openingFee));
     setItbiRateText(target.itbiRate ? String(target.itbiRate).replace('.', ',') : '0');
     setRegistryFeeText(formatCurrencyValue(target.registryFee));
+    setPortabilityRateText('');
+    setPortabilityRateType(target.rateType);
+    setPortabilityTermText(
+      getScenarioEntryMode(target) === 'existing_contract' ? String(target.term) : '',
+    );
+    setPortabilityCostsText('');
+    setPortabilityError(null);
+    setPortabilityResult(null);
     setNewPrepayment({
       amount: 0,
       type: 'fixed_amount',
@@ -1869,6 +1922,10 @@ export default function CalculatorScreen() {
         setDownPaymentText('');
         setItbiRateText('0');
         setRegistryFeeText('');
+        setPortabilityRateText('');
+        setPortabilityRateType(existingScenario.rateType);
+        setPortabilityTermText(String(existingScenario.term));
+        setPortabilityCostsText('');
       } else {
         const nextScenario: Scenario = {
           ...scenario,
@@ -1890,7 +1947,12 @@ export default function CalculatorScreen() {
         setNextDueDateText('');
         setPropertyValueText('');
         setDownPaymentText('');
+        setPortabilityRateText('');
+        setPortabilityTermText('');
+        setPortabilityCostsText('');
       }
+      setPortabilityError(null);
+      setPortabilityResult(null);
       const draftDate =
         entryMode === 'existing_contract'
           ? schedule.find((row) => row.installmentNumber === 1)?.date
@@ -2484,6 +2546,38 @@ export default function CalculatorScreen() {
               </>
             )}
           </View>
+
+          {isExistingContract ? (
+            <PortabilitySection
+              rateText={portabilityRateText}
+              rateType={portabilityRateType}
+              termText={portabilityTermText}
+              costsText={portabilityCostsText}
+              onRateTextChange={(text) => {
+                setPortabilityRateText(text);
+                setPortabilityError(null);
+                setPortabilityResult(null);
+              }}
+              onRateTypeChange={(rateType) => {
+                setPortabilityRateType(rateType);
+                setPortabilityError(null);
+                setPortabilityResult(null);
+              }}
+              onTermTextChange={(text) => {
+                setPortabilityTermText(text);
+                setPortabilityError(null);
+                setPortabilityResult(null);
+              }}
+              onCostsTextChange={(text) => {
+                setPortabilityCostsText(maskCurrencyInput(text).display);
+                setPortabilityError(null);
+                setPortabilityResult(null);
+              }}
+              onCompare={handleComparePortability}
+              error={portabilityError}
+              result={portabilityResult}
+            />
+          ) : null}
 
           <ValidationSection errors={validation.errors} warnings={validation.warnings} />
 

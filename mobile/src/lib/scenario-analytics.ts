@@ -59,3 +59,10 @@ export function trackCalculationPerformed(scenario: Scenario, scheduleLength: nu
     entry_mode: context.entry_mode,
   });
 }
+
+export function trackPortabilityCompared(breakEvenMonth: number | null) {
+  trackEvent('portability_compared', {
+    has_break_even: breakEvenMonth !== null,
+    ...(breakEvenMonth === null ? {} : { break_even_month: breakEvenMonth }),
+  });
+}

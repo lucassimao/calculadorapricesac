@@ -605,7 +605,99 @@ export const guides: Guide[] = [
         a: 'Nos primeiros anos do financiamento, quando o saldo devedor é maior e, portanto, a maior parte da parcela ainda é juros.',
       },
     ],
-    related: ['sac-ou-price', 'fgts-no-financiamento', 'tabela-price'],
+    related: [
+      'amortizar-ou-portar-financiamento-atual',
+      'sac-ou-price',
+      'fgts-no-financiamento',
+      'tabela-price',
+    ],
+    example: referenceExample,
+    screenshots: guideScreenshots.table,
+    resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
+  },
+  {
+    slug: 'amortizar-ou-portar-financiamento-atual',
+    title: 'Vale a pena amortizar (ou portar) meu financiamento atual?',
+    metaTitle: 'Amortizar ou portar o financiamento atual: compare',
+    description:
+      'Compare amortização e portabilidade a partir do saldo devedor atual, incluindo custos, economia nominal e mês de break-even.',
+    updated: UPDATED,
+    hook: 'Use o saldo atual para comparar amortização, nova taxa, custos e break-even.',
+    intro:
+      'Quem já está pagando um financiamento pode reduzir juros de duas formas: amortizar o contrato atual ou levar o saldo para uma proposta melhor. A comparação começa pelo saldo devedor atual, não pelo valor originalmente financiado.',
+    sections: [
+      {
+        heading: 'Antes de comparar, confira o contrato atual',
+        blocks: [
+          {
+            type: 'list',
+            items: [
+              'Saldo devedor atual, logo após a última parcela paga.',
+              'Taxa de juros, sistema SAC ou Price e número de parcelas restantes.',
+              'Data da próxima parcela, seguro e tarifa mensal que ainda aparecem no boleto.',
+            ],
+          },
+          {
+            type: 'p',
+            text: 'Com esses dados, o app reconstrói o fluxo restante do contrato. Você pode adicionar uma amortização e conferir a economia de juros, a nova quitação ou a redução da parcela.',
+          },
+        ],
+      },
+      {
+        heading: 'Como comparar uma proposta de portabilidade',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Informe a taxa e o prazo da nova proposta. O novo financiamento parte do mesmo saldo devedor atual, para que os dois caminhos sejam comparáveis.',
+          },
+          {
+            type: 'p',
+            text: 'A comparação mantém o sistema, o indexador, o seguro e a tarifa mensal informados no contrato atual. Amortizações e usos de FGTS planejados ficam fora dos dois fluxos; compare esses impactos separadamente.',
+          },
+          {
+            type: 'p',
+            text: 'Some cartório, avaliação e tarifas no campo de custos da portabilidade. Esses custos ficam fora das parcelas e entram uma única vez no total da nova proposta.',
+          },
+          {
+            type: 'callout',
+            text: 'O break-even é o primeiro mês em que a economia acumulada nas parcelas alcança os custos da portabilidade.',
+          },
+        ],
+      },
+      {
+        heading: 'Como interpretar o resultado',
+        blocks: [
+          {
+            type: 'p',
+            text: 'A comparação v1 usa fluxos nominais, sem desconto a valor presente. Ela mostra o custo restante de cada caminho, a diferença da primeira parcela e o mês de break-even — ou avisa quando não há break-even no prazo.',
+          },
+          {
+            type: 'callout',
+            text: 'Seguros e taxas no novo banco podem ser diferentes. Confirme o CET, os custos e as condições da proposta antes de decidir.',
+          },
+          {
+            type: 'appCta',
+            text: 'Informe seu contrato atual, teste uma amortização e compare outra proposta no mesmo cenário.',
+            label: 'Baixar o app',
+          },
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Taxa menor sempre torna a portabilidade vantajosa?',
+        a: 'Não. O novo prazo, os custos da portabilidade, seguros e tarifas também mudam o total. Compare o fluxo completo e o CET da proposta.',
+      },
+      {
+        q: 'O que significa não ter break-even no prazo?',
+        a: 'Significa que a economia acumulada nas parcelas não recupera os custos da portabilidade durante o período comparado.',
+      },
+      {
+        q: 'Posso comparar portabilidade e amortização?',
+        a: 'Sim. Use o modo de contrato atual para medir separadamente o impacto de uma amortização e o resultado nominal de uma proposta de portabilidade.',
+      },
+    ],
+    related: ['amortizar-prazo-ou-parcela', 'o-que-e-cet', 'sac-ou-price'],
     example: referenceExample,
     screenshots: guideScreenshots.table,
     resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',

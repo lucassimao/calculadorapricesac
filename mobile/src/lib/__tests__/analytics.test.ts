@@ -15,7 +15,7 @@ import {
 import { recordReviewPositiveAction, resetReviewSessionStateForTests } from '../storage/review';
 import { syncBrandProfileAnalyticsIdentity } from '../brand-profile-analytics';
 import type { Scenario } from '@loan-engine/loan';
-import { trackCalculationPerformed } from '../scenario-analytics';
+import { trackCalculationPerformed, trackPortabilityCompared } from '../scenario-analytics';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -223,6 +223,34 @@ describe('typed analytics runtime', () => {
         }),
       }),
     );
+  });
+
+  it('captures a portability comparison without raw financial values', () => {
+    trackPortabilityCompared(8);
+
+    expect(getAnalyticsDryRunSink()).toContainEqual(
+      expect.objectContaining({
+        event: 'portability_compared',
+        properties: expect.objectContaining({
+          has_break_even: true,
+          break_even_month: 8,
+        }),
+      }),
+    );
+  });
+
+  it('omits the break-even month when a portability comparison has no break-even', () => {
+    trackPortabilityCompared(null);
+
+    const event = getAnalyticsDryRunSink().find(
+      (candidate) => candidate.event === 'portability_compared',
+    );
+    expect(event?.properties).toEqual(
+      expect.objectContaining({
+        has_break_even: false,
+      }),
+    );
+    expect(event?.properties).not.toHaveProperty('break_even_month');
   });
 });
 

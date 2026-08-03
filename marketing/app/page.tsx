@@ -277,6 +277,12 @@ export default function Home() {
               Simule uso de FGTS e amortizações extras para reduzir prazo ou parcela.
             </p>
           </div>
+          <div className={styles.featureCard}>
+            <div className={styles.featureTitle}>Contrato atual</div>
+            <p className={styles.featureText}>
+              Já tem um financiamento? Simule amortização e portabilidade.
+            </p>
+          </div>
         </div>
       </section>
 

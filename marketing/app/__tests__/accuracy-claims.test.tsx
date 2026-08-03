@@ -66,4 +66,31 @@ describe('constrained accuracy claims', () => {
     expect(screen.getByText(/amortizações recorrentes/i)).toBeInTheDocument();
     expect(screen.getByText(/FGTS com regras por tipo de uso/i)).toBeInTheDocument();
   });
+
+  it('explains how to compare amortization and portability for an existing contract', () => {
+    const guide = guides.find(
+      (candidate) => candidate.slug === 'amortizar-ou-portar-financiamento-atual',
+    );
+    const copy = JSON.stringify(guide);
+
+    expect(guide?.title).toBe('Vale a pena amortizar (ou portar) meu financiamento atual?');
+    expect(copy).toContain('saldo devedor atual');
+    expect(copy).toContain('custos da portabilidade');
+    expect(copy).toContain('uma única vez');
+    expect(copy).toContain('break-even');
+    expect(copy).toContain('sem desconto a valor presente');
+    expect(copy).toContain('Seguros e taxas no novo banco podem ser diferentes');
+    expect(copy).toContain('Baixar o app');
+  });
+
+  it('advertises existing-contract amortization and portability on acquisition surfaces', () => {
+    const { unmount } = render(<Home />);
+    expect(
+      screen.getByText(/já tem um financiamento\? simule amortização e portabilidade/i),
+    ).toBeInTheDocument();
+    unmount();
+
+    render(<UnlockCTA />);
+    expect(screen.getByText(/amortização e portabilidade do contrato atual/i)).toBeInTheDocument();
+  });
 });

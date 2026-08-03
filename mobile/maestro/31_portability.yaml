@@ -1,0 +1,89 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- repeat:
+    times: 8
+    commands:
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 85%
+- scrollUntilVisible:
+    element:
+      id: entry-mode-existing-contract
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: entry-mode-existing-contract
+- tapOn: 'Trocar e limpar'
+- scrollUntilVisible:
+    element:
+      id: input-principal
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: input-principal
+- eraseText
+- inputText: '200000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: input-rate
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: input-rate
+- eraseText
+- inputText: '11.5'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: input-term
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: input-term
+- eraseText
+- inputText: '180'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: section-portability
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: input-portability-rate
+- inputText: '8'
+- hideKeyboard
+- tapOn:
+    id: portability-rate-annual
+- tapOn:
+    id: input-portability-term
+- eraseText
+- inputText: '180'
+- hideKeyboard
+- tapOn:
+    id: input-portability-costs
+- inputText: '2000'
+- hideKeyboard
+- assertVisible:
+    text: 'R$ 2.000'
+- scrollUntilVisible:
+    element:
+      id: btn-compare-portability
+    direction: DOWN
+    timeout: 8000
+- tapOn:
+    id: btn-compare-portability
+- scrollUntilVisible:
+    element:
+      id: portability-result
+    direction: DOWN
+    timeout: 8000
+- assertVisible:
+    id: portability-result
+- assertVisible:
+    text: 'Break-even: 4º mês'
+- assertVisible:
+    text: 'A portabilidade economiza.*'
+- assertVisible:
+    text: 'Seguros e taxas no novo banco podem ser diferentes.*'
