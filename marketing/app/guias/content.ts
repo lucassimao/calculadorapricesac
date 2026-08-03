@@ -823,6 +823,124 @@ export const guides: Guide[] = [
     resourceSlug: 'cet-custo-real-financiamento',
   },
   {
+    slug: 'amortizar-financiamento-ou-investir',
+    title: 'Amortizar o financiamento ou investir? Como decidir',
+    metaTitle: 'Amortizar financiamento ou investir: como comparar',
+    description:
+      'Compare amortizar o financiamento ou investir em CDI/Tesouro Selic: juros economizados, IR regressivo, valor líquido e taxa de virada.',
+    updated: UPDATED,
+    hook: 'Compare a dívida com o investimento líquido — e encontre a taxa que vira a decisão.',
+    intro:
+      'Guardar o dinheiro ou reduzir a dívida não se decide comparando só duas taxas anunciadas. É preciso usar o mesmo valor e horizonte, descontar o imposto do investimento e medir quanto a amortização realmente reduz do saldo e dos pagamentos.',
+    sections: [
+      {
+        heading: 'Vale mais a pena amortizar o financiamento ou investir?',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Amortizar antecipa principal e deixa de gerar juros dentro do contrato. O app inclui uma amortização para reduzir prazo no primeiro vencimento disponível, recalcula o cronograma inteiro e mostra juros economizados e a nova data de quitação.',
+          },
+          {
+            type: 'p',
+            text: 'Para comparar no horizonte escolhido, o caminho da amortização soma a diferença entre os saldos devedores e reinveste cada economia mensal na mesma taxa e tributação escolhidas. O caminho do investimento capitaliza o mesmo valor pela taxa bruta informada e desconta o regime tributário selecionado.',
+          },
+          {
+            type: 'callout',
+            text: 'Compare os valores no mesmo horizonte. Juros economizados no contrato inteiro e saldo líquido do investimento em poucos meses não são grandezas equivalentes.',
+          },
+        ],
+      },
+      {
+        heading: 'Como comparar CDI ou Tesouro Selic com os juros do financiamento',
+        blocks: [
+          {
+            type: 'list',
+            items: [
+              'Informe quanto você tem disponível agora.',
+              'Escolha 100% do CDI ou Tesouro Selic apenas como referência inicial e substitua pela rentabilidade bruta real do seu produto.',
+              'Use o mesmo horizonte em meses para dívida e investimento.',
+              'Selecione IR regressivo para renda fixa tributada ou isento somente quando o produto realmente não cobrar IR.',
+              'Compare o valor da amortização no horizonte com o saldo líquido do investimento, não com o saldo bruto.',
+            ],
+          },
+          {
+            type: 'table',
+            head: ['Prazo aproximado', 'IR sobre o rendimento'],
+            rows: [
+              ['Até 180 dias', '22,5%'],
+              ['181 a 360 dias', '20%'],
+              ['361 a 720 dias', '17,5%'],
+              ['Acima de 720 dias', '15%'],
+            ],
+          },
+          {
+            type: 'p',
+            text: 'A tela separa saldo bruto, imposto estimado e saldo líquido. A alíquota incide apenas sobre o rendimento, não sobre o valor originalmente investido.',
+          },
+          {
+            type: 'source',
+            text: 'B3 — Boletim Diário de 6 de julho de 2026: DI Over de 14,15% a.a. O preset é estático e editável.',
+            href: 'https://arquivos.b3.com.br/bdi/download/bdi/2026-07-06/BDI_01_20260706.pdf',
+          },
+          {
+            type: 'source',
+            text: 'Banco Central — histórico do Copom: meta Selic de 14,25% a.a. desde 18 de junho de 2026. Tesouro Selic pode ter ágio/deságio e outros custos.',
+            href: 'https://www.bcb.gov.br/controleinflacao/historicotaxasjuros',
+          },
+        ],
+      },
+      {
+        heading: 'Qual taxa faz o investimento ganhar da amortização?',
+        blocks: [
+          {
+            type: 'p',
+            text: 'O retorno anual equivalente isento mostra a taxa que reproduziria o caminho da amortização sem cobrar IR. Já a taxa de virada é a rentabilidade bruta anual que faria o saldo líquido do investimento empatar com o valor produzido pela amortização no horizonte; ela incorpora a faixa de IR selecionada.',
+          },
+          {
+            type: 'p',
+            text: 'Abaixo dessa taxa, amortizar vence no modelo; acima, investir vence. O resultado pressupõe taxa constante, reinvestimento e resgate exatamente no horizonte. Não inclui risco, liquidez, inflação, IOF de resgates muito curtos nem mudanças futuras do CDI/Selic.',
+          },
+          {
+            type: 'callout',
+            text: 'O comparador é uma simulação nominal e não é recomendação de investimento. Reserva de emergência, risco e necessidade de liquidez também importam.',
+          },
+          {
+            type: 'appCta',
+            text: 'Use seu contrato, sua taxa de investimento e seu horizonte para comparar os dois caminhos.',
+            label: 'Baixar o app',
+          },
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Amortizar equivale a qual rentabilidade?',
+        a: 'O retorno depende do cronograma, da taxa do contrato, do sistema e do horizonte. O app calcula o valor econômico pelo saldo e pelos pagamentos evitados, em vez de assumir uma taxa genérica.',
+      },
+      {
+        q: 'Devo comparar com CDI bruto ou líquido?',
+        a: 'Com o líquido. A taxa bruta serve para projetar o rendimento; depois é preciso descontar o IR e eventuais custos do produto.',
+      },
+      {
+        q: 'O resultado considera que a Selic pode mudar?',
+        a: 'Não. A projeção mantém a taxa informada constante. Edite a taxa e teste cenários diferentes antes de decidir.',
+      },
+    ],
+    related: [
+      'amortizar-prazo-ou-parcela',
+      'amortizar-ou-portar-financiamento-atual',
+      'o-que-e-cet',
+    ],
+    example: referenceExample,
+    screenshots: [
+      {
+        src: '/recursos/amortizar-financiamento-ou-investir/resultado.webp',
+        alt: 'Comparador do app mostrando amortização, investimento líquido e taxa de virada.',
+      },
+    ],
+    resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
+  },
+  {
     slug: 'entrada-financiamento',
     title: 'Quanto de entrada preciso para financiar um imóvel',
     metaTitle: 'Entrada do financiamento: quanto é preciso para financiar',

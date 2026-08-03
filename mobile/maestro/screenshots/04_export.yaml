@@ -9,4 +9,4 @@ appId: com.lsimaocosta.calculadorapricesac
     id: tab-export
 - assertVisible:
     id: android-export-modal-card
-- takeScreenshot: ../../../marketing/public/recursos/_captures/export
+- takeScreenshot: ../marketing/public/recursos/_captures/export

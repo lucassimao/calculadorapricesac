@@ -10,6 +10,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Linking,
   Modal,
   Pressable,
@@ -40,10 +41,16 @@ import {
   validateScenario,
 } from '@loan-engine/calculations';
 import { fetchLatestIndexRate } from '../../src/lib/bacen';
-import { formatDateBR, maskCurrencyInput, parseNumberInput } from '../../src/lib/utils';
+import {
+  formatDateBR,
+  maskCurrencyInput,
+  parseCurrencyInput,
+  parseNumberInput,
+} from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import {
+  AmortizeOrInvestSection,
   IndexSelector,
   EntryModeSelector,
   InsuranceCostsSection,
@@ -128,6 +135,17 @@ import {
   trackPortabilityCompared,
 } from '../../src/lib/scenario-analytics';
 import { getEstimatedMipRateForAge } from '../../src/lib/insurance-rates';
+import {
+  INVESTMENT_RATE_PRESETS,
+  compareAmortizeOrInvest,
+  type AmortizeOrInvestResult,
+  type InvestmentTaxRegime,
+  type InvestmentVehicle,
+} from '../../src/lib/amortize-or-invest';
+import {
+  checkInvestmentReferenceRateChange,
+  type InvestmentReferenceRateChange,
+} from '../../src/lib/investment-rate-change';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -402,6 +420,18 @@ export default function CalculatorScreen() {
   const [portabilityResult, setPortabilityResult] = useState<NominalCashFlowComparison | null>(
     null,
   );
+  const [investmentAmountText, setInvestmentAmountText] = useState('');
+  const [investmentVehicle, setInvestmentVehicle] = useState<InvestmentVehicle>('cdi');
+  const [investmentAnnualRateText, setInvestmentAnnualRateText] = useState(
+    String(INVESTMENT_RATE_PRESETS.cdi.annualRate).replace('.', ','),
+  );
+  const [investmentHorizonText, setInvestmentHorizonText] = useState('60');
+  const [investmentTaxRegime, setInvestmentTaxRegime] = useState<InvestmentTaxRegime>('regressive');
+  const [amortizeOrInvestResult, setAmortizeOrInvestResult] =
+    useState<AmortizeOrInvestResult | null>(null);
+  const [amortizeOrInvestError, setAmortizeOrInvestError] = useState<string | null>(null);
+  const [investmentRateChange, setInvestmentRateChange] =
+    useState<InvestmentReferenceRateChange | null>(null);
   const isPropertyMode = scenario.loanMode === 'property';
   const isExistingContract = getScenarioEntryMode(scenario) === 'existing_contract';
   const [tabActionExportPhase, setTabActionExportPhase] = useState<TabActionExportPhase>('idle');
@@ -444,6 +474,8 @@ export default function CalculatorScreen() {
   const exportClickBusyRef = useRef(false);
   const mixedStrategyWarningShown = useRef(false);
   const outOfTermWarningShown = useRef(false);
+  const calculatorScrollRef = useRef<ScrollView>(null);
+  const amortizeOrInvestSectionRef = useRef<View>(null);
   const inlinePaywallRef = useRef<View>(null);
   const balanceChartRef = useRef<View>(null);
   const paymentChartRef = useRef<View>(null);
@@ -469,6 +501,26 @@ export default function CalculatorScreen() {
   useEffect(() => {
     screenHeightRef.current = height;
   }, [height]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkRateChange = async () => {
+      const preset = INVESTMENT_RATE_PRESETS.cdi;
+      const change = await checkInvestmentReferenceRateChange({
+        annualRate: preset.annualRate,
+        asOf: preset.asOf,
+      });
+      if (!cancelled && change) setInvestmentRateChange(change);
+    };
+    void checkRateChange().catch(() => {});
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void checkRateChange().catch(() => {});
+    });
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     isPremiumRef.current = isPremium;
@@ -718,7 +770,28 @@ export default function CalculatorScreen() {
   useEffect(() => {
     setPortabilityResult(null);
     setPortabilityError(null);
+    setAmortizeOrInvestResult(null);
+    setAmortizeOrInvestError(null);
   }, [scenario]);
+
+  const handleCompareAmortizeOrInvest = () => {
+    try {
+      const result = compareAmortizeOrInvest({
+        scenario,
+        extraAmount: parseCurrencyInput(investmentAmountText),
+        investmentAnnualRate: parseNumberInput(investmentAnnualRateText),
+        horizonMonths: Number(investmentHorizonText),
+        taxRegime: investmentTaxRegime,
+      });
+      setAmortizeOrInvestResult(result);
+      setAmortizeOrInvestError(null);
+    } catch (error) {
+      setAmortizeOrInvestResult(null);
+      setAmortizeOrInvestError(
+        error instanceof Error ? error.message : 'Não foi possível comparar os caminhos.',
+      );
+    }
+  };
 
   const handleComparePortability = () => {
     if (!isExistingContract) {
@@ -2077,6 +2150,7 @@ export default function CalculatorScreen() {
 
   return (
     <ScrollView
+      ref={calculatorScrollRef}
       testID="screen-calculator"
       contentContainerStyle={[
         styles.container,
@@ -2088,6 +2162,49 @@ export default function CalculatorScreen() {
       scrollEventThrottle={200}
     >
       <AdBanner enabled={showAds} />
+
+      {investmentRateChange ? (
+        <View
+          style={[
+            styles.rateChangeBanner,
+            { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+          ]}
+          testID="investment-rate-change-banner"
+        >
+          <Pressable
+            style={styles.rateChangeBannerContent}
+            onPress={() => {
+              const scrollView = calculatorScrollRef.current;
+              const nativeScrollView = scrollView?.getNativeScrollRef();
+              if (!scrollView || !nativeScrollView) return;
+              amortizeOrInvestSectionRef.current?.measureLayout(nativeScrollView, (_x, y) => {
+                scrollView.scrollTo({ y: Math.max(y - 12, 0), animated: true });
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir comparador amortizar ou investir"
+            testID="btn-open-amortize-invest"
+          >
+            <Text style={[styles.rateChangeBannerTitle, { color: colors.primary }]}>
+              A taxa mudou — vale mais amortizar ou investir agora?
+            </Text>
+            <Text style={[styles.rateChangeBannerText, { color: colors.textSecondary }]}>
+              CDI de {investmentRateChange.previousAnnualRate.toFixed(2).replace('.', ',')}% para{' '}
+              {investmentRateChange.currentAnnualRate.toFixed(2).replace('.', ',')}% a.a. Toque para
+              recalcular.
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setInvestmentRateChange(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar aviso de mudança da taxa"
+            hitSlop={12}
+            testID="btn-dismiss-investment-rate-change"
+          >
+            <Text style={[styles.rateChangeBannerDismiss, { color: colors.primary }]}>×</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={[styles.columns, isTablet && styles.columnsTablet]}>
         {/* Column 1: Input Forms */}
@@ -3475,6 +3592,55 @@ export default function CalculatorScreen() {
               </View>
             )}
           </View>
+
+          <View ref={amortizeOrInvestSectionRef} collapsable={false}>
+            <AmortizeOrInvestSection
+              amountText={investmentAmountText}
+              vehicle={investmentVehicle}
+              annualRateText={investmentAnnualRateText}
+              horizonText={investmentHorizonText}
+              taxRegime={investmentTaxRegime}
+              isPremium={isPremium}
+              result={amortizeOrInvestResult}
+              error={amortizeOrInvestError}
+              onAmountTextChange={(text) => {
+                const { display } = maskCurrencyInput(text);
+                setInvestmentAmountText(display);
+                setAmortizeOrInvestResult(null);
+              }}
+              onVehicleChange={(vehicle) => {
+                setInvestmentVehicle(vehicle);
+                setInvestmentAnnualRateText(
+                  String(INVESTMENT_RATE_PRESETS[vehicle].annualRate).replace('.', ','),
+                );
+                setAmortizeOrInvestResult(null);
+                setAmortizeOrInvestError(null);
+              }}
+              onAnnualRateTextChange={(text) => {
+                setInvestmentAnnualRateText(text);
+                setAmortizeOrInvestResult(null);
+              }}
+              onHorizonTextChange={(text) => {
+                setInvestmentHorizonText(text.replace(/\D/g, ''));
+                setAmortizeOrInvestResult(null);
+              }}
+              onTaxRegimeChange={(regime) => {
+                setInvestmentTaxRegime(regime);
+                setAmortizeOrInvestResult(null);
+              }}
+              onCompare={handleCompareAmortizeOrInvest}
+              onUpgrade={() => {
+                setPendingPaywallSource('amortizar_investir');
+                router.push('/(tabs)/premium');
+              }}
+              onOpenSource={() => {
+                void Linking.openURL(INVESTMENT_RATE_PRESETS[investmentVehicle].sourceUrl).catch(
+                  () =>
+                    Alert.alert('Não foi possível abrir a fonte', 'Tente novamente mais tarde.'),
+                );
+              }}
+            />
+          </View>
         </View>
       </View>
 
@@ -3769,6 +3935,33 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 24,
     fontWeight: '500',
+  },
+  rateChangeBanner: {
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+    padding: 14,
+  },
+  rateChangeBannerContent: {
+    flex: 1,
+    gap: 3,
+  },
+  rateChangeBannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  rateChangeBannerText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  rateChangeBannerDismiss: {
+    fontSize: 24,
+    fontWeight: '500',
+    lineHeight: 24,
   },
   sectionTitle: {
     fontSize: 16,

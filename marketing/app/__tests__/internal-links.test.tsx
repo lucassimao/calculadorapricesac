@@ -10,6 +10,7 @@ import Home from '../page';
 import RootLayout from '../layout';
 import GuidePage from '../guias/[slug]/page';
 import { guides } from '../guias/content';
+import ResourcePage from '../recursos/[slug]/page';
 
 describe('P3.5 internal links', () => {
   it('links from the landing page to the guides index and every guide', () => {
@@ -47,5 +48,17 @@ describe('P3.5 internal links', () => {
       'href',
       `/recursos/${guide.resourceSlug}`,
     );
+  });
+
+  it('links the amortization resource back to the amortize-or-invest guide', async () => {
+    render(
+      await ResourcePage({
+        params: Promise.resolve({ slug: 'amortizacao-reduzir-prazo-ou-parcela' }),
+      }),
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Amortizar ou investir: como decidir →' }),
+    ).toHaveAttribute('href', '/guias/amortizar-financiamento-ou-investir');
   });
 });

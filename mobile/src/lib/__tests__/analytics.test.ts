@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearAnalyticsDryRunSink,
+  consumePendingPaywallSource,
   getAnalyticsDryRunPersonPropertiesSink,
   getAnalyticsDryRunSink,
   getAnnualRateBucket,
@@ -9,6 +10,7 @@ import {
   registerAnalyticsProperties,
   setAnalyticsDryRunForTests,
   setAnalyticsProfessionalPersonProperties,
+  setPendingPaywallSource,
   trackAppOpen,
   trackEvent,
 } from '../analytics';
@@ -235,6 +237,26 @@ describe('typed analytics runtime', () => {
           has_break_even: true,
           break_even_month: 8,
         }),
+      }),
+    );
+  });
+
+  it('carries the amortize-or-invest gate source into the paywall event', () => {
+    setPendingPaywallSource('amortizar_investir');
+    const source = consumePendingPaywallSource();
+    trackEvent('premium_paywall_viewed', {
+      source,
+      nth_view: 1,
+      iap_availability: 'supported',
+      store_connected: true,
+      store_ready: true,
+      purchased_product_count: 0,
+    });
+
+    expect(getAnalyticsDryRunSink()).toContainEqual(
+      expect.objectContaining({
+        event: 'premium_paywall_viewed',
+        properties: expect.objectContaining({ source: 'amortizar_investir' }),
       }),
     );
   });

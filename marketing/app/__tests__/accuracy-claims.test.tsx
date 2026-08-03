@@ -131,4 +131,51 @@ describe('constrained accuracy claims', () => {
     render(<UnlockCTA />);
     expect(screen.getByText(/seguros MIP e DFI por base real/i)).toBeInTheDocument();
   });
+
+  it('explains how to decide between amortizing and investing with net returns', () => {
+    const guide = guides.find(
+      (candidate) => candidate.slug === 'amortizar-financiamento-ou-investir',
+    );
+    const copy = JSON.stringify(guide);
+
+    expect(guide?.title).toBe('Amortizar o financiamento ou investir? Como decidir');
+    expect(guide?.sections.map((section) => section.heading)).toEqual(
+      expect.arrayContaining([
+        'Vale mais a pena amortizar o financiamento ou investir?',
+        'Como comparar CDI ou Tesouro Selic com os juros do financiamento',
+        'Qual taxa faz o investimento ganhar da amortização?',
+      ]),
+    );
+    expect(copy).toContain('100% do CDI');
+    expect(copy).toContain('Tesouro Selic');
+    expect(copy).toContain('IR regressivo');
+    expect(copy).toContain('22,5%');
+    expect(copy).toContain('15%');
+    expect(copy).toContain('saldo bruto');
+    expect(copy).toContain('saldo líquido');
+    expect(copy).toContain('taxa de virada');
+    expect(copy).toContain('reinveste cada economia mensal');
+    expect(copy).toContain('retorno anual equivalente isento');
+    expect(copy).toContain('horizonte');
+    expect(copy).toContain('taxa constante');
+    expect(copy).toContain('não é recomendação de investimento');
+    expect(copy).toContain('https://arquivos.b3.com.br/');
+    expect(copy).toContain('https://www.bcb.gov.br/controleinflacao/historicotaxasjuros');
+    expect(copy).toContain('Baixar o app');
+    expect(guide?.screenshots).toEqual([
+      {
+        src: '/recursos/amortizar-financiamento-ou-investir/resultado.webp',
+        alt: 'Comparador do app mostrando amortização, investimento líquido e taxa de virada.',
+      },
+    ]);
+  });
+
+  it('advertises the amortize-or-invest comparator on acquisition surfaces', () => {
+    const { unmount } = render(<Home />);
+    expect(screen.getAllByText(/amortizar o financiamento ou investir/i)).not.toHaveLength(0);
+    unmount();
+
+    render(<UnlockCTA />);
+    expect(screen.getByText(/comparador amortizar ou investir/i)).toBeInTheDocument();
+  });
 });

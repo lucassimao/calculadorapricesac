@@ -15,6 +15,7 @@ export interface Resource {
   description: string;
   hook: string;
   guideSlug: string;
+  relatedGuides?: Array<{ slug: string; title: string }>;
   steps: string[];
   screenshots: ResourceScreenshot[];
   faq: ResourceFaq[];
@@ -65,6 +66,12 @@ export const resources: Resource[] = [
       'Simule uma amortização extra e veja quanto economiza de juros ao reduzir o prazo ou aliviar o valor da parcela.',
     hook: 'Coloque um valor extra no contrato e veja o efeito antes de decidir.',
     guideSlug: 'amortizar-prazo-ou-parcela',
+    relatedGuides: [
+      {
+        slug: 'amortizar-financiamento-ou-investir',
+        title: 'Amortizar ou investir: como decidir',
+      },
+    ],
     steps: [
       'Preencha o contrato e role até Amortizações Extras na tela da calculadora.',
       'Informe data, valor e escolha reduzir prazo ou reduzir parcela.',

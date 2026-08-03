@@ -22,4 +22,4 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - tapOn:
     id: btn-add-prepayment
-- takeScreenshot: ../../../marketing/public/recursos/_captures/prepayment
+- takeScreenshot: ../marketing/public/recursos/_captures/prepayment

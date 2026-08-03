@@ -12,4 +12,4 @@ appId: com.lsimaocosta.calculadorapricesac
     timeout: 12000
     speed: 80
     visibilityPercentage: 10
-- takeScreenshot: ../../../marketing/public/recursos/_captures/comparison
+- takeScreenshot: ../marketing/public/recursos/_captures/comparison

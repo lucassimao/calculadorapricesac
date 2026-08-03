@@ -284,6 +284,13 @@ export default function Home() {
               Já tem um financiamento? Simule amortização e portabilidade.
             </p>
           </div>
+          <div className={styles.featureCard}>
+            <div className={styles.featureTitle}>Amortizar ou investir</div>
+            <p className={styles.featureText}>
+              Descubra se vale mais amortizar o financiamento ou investir, já descontando o IR e
+              mostrando a taxa que vira a decisão.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -346,6 +353,7 @@ export default function Home() {
           <div className={styles.premiumList}>
             <span>• Exportação em PDF, XLSX e CSV</span>
             <span>• Mais cenários salvos</span>
+            <span>• Comparador amortizar ou investir</span>
             <span>• Experiência sem anúncios</span>
           </div>
         </div>

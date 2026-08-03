@@ -27,9 +27,10 @@ appId: com.lsimaocosta.calculadorapricesac
     element:
       id: 'btn-dev-enable-premium'
     direction: UP
-    timeout: 8000
-    speed: 80
+    timeout: 30000
+    speed: 30
     visibilityPercentage: 10
+    waitToSettleTimeoutMs: 500
 - tapOn:
     id: 'btn-dev-enable-premium'
 - scrollUntilVisible:

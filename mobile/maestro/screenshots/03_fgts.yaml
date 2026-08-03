@@ -23,4 +23,4 @@ appId: com.lsimaocosta.calculadorapricesac
     visibilityPercentage: 10
 - tapOn:
     id: btn-add-fgts
-- takeScreenshot: ../../../marketing/public/recursos/_captures/fgts
+- takeScreenshot: ../marketing/public/recursos/_captures/fgts

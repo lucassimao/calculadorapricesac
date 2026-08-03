@@ -147,6 +147,11 @@ export default async function ResourcePage({ params }: { params: Promise<{ slug:
           <Link className={styles.relatedLink} href={`/guias/${resource.guideSlug}`}>
             Guia relacionado →
           </Link>
+          {resource.relatedGuides?.map((guide) => (
+            <Link key={guide.slug} className={styles.relatedLink} href={`/guias/${guide.slug}`}>
+              {guide.title} →
+            </Link>
+          ))}
           {related.map((item) => (
             <Link key={item.slug} className={styles.relatedLink} href={`/recursos/${item.slug}`}>
               {item.title} →

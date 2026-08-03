@@ -1,6 +1,7 @@
 export { ExportSection } from './ExportSection';
 export { EntryModeSelector } from './EntryModeSelector';
 export { InsuranceCostsSection } from './InsuranceCostsSection';
+export { AmortizeOrInvestSection } from './AmortizeOrInvestSection';
 export { PortabilitySection } from './PortabilitySection';
 export { IndexSelector } from './IndexSelector';
 export { ScenarioSection } from './ScenarioSection';

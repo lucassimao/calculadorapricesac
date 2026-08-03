@@ -28,6 +28,8 @@ import {
   PREMIUM_ONE_TIME_MESSAGE,
   getPremiumSocialProof,
 } from '../../src/lib/premium-offer';
+import { INVESTMENT_RATE_PRESETS } from '../../src/lib/amortize-or-invest';
+import { seedInvestmentReferenceRateChangeForDev } from '../../src/lib/investment-rate-change';
 
 interface BenefitItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -377,6 +379,17 @@ function DevAdControls() {
         accessibilityLabel="Forçar avaliação da loja (dev)"
       >
         <Text style={styles.secondaryButtonText}>Forçar avaliação da loja (dev)</Text>
+      </Pressable>
+      <Pressable
+        style={styles.secondaryButton}
+        onPress={() => {
+          void seedInvestmentReferenceRateChangeForDev(INVESTMENT_RATE_PRESETS.cdi.annualRate);
+        }}
+        testID="btn-dev-seed-investment-rate-change"
+        accessibilityRole="button"
+        accessibilityLabel="Simular mudança na taxa de investimento (dev)"
+      >
+        <Text style={styles.secondaryButtonText}>Simular mudança de taxa (dev)</Text>
       </Pressable>
     </View>
   );

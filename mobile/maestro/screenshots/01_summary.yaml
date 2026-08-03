@@ -11,4 +11,4 @@ appId: com.lsimaocosta.calculadorapricesac
     speed: 60
 - assertVisible:
     id: summary-first-payment-value
-- takeScreenshot: ../../../marketing/public/recursos/_captures/summary
+- takeScreenshot: ../marketing/public/recursos/_captures/summary

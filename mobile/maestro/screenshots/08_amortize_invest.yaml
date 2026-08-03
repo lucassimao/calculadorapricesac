@@ -1,0 +1,68 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- tapOn:
+    id: tab-premium
+- scrollUntilVisible:
+    element:
+      id: btn-dev-prepare-free-rewarded
+    direction: DOWN
+    timeout: 12000
+    speed: 70
+    visibilityPercentage: 10
+- tapOn:
+    id: btn-dev-prepare-free-rewarded
+- runFlow: ../helpers/enable_premium_dev.yaml
+- tapOn:
+    id: tab-calculator
+- evalScript: ${output.investmentVisible = false}
+- repeat:
+    while:
+      true: ${output.investmentVisible == false}
+    times: 24
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 30%
+      - runFlow:
+          when:
+            visible:
+              id: input-amortize-invest-amount
+          commands:
+            - evalScript: ${output.investmentVisible = true}
+- assertVisible:
+    id: input-amortize-invest-amount
+- tapOn:
+    id: input-amortize-invest-amount
+- inputText: '20000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: input-investment-annual-rate
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 30
+- tapOn:
+    id: input-investment-annual-rate
+- eraseText
+- inputText: '5'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: btn-compare-amortize-invest
+    direction: DOWN
+    timeout: 10000
+    visibilityPercentage: 30
+- tapOn:
+    id: btn-compare-amortize-invest
+- scrollUntilVisible:
+    element:
+      text: 'Taxa de virada:.*'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 20
+- assertVisible:
+    id: amortize-invest-result
+- assertVisible: 'Amortizar vence.*'
+- assertVisible: 'Taxa de virada:.*'
+- takeScreenshot: ../marketing/public/recursos/_captures/amortize-invest
