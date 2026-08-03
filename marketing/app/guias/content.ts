@@ -5,7 +5,9 @@ export type Block =
   | { type: 'p'; text: string }
   | { type: 'list'; items: string[] }
   | { type: 'table'; head: string[]; rows: string[][] }
-  | { type: 'callout'; text: string };
+  | { type: 'callout'; text: string }
+  | { type: 'source'; text: string; href: string }
+  | { type: 'appCta'; text: string; label: string };
 
 export interface Section {
   heading: string;
@@ -230,7 +232,7 @@ export const guides: Guide[] = [
     metaTitle: 'FGTS no financiamento imobiliário: como usar e regras',
     description:
       'Veja como usar o FGTS no financiamento: na entrada, para amortizar o saldo devedor ou para abater parcelas — e as principais condições.',
-    updated: UPDATED,
+    updated: '2026-08-02',
     hook: 'Entrada, amortização ou abatimento de parcelas — onde o FGTS rende mais.',
     intro:
       'O FGTS pode ser uma das ferramentas mais poderosas no financiamento da casa própria. Ele pode ser usado de três formas, cada uma com um efeito diferente no seu bolso. Veja como funciona e as condições gerais.',
@@ -265,12 +267,17 @@ export const guides: Guide[] = [
               'Ter tempo mínimo de trabalho sob o regime do FGTS (somando os períodos).',
               'Não ser proprietário de outro imóvel residencial no mesmo município ou região.',
               'O imóvel deve ser residencial, urbano e estar dentro dos limites do Sistema Financeiro de Habitação (SFH).',
-              'Para amortizar com FGTS, costuma haver um intervalo mínimo entre uma utilização e outra.',
+              'Na amortização ou liquidação do saldo, respeite o intervalo mínimo de 2 anos entre utilizações.',
             ],
           },
           {
             type: 'callout',
             text: 'As regras e os limites do SFH são atualizados periodicamente. Confirme as condições vigentes com a Caixa ou com o banco antes de contar com o recurso.',
+          },
+          {
+            type: 'source',
+            text: 'Fonte: orientação oficial do FGTS sobre amortização, liquidação e pagamento de parcelas. Orientação consultada em 2 de agosto de 2026.',
+            href: 'https://www.fgts.gov.br/Paginas/subpaginas/amortizacao_liquidacao.aspx',
           },
         ],
       },
@@ -283,11 +290,33 @@ export const guides: Guide[] = [
           },
         ],
       },
+      {
+        heading: 'Recorrência muda conforme o tipo de uso',
+        blocks: [
+          {
+            type: 'list',
+            items: [
+              'Entrada: uso único na contratação, sem recorrência.',
+              'Amortização ou liquidação: uma nova utilização pode ser planejada a cada 2 anos, respeitadas as demais condições.',
+              'Pagamento de prestações: pode cobrir até 80% de 12 prestações consecutivas; é uma sequência mensal, não um uso bienal.',
+            ],
+          },
+          {
+            type: 'p',
+            text: 'No simulador, escolha primeiro a finalidade do FGTS. Assim, os presets de frequência refletem a regra de cada uso e cada evento gerado continua editável.',
+          },
+          {
+            type: 'appCta',
+            text: 'Programe os usos futuros do FGTS e compare reduzir prazo ou parcela.',
+            label: 'Baixar o app',
+          },
+        ],
+      },
     ],
     faq: [
       {
         q: 'Posso usar o FGTS a qualquer momento para amortizar?',
-        a: 'Não a qualquer momento: para amortização há um intervalo mínimo entre utilizações. Já o uso na entrada ocorre na contratação. Confirme os prazos vigentes com o banco.',
+        a: 'Não a qualquer momento: para amortização ou liquidação do saldo há intervalo mínimo de 2 anos entre utilizações. A entrada é uso único na contratação; o pagamento de prestações segue outra regra, de até 80% de 12 prestações consecutivas. Confirme seu enquadramento com o banco.',
       },
       {
         q: 'Vale mais a pena usar o FGTS na entrada ou para amortizar depois?',
@@ -377,7 +406,7 @@ export const guides: Guide[] = [
     metaTitle: 'Amortizar: reduzir prazo ou parcela? O que vale mais',
     description:
       'Ao amortizar o financiamento, você pode reduzir o prazo ou o valor da parcela. Veja qual opção economiza mais juros e quando escolher cada uma.',
-    updated: UPDATED,
+    updated: '2026-08-02',
     hook: 'Reduzir prazo economiza mais juros; reduzir parcela alivia o mês.',
     intro:
       'Quando você faz uma amortização extra — com dinheiro próprio ou FGTS — o banco oferece duas opções: reduzir o prazo do financiamento ou reduzir o valor das parcelas. A escolha muda bastante o resultado.',
@@ -418,6 +447,28 @@ export const guides: Guide[] = [
               'Precisa de folga no orçamento agora? Reduza a parcela.',
               'Amortizações nos primeiros anos rendem mais, porque o saldo devedor ainda é alto.',
             ],
+          },
+        ],
+      },
+      {
+        heading: 'Amortizações recorrentes',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Se você recebe renda extra com frequência, programe amortizações mensal, anual ou a cada 2 anos. O simulador expande o plano em datas individuais para mostrar o efeito acumulado nos juros e no prazo.',
+          },
+          {
+            type: 'p',
+            text: 'A frequência não prende o plano: cada evento continua editável. Você pode ajustar o valor ou a data de uma ocorrência sem alterar as demais.',
+          },
+          {
+            type: 'callout',
+            text: 'Para FGTS, a frequência depende da finalidade: o preset bienal vale para amortização ou liquidação; o abatimento de prestações é mensal, limitado a até 80% de 12 prestações consecutivas; a entrada é uso único.',
+          },
+          {
+            type: 'appCta',
+            text: 'Monte uma série de amortizações e compare o novo prazo e os juros economizados.',
+            label: 'Baixar o app',
           },
         ],
       },

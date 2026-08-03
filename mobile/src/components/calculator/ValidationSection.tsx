@@ -6,6 +6,8 @@ interface ValidationSectionProps {
   warnings: string[];
 }
 
+const MAX_VISIBLE_WARNINGS = 5;
+
 export function ValidationSection({ errors, warnings }: ValidationSectionProps) {
   const { colors } = useTheme();
 
@@ -29,11 +31,17 @@ export function ValidationSection({ errors, warnings }: ValidationSectionProps) 
           style={[styles.banner, { backgroundColor: colors.warningLight }]}
           testID="validation-warnings"
         >
-          {warnings.map((warning, index) => (
+          {warnings.slice(0, MAX_VISIBLE_WARNINGS).map((warning, index) => (
             <Text key={index} style={[styles.bannerText, { color: colors.warning }]}>
               {warning}
             </Text>
           ))}
+          {warnings.length > MAX_VISIBLE_WARNINGS && (
+            <Text style={[styles.bannerText, { color: colors.warning }]}>
+              …e mais {warnings.length - MAX_VISIBLE_WARNINGS}{' '}
+              {warnings.length - MAX_VISIBLE_WARNINGS === 1 ? 'aviso' : 'avisos'}.
+            </Text>
+          )}
         </View>
       )}
     </View>

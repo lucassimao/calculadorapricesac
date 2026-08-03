@@ -1,0 +1,222 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- evalScript: ${output.prepaymentVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'input-prepayment-amount'
+    commands:
+      - evalScript: ${output.prepaymentVisible = true}
+- repeat:
+    while:
+      true: ${output.prepaymentVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'input-prepayment-amount'
+          commands:
+            - evalScript: ${output.prepaymentVisible = true}
+- assertVisible:
+    id: 'input-prepayment-amount'
+- tapOn:
+    id: 'input-prepayment-amount'
+- eraseText
+- inputText: '10000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'chip-prepayment-recurrence-biennial'
+    direction: DOWN
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: 'chip-prepayment-recurrence-biennial'
+- assertVisible:
+    id: 'chip-prepayment-recurrence-biennial'
+- scrollUntilVisible:
+    element:
+      id: 'btn-add-prepayment'
+    direction: DOWN
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: 'btn-add-prepayment'
+- assertVisible:
+    id: 'prepayment-event-count'
+    text: '.* eventos no plano'
+- scrollUntilVisible:
+    element:
+      id: 'btn-edit-prepayment'
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: 'btn-edit-prepayment'
+- scrollUntilVisible:
+    element:
+      id: 'label-add-prepayment'
+    direction: UP
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'label-add-prepayment'
+    text: 'Salvar amortização'
+- tapOn:
+    id: 'btn-add-prepayment'
+- assertNotVisible:
+    id: 'btn-cancel-edit-prepayment'
+- assertVisible:
+    id: 'prepayment-event-count'
+    text: '.* eventos no plano'
+
+- runFlow: helpers/launch_dev_client.yaml
+- evalScript: ${output.fgtsVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'input-fgts-amount'
+    commands:
+      - evalScript: ${output.fgtsVisible = true}
+- repeat:
+    while:
+      true: ${output.fgtsVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'input-fgts-amount'
+          commands:
+            - evalScript: ${output.fgtsVisible = true}
+- scrollUntilVisible:
+    element:
+      id: 'chip-fgts-usage-amortization'
+    timeout: 8000
+    speed: 50
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'chip-fgts-usage-amortization'
+- scrollUntilVisible:
+    element:
+      id: 'fgts-usage-explainer'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'fgts-usage-explainer'
+    text: '.*2 anos.*'
+- assertVisible:
+    id: 'chip-fgts-recurrence-biennial'
+- tapOn:
+    id: 'input-fgts-amount'
+- eraseText
+- inputText: '10000'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'btn-add-fgts'
+    direction: DOWN
+    timeout: 8000
+    speed: 60
+    visibilityPercentage: 10
+- tapOn:
+    id: 'btn-add-fgts'
+- assertVisible:
+    id: 'fgts-event-count'
+    text: '.* eventos de FGTS'
+- scrollUntilVisible:
+    element:
+      id: 'btn-edit-fgts'
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'btn-edit-fgts'
+
+- runFlow: helpers/launch_dev_client.yaml
+- evalScript: ${output.fgtsVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'input-fgts-amount'
+    commands:
+      - evalScript: ${output.fgtsVisible = true}
+- repeat:
+    while:
+      true: ${output.fgtsVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'input-fgts-amount'
+          commands:
+            - evalScript: ${output.fgtsVisible = true}
+- scrollUntilVisible:
+    element:
+      id: 'chip-fgts-usage-installment'
+    timeout: 8000
+    speed: 50
+    visibilityPercentage: 10
+- tapOn:
+    id: 'chip-fgts-usage-installment'
+- scrollUntilVisible:
+    element:
+      id: 'fgts-usage-explainer'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'fgts-usage-explainer'
+    text: '.*80% de 12 prestações consecutivas.*'
+- scrollUntilVisible:
+    element:
+      id: 'chip-fgts-recurrence-monthly'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'chip-fgts-recurrence-monthly'
+- assertNotVisible:
+    id: 'chip-fgts-recurrence-biennial'
+- tapOn:
+    id: 'chip-fgts-usage-down-payment'
+- scrollUntilVisible:
+    element:
+      id: 'fgts-usage-explainer'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'fgts-usage-explainer'
+    text: '.*uso único.*'
+- assertVisible:
+    id: 'fgts-down-payment-date'
+    text: 'Na contratação:.*'
+- scrollUntilVisible:
+    element:
+      id: 'chip-fgts-recurrence-none'
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 10
+- assertVisible:
+    id: 'chip-fgts-recurrence-none'
+- assertNotVisible:
+    id: 'chip-fgts-recurrence-biennial'

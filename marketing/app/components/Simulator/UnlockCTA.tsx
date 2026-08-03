@@ -8,15 +8,21 @@ export function UnlockCTA() {
     <div className={styles.unlock}>
       <div className={styles.unlockTitle}>Baixe o app para desbloquear</div>
       <p className={styles.unlockList}>
-        FGTS · amortizações extras · custos (IOF, ITBI, seguro, cartório) · tabela completa
-        · exportar PDF, XLSX e CSV · salvar cenários
+        amortizações recorrentes · FGTS com regras por tipo de uso · custos (IOF, ITBI, seguro,
+        cartório) · tabela completa · exportar PDF, XLSX e CSV · salvar cenários
       </p>
       <AppStoreLink className="" href={appStoreUrl} location="simulator">
         <span
           style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            gap: 8, background: '#fff', color: 'var(--ink)', fontWeight: 600,
-            padding: '11px 18px', borderRadius: 14,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            background: '#fff',
+            color: 'var(--ink)',
+            fontWeight: 600,
+            padding: '11px 18px',
+            borderRadius: 14,
           }}
         >
           Baixar na App Store

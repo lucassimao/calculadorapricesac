@@ -10,6 +10,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -86,6 +87,20 @@ import {
   isOnboardingExampleScenario,
 } from '../../src/lib/onboarding-example';
 import { canStartExportAttempt, claimExportClick } from '../../src/lib/export-sheet-outcome';
+import {
+  buildRecurringFgtsEvents,
+  buildRecurringPrepaymentEvents,
+  canAppendFgtsInstallmentEvents,
+  FGTS_RULES_SOURCE,
+  FGTS_RULES_REVIEWED_LABEL,
+  getFgtsRecurrencePolicy,
+  getFgtsUsageExplainer,
+  trimEventsToSchedule,
+  trimFgtsEventsToSchedule,
+  type Recurrence,
+  type RecurringFgtsEvent,
+  type RecurringPrepaymentEvent,
+} from '../../src/lib/recurring-events';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -107,6 +122,32 @@ const MAX_TABLE_ROWS = 10;
 interface PendingProfessionalExport {
   source: string;
   brandProfile: BrandProfile;
+}
+
+const RECURRENCE_LABELS: Record<Recurrence, string> = {
+  none: 'Uma vez',
+  monthly: 'Mensal',
+  yearly: 'Anual',
+  biennial: 'A cada 2 anos',
+};
+
+function getScenarioTermMonths(scenario: Scenario) {
+  return scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
+}
+
+function countPrunedExistingEvents(
+  scenario: Scenario,
+  nextPrepayments: PrepaymentEvent[],
+  nextFgtsEvents: FgtsEvent[],
+) {
+  const remainingKeys = new Set([
+    ...nextPrepayments.map((event) => `prepayment:${event.id}`),
+    ...nextFgtsEvents.map((event) => `fgts:${event.id}`),
+  ]);
+  return [
+    ...(scenario.prepayments ?? []).map((event) => `prepayment:${event.id}`),
+    ...(scenario.fgtsEvents ?? []).map((event) => `fgts:${event.id}`),
+  ].filter((key) => !remainingKeys.has(key)).length;
 }
 
 function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?: number) {
@@ -369,6 +410,8 @@ export default function CalculatorScreen() {
     strategy: 'reduce_term',
     date: new Date(),
   });
+  const [fgtsRecurrence, setFgtsRecurrence] = useState<Recurrence>('biennial');
+  const [editingFgtsId, setEditingFgtsId] = useState<string | null>(null);
   const { isPremium, loading: premiumLoading, markPremium } = usePremiumContext();
   const showAds = shouldShowAds(isPremium, premiumLoading);
   const iapAvailability = useIapAvailability();
@@ -391,6 +434,9 @@ export default function CalculatorScreen() {
     strategy: 'reduce_term',
     date: new Date(),
   });
+  const [prepaymentRecurrence, setPrepaymentRecurrence] = useState<Recurrence>('none');
+  const [editingPrepaymentId, setEditingPrepaymentId] = useState<string | null>(null);
+  const [showAllPrepayments, setShowAllPrepayments] = useState(false);
   const [showPrepaymentDatePicker, setShowPrepaymentDatePicker] = useState(false);
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
   const hasSkippedInitialCalculation = useRef(false);
@@ -838,6 +884,23 @@ export default function CalculatorScreen() {
     setOpeningFeeText(formatCurrencyValue(target.openingFee));
     setItbiRateText(target.itbiRate ? String(target.itbiRate).replace('.', ',') : '0');
     setRegistryFeeText(formatCurrencyValue(target.registryFee));
+    setNewPrepayment({
+      amount: 0,
+      type: 'fixed_amount',
+      strategy: 'reduce_term',
+      date: new Date(),
+    });
+    setPrepaymentRecurrence('none');
+    setEditingPrepaymentId(null);
+    setShowAllPrepayments(false);
+    setNewFgts({
+      amount: 0,
+      usage: 'amortization',
+      strategy: 'reduce_term',
+      date: new Date(),
+    });
+    setFgtsRecurrence('biennial');
+    setEditingFgtsId(null);
   };
 
   const handleDeleteScenario = (id: string, name: string) => {
@@ -863,32 +926,117 @@ export default function CalculatorScreen() {
       Alert.alert('Amortização incompleta', 'Informe data e valor.');
       return;
     }
-    const next: PrepaymentEvent = {
-      id: Date.now().toString(),
+    const seriesId = editingPrepaymentId ?? Date.now().toString();
+    const originalEvent = (scenario.prepayments ?? []).find(
+      (event) => event.id === editingPrepaymentId,
+    ) as RecurringPrepaymentEvent | undefined;
+    if (editingPrepaymentId && !originalEvent) {
+      resetPrepaymentDraft();
+      Alert.alert('Evento não encontrado', 'A amortização não existe mais neste cenário.');
+      return;
+    }
+    let nextEvents = buildRecurringPrepaymentEvents({
+      seriesId,
+      startDate: new Date(newPrepayment.date),
+      loanStartDate: scenario.startDate,
+      termMonths: getScenarioTermMonths(scenario),
+      dueDay: scenario.dueDay,
+      recurrence: editingPrepaymentId ? 'none' : prepaymentRecurrence,
       amount: newPrepayment.amount,
-      date: new Date(newPrepayment.date),
       type: newPrepayment.type as PrepaymentEvent['type'],
       strategy: newPrepayment.strategy as PrepaymentEvent['strategy'],
       description: newPrepayment.description,
+    });
+    if (editingPrepaymentId && nextEvents[0]) {
+      nextEvents = [
+        {
+          ...nextEvents[0],
+          id: editingPrepaymentId,
+          recurrence: originalEvent?.recurrence ?? 'none',
+        },
+      ];
+    }
+    if (nextEvents.length === 0) {
+      Alert.alert(
+        'Data fora do contrato',
+        'Escolha uma data entre o início e o fim do financiamento.',
+      );
+      return;
+    }
+    const tentativePrepayments = editingPrepaymentId
+      ? (scenario.prepayments ?? []).map((event) =>
+          event.id === editingPrepaymentId ? nextEvents[0] : event,
+        )
+      : [...(scenario.prepayments ?? []), ...nextEvents];
+    const tentativeFgtsEvents = scenario.fgtsEvents ?? [];
+    const tentativeSchedule = generateAmortizationSchedule({
+      ...scenario,
+      prepayments: tentativePrepayments,
+      fgtsEvents: tentativeFgtsEvents,
+    });
+    const trimmedPrepayments = trimEventsToSchedule(tentativePrepayments, tentativeSchedule);
+    const trimmedFgtsEvents = trimFgtsEventsToSchedule(tentativeFgtsEvents, tentativeSchedule);
+    const survivingEventIds = new Set(trimmedPrepayments.map((event) => event.id));
+    nextEvents = nextEvents.filter((event) => survivingEventIds.has(event.id));
+    if (nextEvents.length === 0) {
+      Alert.alert(
+        'Data fora do contrato',
+        'Escolha uma data entre o início e o fim do financiamento.',
+      );
+      return;
+    }
+    const commit = () => {
+      updateScenarioFromUser((prev) => ({
+        ...prev,
+        prepayments: trimmedPrepayments,
+        fgtsEvents: trimmedFgtsEvents,
+      }));
+      resetPrepaymentDraft();
+      if (!editingPrepaymentId) {
+        trackEvent('prepayment_added', {
+          type: nextEvents[0].type,
+          strategy: nextEvents[0].strategy,
+          recurrence: nextEvents[0].recurrence,
+          months_from_start: getMonthsFromStartBucket(scenario.startDate, nextEvents[0].date),
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+          prepayment_count_after: trimmedPrepayments.length,
+        });
+      }
     };
-    updateScenarioFromUser((prev) => ({
-      ...prev,
-      prepayments: [...(prev.prepayments ?? []), next],
-    }));
+    const prunedExistingCount = countPrunedExistingEvents(
+      scenario,
+      trimmedPrepayments,
+      trimmedFgtsEvents,
+    );
+    if (prunedExistingCount > 0) {
+      Alert.alert(
+        'Eventos após a quitação',
+        `${prunedExistingCount} ${prunedExistingCount === 1 ? 'evento será removido' : 'eventos serão removidos'} porque ficou após a nova data de quitação.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Remover e salvar', style: 'destructive', onPress: commit },
+        ],
+      );
+      return;
+    }
+    commit();
+  };
+
+  const handleEditPrepayment = (event: PrepaymentEvent) => {
+    setNewPrepayment({ ...event, date: new Date(event.date) });
+    setPrepaymentRecurrence('none');
+    setEditingPrepaymentId(event.id);
+  };
+
+  const resetPrepaymentDraft = () => {
     setNewPrepayment({
       amount: 0,
       type: 'fixed_amount',
       strategy: 'reduce_term',
       date: new Date(),
     });
-    trackEvent('prepayment_added', {
-      type: next.type,
-      strategy: next.strategy,
-      recurrence: 'none',
-      months_from_start: getMonthsFromStartBucket(scenario.startDate, next.date),
-      ...getScenarioAnalyticsContext(scenario, schedule.length),
-      prepayment_count_after: (scenario.prepayments?.length ?? 0) + 1,
-    });
+    setPrepaymentRecurrence('none');
+    setEditingPrepaymentId(null);
   };
 
   const handleRemovePrepayment = (id: string) => {
@@ -901,6 +1049,7 @@ export default function CalculatorScreen() {
       remaining_prepayments: nextPrepayments.length,
       ...getScenarioAnalyticsContext(scenario, schedule.length),
     });
+    if (editingPrepaymentId === id) resetPrepaymentDraft();
   };
 
   const handleAddFgts = () => {
@@ -908,32 +1057,130 @@ export default function CalculatorScreen() {
       Alert.alert('FGTS incompleto', 'Informe data e valor.');
       return;
     }
-    const next: FgtsEvent = {
-      id: Date.now().toString(),
+    const usage = newFgts.usage as FgtsEvent['usage'];
+    const seriesId = editingFgtsId ?? Date.now().toString();
+    const originalEvent = (scenario.fgtsEvents ?? []).find(
+      (event) => event.id === editingFgtsId,
+    ) as RecurringFgtsEvent | undefined;
+    if (editingFgtsId && !originalEvent) {
+      resetFgtsDraft();
+      Alert.alert('Evento não encontrado', 'O uso do FGTS não existe mais neste cenário.');
+      return;
+    }
+    let nextEvents = buildRecurringFgtsEvents({
+      seriesId,
+      startDate: usage === 'down_payment' ? scenario.startDate : new Date(newFgts.date),
+      loanStartDate: scenario.startDate,
+      termMonths: getScenarioTermMonths(scenario),
+      dueDay: scenario.dueDay,
+      recurrence: editingFgtsId ? 'none' : fgtsRecurrence,
       amount: newFgts.amount,
-      date: new Date(newFgts.date),
-      usage: newFgts.usage as FgtsEvent['usage'],
+      usage,
       strategy: newFgts.strategy,
       description: newFgts.description,
+    });
+    if (editingFgtsId && nextEvents[0]) {
+      const originalRecurrence = originalEvent?.recurrence ?? 'none';
+      const allowedRecurrences = getFgtsRecurrencePolicy(usage).allowedRecurrences;
+      nextEvents = [
+        {
+          ...nextEvents[0],
+          id: editingFgtsId,
+          recurrence: allowedRecurrences.includes(originalRecurrence) ? originalRecurrence : 'none',
+        },
+      ];
+    }
+    if (nextEvents.length === 0) {
+      Alert.alert(
+        'Data fora do contrato',
+        'Escolha uma data entre o início e o fim do financiamento.',
+      );
+      return;
+    }
+    const fgtsEventsWithoutEdited = (scenario.fgtsEvents ?? []).filter(
+      (event) => event.id !== editingFgtsId,
+    );
+    if (!canAppendFgtsInstallmentEvents(fgtsEventsWithoutEdited, nextEvents)) {
+      Alert.alert(
+        'Limite de parcelas com FGTS',
+        'O plano pode ter no máximo 12 prestações consecutivas com abatimento do FGTS.',
+      );
+      return;
+    }
+    const tentativeFgtsEvents = editingFgtsId
+      ? (scenario.fgtsEvents ?? []).map((event) =>
+          event.id === editingFgtsId ? nextEvents[0] : event,
+        )
+      : [...(scenario.fgtsEvents ?? []), ...nextEvents];
+    const tentativePrepayments = scenario.prepayments ?? [];
+    const tentativeSchedule = generateAmortizationSchedule({
+      ...scenario,
+      prepayments: tentativePrepayments,
+      fgtsEvents: tentativeFgtsEvents,
+    });
+    const trimmedPrepayments = trimEventsToSchedule(tentativePrepayments, tentativeSchedule);
+    const trimmedFgtsEvents = trimFgtsEventsToSchedule(tentativeFgtsEvents, tentativeSchedule);
+    const survivingEventIds = new Set(trimmedFgtsEvents.map((event) => event.id));
+    nextEvents = nextEvents.filter((event) => survivingEventIds.has(event.id));
+    if (nextEvents.length === 0) {
+      Alert.alert(
+        'Data fora do contrato',
+        'Escolha uma data entre o início e o fim do financiamento.',
+      );
+      return;
+    }
+    const commit = () => {
+      updateScenarioFromUser((prev) => ({
+        ...prev,
+        prepayments: trimmedPrepayments,
+        fgtsEvents: trimmedFgtsEvents,
+      }));
+      resetFgtsDraft();
+      if (!editingFgtsId) {
+        trackEvent('fgts_added', {
+          usage: nextEvents[0].usage,
+          strategy: nextEvents[0].strategy ?? null,
+          recurrence: nextEvents[0].recurrence,
+          months_from_start: getMonthsFromStartBucket(scenario.startDate, nextEvents[0].date),
+          ...getScenarioAnalyticsContext(scenario, schedule.length),
+          fgts_event_count_after: trimmedFgtsEvents.length,
+        });
+      }
     };
-    updateScenarioFromUser((prev) => ({
-      ...prev,
-      fgtsEvents: [...(prev.fgtsEvents ?? []), next],
-    }));
+    const prunedExistingCount = countPrunedExistingEvents(
+      scenario,
+      trimmedPrepayments,
+      trimmedFgtsEvents,
+    );
+    if (prunedExistingCount > 0) {
+      Alert.alert(
+        'Eventos após a quitação',
+        `${prunedExistingCount} ${prunedExistingCount === 1 ? 'evento será removido' : 'eventos serão removidos'} porque ficou após a nova data de quitação.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Remover e salvar', style: 'destructive', onPress: commit },
+        ],
+      );
+      return;
+    }
+    commit();
+  };
+
+  const handleEditFgts = (event: FgtsEvent) => {
+    setNewFgts({ ...event, date: new Date(event.date) });
+    setFgtsRecurrence('none');
+    setEditingFgtsId(event.id);
+  };
+
+  const resetFgtsDraft = () => {
     setNewFgts({
       amount: 0,
       usage: 'amortization',
       strategy: 'reduce_term',
       date: new Date(),
     });
-    trackEvent('fgts_added', {
-      usage: next.usage,
-      strategy: next.strategy ?? null,
-      recurrence: 'none',
-      months_from_start: getMonthsFromStartBucket(scenario.startDate, next.date),
-      ...getScenarioAnalyticsContext(scenario, schedule.length),
-      fgts_event_count_after: (scenario.fgtsEvents?.length ?? 0) + 1,
-    });
+    setFgtsRecurrence('biennial');
+    setEditingFgtsId(null);
   };
 
   const handleRemoveFgts = (id: string) => {
@@ -946,6 +1193,7 @@ export default function CalculatorScreen() {
       remaining_fgts_events: nextFgtsEvents.length,
       ...getScenarioAnalyticsContext(scenario, schedule.length),
     });
+    if (editingFgtsId === id) resetFgtsDraft();
   };
 
   const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -2370,6 +2618,42 @@ export default function CalculatorScreen() {
                 </Text>
               </Pressable>
             </View>
+            {editingPrepaymentId ? (
+              <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+                Editando somente esta ocorrência; as demais datas da série não mudam.
+              </Text>
+            ) : (
+              <>
+                <Text style={[styles.label, themedStyles.label]}>Frequência</Text>
+                <View style={styles.row}>
+                  {(['none', 'monthly', 'yearly', 'biennial'] as Recurrence[]).map((recurrence) => (
+                    <Pressable
+                      key={recurrence}
+                      style={[
+                        styles.chip,
+                        themedStyles.chip,
+                        prepaymentRecurrence === recurrence && themedStyles.chipActive,
+                      ]}
+                      onPress={() => setPrepaymentRecurrence(recurrence)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: prepaymentRecurrence === recurrence }}
+                      accessibilityLabel={`Frequência ${RECURRENCE_LABELS[recurrence]}`}
+                      testID={`chip-prepayment-recurrence-${recurrence}`}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          themedStyles.chipText,
+                          prepaymentRecurrence === recurrence && themedStyles.chipActiveText,
+                        ]}
+                      >
+                        {RECURRENCE_LABELS[recurrence]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
+            )}
             <Text style={[styles.label, themedStyles.label]}>Descrição (opcional)</Text>
             <TextInput
               value={newPrepayment.description ?? ''}
@@ -2387,36 +2671,91 @@ export default function CalculatorScreen() {
               testID="btn-add-prepayment"
             >
               <Text style={styles.primaryButtonText} testID="label-add-prepayment">
-                Adicionar amortização
+                {editingPrepaymentId ? 'Salvar amortização' : 'Adicionar amortização'}
               </Text>
             </Pressable>
+            {editingPrepaymentId && (
+              <Pressable
+                style={[styles.secondaryButton, styles.centeredButton]}
+                onPress={resetPrepaymentDraft}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar edição da amortização"
+                testID="btn-cancel-edit-prepayment"
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar edição</Text>
+              </Pressable>
+            )}
 
             {(scenario.prepayments ?? []).length > 0 && (
               <View style={styles.list}>
-                {(scenario.prepayments ?? []).map((payment) => (
+                <Text
+                  style={[styles.listSubtitle, { color: colors.textTertiary }]}
+                  testID="prepayment-event-count"
+                >
+                  {(scenario.prepayments ?? []).length}{' '}
+                  {(scenario.prepayments ?? []).length === 1 ? 'evento' : 'eventos'} no plano
+                </Text>
+                {(showAllPrepayments
+                  ? (scenario.prepayments ?? [])
+                  : (scenario.prepayments ?? []).slice(0, 24)
+                ).map((payment) => (
                   <View
                     key={payment.id}
                     style={[styles.listItemRow, { borderColor: colors.border }]}
                   >
-                    <View>
+                    <View style={styles.listItemContent}>
                       <Text style={[styles.listTitle, { color: colors.text }]}>
                         {payment.date.toLocaleDateString('pt-BR')} •{' '}
                         {formatCurrency(payment.amount)}
                       </Text>
                       <Text style={[styles.listSubtitle, { color: colors.textTertiary }]}>
                         {payment.strategy === 'reduce_term' ? 'Reduzir prazo' : 'Reduzir parcela'}
+                        {' · '}
+                        {
+                          RECURRENCE_LABELS[
+                            (payment as RecurringPrepaymentEvent).recurrence ?? 'none'
+                          ]
+                        }
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => handleRemovePrepayment(payment.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel="Remover amortização"
-                      hitSlop={8}
-                    >
-                      <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
-                    </Pressable>
+                    <View style={styles.listActions}>
+                      <Pressable
+                        onPress={() => handleEditPrepayment(payment)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Editar amortização"
+                        hitSlop={8}
+                        testID="btn-edit-prepayment"
+                      >
+                        <Text style={[styles.editText, { color: colors.primary }]}>Editar</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleRemovePrepayment(payment.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Remover amortização"
+                        hitSlop={8}
+                      >
+                        <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
+                      </Pressable>
+                    </View>
                   </View>
                 ))}
+                {(scenario.prepayments ?? []).length > 24 && (
+                  <Pressable
+                    style={[styles.secondaryButton, styles.centeredButton]}
+                    onPress={() => setShowAllPrepayments((current) => !current)}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showAllPrepayments ? 'Mostrar menos eventos' : 'Mostrar todos os eventos'
+                    }
+                    testID="btn-toggle-all-prepayments"
+                  >
+                    <Text style={styles.secondaryButtonText}>
+                      {showAllPrepayments
+                        ? 'Mostrar menos'
+                        : `Mostrar todos os ${(scenario.prepayments ?? []).length} eventos`}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             )}
           </View>
@@ -2424,25 +2763,38 @@ export default function CalculatorScreen() {
           <View style={[styles.section, themedStyles.section]} testID="section-fgts">
             <Text style={[styles.sectionTitle, themedStyles.sectionTitle]}>FGTS</Text>
             <Text style={[styles.label, themedStyles.label]}>Data</Text>
-            <Pressable
-              style={[styles.input, styles.inputPressable, themedStyles.input]}
-              onPress={() => setShowFgtsDatePicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Selecionar data do FGTS"
-              testID="input-fgts-date"
-            >
-              <Text style={[styles.inputText, { color: colors.text }]}>
-                {newFgts.date ? formatDateBR(newFgts.date) : ''}
-              </Text>
-            </Pressable>
-            {showFgtsDatePicker ? (
-              <DateTimePicker
-                value={newFgts.date ?? new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                onChange={handleFgtsDateChange}
-              />
-            ) : null}
+            {newFgts.usage === 'down_payment' ? (
+              <View style={[styles.input, styles.inputPressable, themedStyles.input]}>
+                <Text
+                  style={[styles.inputText, { color: colors.text }]}
+                  testID="fgts-down-payment-date"
+                >
+                  Na contratação: {formatDateBR(scenario.startDate)}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Pressable
+                  style={[styles.input, styles.inputPressable, themedStyles.input]}
+                  onPress={() => setShowFgtsDatePicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Selecionar data do FGTS"
+                  testID="input-fgts-date"
+                >
+                  <Text style={[styles.inputText, { color: colors.text }]}>
+                    {newFgts.date ? formatDateBR(newFgts.date) : ''}
+                  </Text>
+                </Pressable>
+                {showFgtsDatePicker ? (
+                  <DateTimePicker
+                    value={newFgts.date ?? new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={handleFgtsDateChange}
+                  />
+                ) : null}
+              </>
+            )}
             <Text style={[styles.label, themedStyles.label]}>Valor (R$)</Text>
             <TextInput
               value={
@@ -2468,10 +2820,14 @@ export default function CalculatorScreen() {
                   themedStyles.chip,
                   newFgts.usage === 'down_payment' && themedStyles.chipActive,
                 ]}
-                onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'down_payment' }))}
+                onPress={() => {
+                  setNewFgts((prev) => ({ ...prev, usage: 'down_payment', strategy: undefined }));
+                  setFgtsRecurrence('none');
+                }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'down_payment' }}
                 accessibilityLabel="FGTS como entrada"
+                testID="chip-fgts-usage-down-payment"
               >
                 <Text
                   style={[
@@ -2489,10 +2845,18 @@ export default function CalculatorScreen() {
                   themedStyles.chip,
                   newFgts.usage === 'amortization' && themedStyles.chipActive,
                 ]}
-                onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'amortization' }))}
+                onPress={() => {
+                  setNewFgts((prev) => ({
+                    ...prev,
+                    usage: 'amortization',
+                    strategy: 'reduce_term',
+                  }));
+                  setFgtsRecurrence(editingFgtsId ? 'none' : 'biennial');
+                }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'amortization' }}
                 accessibilityLabel="FGTS como amortização"
+                testID="chip-fgts-usage-amortization"
               >
                 <Text
                   style={[
@@ -2510,7 +2874,10 @@ export default function CalculatorScreen() {
                   themedStyles.chip,
                   newFgts.usage === 'installment' && themedStyles.chipActive,
                 ]}
-                onPress={() => setNewFgts((prev) => ({ ...prev, usage: 'installment' }))}
+                onPress={() => {
+                  setNewFgts((prev) => ({ ...prev, usage: 'installment', strategy: undefined }));
+                  setFgtsRecurrence(editingFgtsId ? 'none' : 'monthly');
+                }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: newFgts.usage === 'installment' }}
                 accessibilityLabel="FGTS para parcela"
@@ -2573,6 +2940,62 @@ export default function CalculatorScreen() {
                 </Pressable>
               </View>
             )}
+            <Text
+              style={[styles.helperText, { color: colors.textTertiary }]}
+              testID="fgts-usage-explainer"
+            >
+              {getFgtsUsageExplainer(newFgts.usage ?? 'amortization')}
+            </Text>
+            <Pressable
+              onPress={() => void Linking.openURL(FGTS_RULES_SOURCE)}
+              accessibilityRole="link"
+              accessibilityLabel="Abrir regras oficiais do FGTS"
+              testID="fgts-rules-link"
+            >
+              <Text style={[styles.linkText, { color: colors.primary }]}>
+                Regras oficiais do FGTS (consultadas em {FGTS_RULES_REVIEWED_LABEL})
+              </Text>
+            </Pressable>
+            {editingFgtsId ? (
+              <Text style={[styles.helperText, { color: colors.textTertiary }]}>
+                Editando somente esta ocorrência; as demais datas da série não mudam.
+              </Text>
+            ) : (
+              <>
+                <Text style={[styles.label, themedStyles.label]}>Frequência</Text>
+                <View style={styles.row}>
+                  {getFgtsRecurrencePolicy(newFgts.usage ?? 'amortization').allowedRecurrences.map(
+                    (recurrence) => (
+                      <Pressable
+                        key={recurrence}
+                        style={[
+                          styles.chip,
+                          themedStyles.chip,
+                          fgtsRecurrence === recurrence && themedStyles.chipActive,
+                        ]}
+                        onPress={() => setFgtsRecurrence(recurrence)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: fgtsRecurrence === recurrence }}
+                        accessibilityLabel={`Frequência FGTS ${RECURRENCE_LABELS[recurrence]}`}
+                        testID={`chip-fgts-recurrence-${recurrence}`}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            themedStyles.chipText,
+                            fgtsRecurrence === recurrence && themedStyles.chipActiveText,
+                          ]}
+                        >
+                          {newFgts.usage === 'installment' && recurrence === 'monthly'
+                            ? '12 parcelas'
+                            : RECURRENCE_LABELS[recurrence]}
+                        </Text>
+                      </Pressable>
+                    ),
+                  )}
+                </View>
+              </>
+            )}
             <Text style={[styles.label, themedStyles.label]}>Descrição (opcional)</Text>
             <TextInput
               value={newFgts.description ?? ''}
@@ -2590,15 +3013,33 @@ export default function CalculatorScreen() {
               testID="btn-add-fgts"
             >
               <Text style={styles.primaryButtonText} testID="label-add-fgts">
-                Adicionar FGTS
+                {editingFgtsId ? 'Salvar FGTS' : 'Adicionar FGTS'}
               </Text>
             </Pressable>
+            {editingFgtsId && (
+              <Pressable
+                style={[styles.secondaryButton, styles.centeredButton]}
+                onPress={resetFgtsDraft}
+                accessibilityRole="button"
+                accessibilityLabel="Cancelar edição do FGTS"
+                testID="btn-cancel-edit-fgts"
+              >
+                <Text style={styles.secondaryButtonText}>Cancelar edição</Text>
+              </Pressable>
+            )}
 
             {(scenario.fgtsEvents ?? []).length > 0 && (
               <View style={styles.list}>
+                <Text
+                  style={[styles.listSubtitle, { color: colors.textTertiary }]}
+                  testID="fgts-event-count"
+                >
+                  {(scenario.fgtsEvents ?? []).length}{' '}
+                  {(scenario.fgtsEvents ?? []).length === 1 ? 'evento' : 'eventos'} de FGTS
+                </Text>
                 {(scenario.fgtsEvents ?? []).map((event) => (
                   <View key={event.id} style={[styles.listItemRow, { borderColor: colors.border }]}>
-                    <View>
+                    <View style={styles.listItemContent}>
                       <Text style={[styles.listTitle, { color: colors.text }]}>
                         {event.date.toLocaleDateString('pt-BR')} • {formatCurrency(event.amount)}
                       </Text>
@@ -2608,17 +3049,30 @@ export default function CalculatorScreen() {
                           : event.usage === 'amortization'
                             ? 'Amortização'
                             : 'Parcela'}
+                        {' · '}
+                        {RECURRENCE_LABELS[(event as RecurringFgtsEvent).recurrence ?? 'none']}
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => handleRemoveFgts(event.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel="Remover FGTS"
-                      hitSlop={8}
-                      testID="btn-remove-fgts"
-                    >
-                      <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
-                    </Pressable>
+                    <View style={styles.listActions}>
+                      <Pressable
+                        onPress={() => handleEditFgts(event)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Editar FGTS"
+                        hitSlop={8}
+                        testID="btn-edit-fgts"
+                      >
+                        <Text style={[styles.editText, { color: colors.primary }]}>Editar</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleRemoveFgts(event.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Remover FGTS"
+                        hitSlop={8}
+                        testID="btn-remove-fgts"
+                      >
+                        <Text style={[styles.deleteText, { color: colors.error }]}>Remover</Text>
+                      </Pressable>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -3089,6 +3543,9 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontWeight: '600',
   },
+  centeredButton: {
+    alignItems: 'center',
+  },
   professionalModalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(17, 24, 39, 0.45)',
@@ -3168,6 +3625,14 @@ const styles = StyleSheet.create({
   listItemContent: {
     flex: 1,
   },
+  listActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+    marginLeft: 12,
+  },
+  editText: {
+    fontWeight: '600',
+  },
   deleteButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -3215,6 +3680,11 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 12,
     lineHeight: 16,
+  },
+  linkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   exportHint: {
     fontSize: 12,

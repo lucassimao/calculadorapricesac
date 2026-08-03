@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import styles from '../guias.module.css';
+import { AppStoreLink } from '../../AppStoreLink';
 import { siteUrl } from '../../site-url';
 import { guides, guideBySlug, type Block } from '../content';
+
+const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
 export function generateStaticParams() {
   return guides.map((g) => ({ slug: g.slug }));
@@ -52,6 +55,23 @@ function renderBlock(block: Block, i: number) {
         <p key={i} className={styles.callout}>
           {block.text}
         </p>
+      );
+    case 'source':
+      return (
+        <p key={i} className={styles.source}>
+          <a href={block.href} target="_blank" rel="noreferrer">
+            {block.text}
+          </a>
+        </p>
+      );
+    case 'appCta':
+      return (
+        <div key={i} className={styles.guideAppCta}>
+          <span>{block.text}</span>
+          <AppStoreLink className={styles.guideAppCtaButton} href={appStoreUrl} location="guide">
+            {block.label}
+          </AppStoreLink>
+        </div>
       );
     case 'table':
       return (
