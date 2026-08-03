@@ -15,6 +15,7 @@
     "@loan-engine/loan": "file:../mobile/packages/@loan-engine/loan",
     "@vercel/analytics": "^1.6.1",
     "next": "16.1.1",
+    "posthog-js": "^1.409.5",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

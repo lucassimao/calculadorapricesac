@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -7,6 +8,7 @@ import { Fraunces, Manrope } from 'next/font/google';
 import './globals.css';
 import styles from './site.module.css';
 import { siteUrl } from './site-url';
+import { PostHogAnalytics } from './posthog-analytics';
 const appStoreId = '6757717537';
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 const playStoreId = process.env.NEXT_PUBLIC_PLAY_STORE_ID;
@@ -171,6 +173,9 @@ gtag('config', '${gadsId}');`}
           </>
         )}
         <Analytics />
+        <Suspense fallback={null}>
+          <PostHogAnalytics />
+        </Suspense>
       </body>
     </html>
   );

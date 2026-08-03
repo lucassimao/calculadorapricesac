@@ -10,6 +10,7 @@ import { ResultsComparison } from './ResultsComparison';
 import { BalanceChart } from './BalanceChart';
 import { TablePreview } from './TablePreview';
 import { UnlockCTA } from './UnlockCTA';
+import { captureMarketingEvent } from '../../lib/analytics';
 import {
   generateAmortizationSchedule,
   calculateLoanSummary,
@@ -18,6 +19,15 @@ import {
 
 export function Simulator() {
   const [inputs, setInputs] = useState<SimulatorInputs>(DEFAULT_INPUTS);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const handleInputChange = (next: SimulatorInputs) => {
+    if (!hasInteracted) {
+      captureMarketingEvent('simulator_interacted');
+      setHasInteracted(true);
+    }
+    setInputs(next);
+  };
 
   const model = useMemo(() => {
     const { sac, price } = buildScenarios(inputs);
@@ -47,7 +57,7 @@ export function Simulator() {
   return (
     <div className={styles.simulator}>
       {/* InputsForm renders the validation message (role="alert") when errors is non-empty. */}
-      <InputsForm value={inputs} onChange={setInputs} errors={model.errors} />
+      <InputsForm value={inputs} onChange={handleInputChange} errors={model.errors} />
       {model.result && (
         <>
           <ResultsComparison sac={model.result.sacSummary} price={model.result.priceSummary} />

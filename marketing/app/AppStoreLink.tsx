@@ -1,6 +1,7 @@
 'use client';
 
 import { track } from '@vercel/analytics';
+import { captureMarketingEvent } from './lib/analytics';
 
 type AppStoreLinkProps = {
   href: string;
@@ -26,6 +27,7 @@ declare global {
 export function AppStoreLink({ href, location, className, children }: AppStoreLinkProps) {
   const handleClick = () => {
     track('app_store_click', { location });
+    captureMarketingEvent('app_store_click', { location });
     if (GADS_CONVERSION && typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'conversion', { send_to: GADS_CONVERSION });
     }
