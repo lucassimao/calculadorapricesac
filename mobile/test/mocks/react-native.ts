@@ -10,6 +10,10 @@ export const Alert = {
   alert: () => {},
 };
 
+export const AccessibilityInfo = {
+  announceForAccessibility: (_announcement: string) => {},
+};
+
 export const ActionSheetIOS = {
   showActionSheetWithOptions: (_options: unknown, _callback: (buttonIndex: number) => void) => {},
 };

@@ -4,6 +4,7 @@ export { InsuranceCostsSection } from './InsuranceCostsSection';
 export { AmortizeOrInvestSection } from './AmortizeOrInvestSection';
 export { FgtsRulesHelper } from './FgtsRulesSheet';
 export { PrepaymentOptimizerSheet } from './PrepaymentOptimizerSheet';
+export { PostSaveComparisonCta } from './PostSaveComparisonCta';
 export { PortabilitySection } from './PortabilitySection';
 export { IndexSelector } from './IndexSelector';
 export { ScenarioSection } from './ScenarioSection';

@@ -1,0 +1,48 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: tab-calculator
+- assertNotVisible:
+    id: post-save-comparison-cta
+- scrollUntilVisible:
+    element:
+      id: input-scenario-name
+    direction: UP
+    timeout: 10000
+    speed: 70
+    visibilityPercentage: 10
+- tapOn:
+    id: input-scenario-name
+- eraseText
+- inputText: 'Cenario para comparar'
+- hideKeyboard
+- tapOn:
+    id: btn-save-scenario
+- assertVisible:
+    id: post-save-comparison-cta
+- assertVisible: 'Comparar condições'
+- tapOn:
+    id: btn-dismiss-post-save-compare
+- assertNotVisible:
+    id: post-save-comparison-cta
+- tapOn:
+    id: btn-save-scenario
+- assertVisible:
+    id: post-save-comparison-cta
+- tapOn:
+    id: btn-post-save-compare
+- assertVisible:
+    id: screen-comparison
+- tapOn:
+    id: comparison-principal-input
+- eraseText
+- inputText: '310000'
+- hideKeyboard
+- assertVisible:
+    id: section-comparison-summary
+- tapOn:
+    id: tab-calculator
+- assertNotVisible:
+    id: post-save-comparison-cta

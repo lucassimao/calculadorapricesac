@@ -4,6 +4,7 @@ import * as Application from 'expo-application';
 import { Platform } from 'react-native';
 import { PostHog } from 'posthog-react-native';
 import { markReviewSessionBlocked } from './storage/review';
+import { startNewComparisonAdoptionSession } from './comparison-adoption-session';
 import type {
   AnalyticsEvent,
   AnalyticsEventMap,
@@ -174,6 +175,7 @@ export async function trackAppOpen(now = Date.now()) {
     AsyncStorage.setItem(LAST_APP_OPEN_KEY, String(now)),
     AsyncStorage.removeItem(LAST_APP_BACKGROUND_KEY),
   ]);
+  startNewComparisonAdoptionSession();
   trackEvent('app_open');
   return true;
 }

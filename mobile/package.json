@@ -11,6 +11,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "decision:export-funnel": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evaluate-export-funnel.mjs",
+    "decision:comparison-adoption": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/evaluate-comparison-adoption.mjs",
     "test:exports:android": "node scripts/test-export-readback-android.mjs",
     "avd:maestro:cold": "bash scripts/start-maestro-avd.sh cold",
     "avd:maestro:fast": "bash scripts/start-maestro-avd.sh fast",

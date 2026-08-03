@@ -174,6 +174,21 @@ Dev local e targets `development`, `preview` e `internal`, inclusive `ota:previe
 
 Executar a regra com Node.js ≥ 22.18 via `npm run decision:export-funnel -- '<snapshot-json>'`; o JSON segue `ExportFunnelSnapshot` em `src/lib/export-funnel-decision.ts`, com timestamps Unix em milissegundos. Todos os campos são obrigatórios, exceto `rewardedExportEnabled`; enquanto não houver 100 cliques, `exportClickThresholdReachedAt` deve ser enviado literalmente como `null`, nunca omitido. A regra rejeita contagens impossíveis em vez de mascarar defeitos de instrumentação.
 
+### Decisão de adoção do comparador (P3.2)
+
+`comparison_started` dispara no primeiro foco/toque em um campo da aba Comparar em cada sessão analítica do app (cold open ou retorno qualificado após 30 minutos em background); editar o valor não é necessário. Abrir a aba e apenas ler o exemplo preenchido não conta como adoção; essa escolha evita converter exposição passiva em uso. O gatilho é deliberadamente mais estreito que `comparison_configuration_updated`, que continua disparando por alteração após debounce e não deve ser usado como medida de adoção.
+
+Avaliar uma única vez no primeiro limiar: 100 usuários distintos com ao menos um `scenario_saved` pós-release ou 90 dias completos desde a publicação, o que ocorrer primeiro. O denominador é o conjunto de usuários distintos com `scenario_saved`; o numerador é a interseção desses mesmos usuários com quem também teve `comparison_started` na janela. Não dividir contagens brutas de eventos.
+
+- adoção < 10% → mover o comparador para a calculadora e retirar a aba;
+- adoção ≥ 10% → manter a aba e considerar aprofundar o comparador.
+
+Filtrar pela versão realmente publicada e por timestamp igual ou posterior ao release. Guardar o timestamp exato do 100º usuário distinto com `scenario_saved`, pois uma consulta tardia ainda precisa identificar qual limiar ocorreu primeiro. As duas contagens devem terminar exatamente no instante do primeiro limiar: timestamp do 100º usuário, se ele vier primeiro, ou release + 90 dias. Em avaliação tardia, reconstruir a consulta com `timestamp <= primeiro_limiar`; não usar os totais acumulados até o dia da execução. Executar com Node.js ≥ 22.18:
+
+`npm run decision:comparison-adoption -- '<snapshot-json>'`
+
+O JSON segue `ComparisonAdoptionSnapshot` em `src/lib/comparison-adoption-decision.ts`: `releaseStartedAt`, `evaluatedAt`, `savedScenarioUsers`, `savedScenarioThresholdReachedAt` e `comparisonStartedAmongSavedUsers`. `evaluatedAt` é o corte final das contagens, não o horário em que o comando foi executado, e deve ser igual ao primeiro limiar quando houver decisão. Antes de 100 usuários, enviar `savedScenarioThresholdReachedAt: null`. A regra rejeita numerador maior que denominador, timestamps fora da janela e contagens que avancem além do primeiro limiar. Se o limiar de 90 dias chegar sem nenhum usuário com cenário salvo, a taxa é indefinida e a regra continua em `wait`, sem retirar a aba por ausência de dados.
+
 Não criar funil review→rating: o SO não informa exibição nem avaliação. Não criar métricas dependentes de installs/reembolsos das lojas; os proxies aceitos são `app_installed`, `app_open` e a reconciliação de entitlement no app.
 
 ## Decisão do proprietário

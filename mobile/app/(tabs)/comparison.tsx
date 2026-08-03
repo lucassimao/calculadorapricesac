@@ -13,6 +13,7 @@ import { usePremiumContext } from '../../src/contexts/PremiumContext';
 import { useTheme } from '../../src/lib/theme';
 import { getAnnualRateBucket, trackEvent, trackScreen } from '../../src/lib/analytics';
 import { shouldShowAds } from '../../src/lib/premium';
+import { trackComparisonStartedOnce } from '../../src/lib/comparison-adoption';
 
 const BASE_SCENARIO: Scenario = {
   id: 'base',
@@ -166,10 +167,12 @@ export default function ComparisonScreen() {
             setPrincipalText(text);
             setBase((prev) => ({ ...prev, principal: parseCurrencyInput(text) }));
           }}
+          onFocus={trackComparisonStartedOnce}
           keyboardType="numeric"
           style={[styles.input, themedStyles.input]}
           placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Valor do financiamento"
+          testID="comparison-principal-input"
         />
         <Text style={[styles.label, themedStyles.label]}>Taxa de Juros (% ao mês)</Text>
         <TextInput
@@ -178,10 +181,12 @@ export default function ComparisonScreen() {
             setRateText(text);
             setBase((prev) => ({ ...prev, rate: parseNumberInput(text), rateType: 'monthly' }));
           }}
+          onFocus={trackComparisonStartedOnce}
           keyboardType="numeric"
           style={[styles.input, themedStyles.input]}
           placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Taxa de juros ao mês"
+          testID="comparison-rate-input"
         />
         <Text style={[styles.label, themedStyles.label]}>Prazo (meses)</Text>
         <TextInput
@@ -195,10 +200,12 @@ export default function ComparisonScreen() {
               termUnit: 'months',
             }));
           }}
+          onFocus={trackComparisonStartedOnce}
           keyboardType="numeric"
           style={[styles.input, themedStyles.input]}
           placeholderTextColor={colors.textTertiary}
           accessibilityLabel="Prazo em meses"
+          testID="comparison-term-input"
         />
         <Text style={[styles.helperText, themedStyles.helperText]}>
           No comparador rápido, a entrada reduz o valor financiado a partir do valor base acima.
@@ -316,6 +323,7 @@ export default function ComparisonScreen() {
                       ),
                     );
                   }}
+                  onFocus={trackComparisonStartedOnce}
                   keyboardType="numeric"
                   style={[styles.input, styles.inputSmall, themedStyles.input]}
                   placeholder="Juros (%) a.m."
@@ -333,6 +341,7 @@ export default function ComparisonScreen() {
                       ),
                     );
                   }}
+                  onFocus={trackComparisonStartedOnce}
                   keyboardType="numeric"
                   style={[styles.input, styles.inputSmall, themedStyles.input]}
                   placeholder="Prazo (meses)"
@@ -355,6 +364,7 @@ export default function ComparisonScreen() {
                       ),
                     );
                   }}
+                  onFocus={trackComparisonStartedOnce}
                   keyboardType="numeric"
                   style={[styles.input, styles.inputSmall, themedStyles.input]}
                   placeholder="Entrada (R$)"

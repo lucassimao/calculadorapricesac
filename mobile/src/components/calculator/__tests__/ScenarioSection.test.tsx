@@ -1,5 +1,6 @@
 /* eslint-disable import/first */
 import React from 'react';
+import { View } from 'react-native';
 import TestRenderer, { act, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Scenario } from '@loan-engine/loan';
@@ -65,5 +66,27 @@ describe('ScenarioSection', () => {
     expect(button.props.accessibilityLabel).toBe('Otimizar amortização de Meu contrato salvo');
     await act(async () => button.props.onPress());
     expect(onOptimize).toHaveBeenCalledWith(scenario);
+  });
+
+  it('places post-save content next to the save action before the saved list', async () => {
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <ScenarioSection
+          scenario={scenario}
+          scenarios={[scenario]}
+          onNameChange={vi.fn()}
+          onSave={vi.fn()}
+          onNew={vi.fn()}
+          onLoad={vi.fn()}
+          onDelete={vi.fn()}
+          onOptimize={vi.fn()}
+          afterSaveContent={<View testID="after-save-content" />}
+        />,
+      );
+    });
+
+    const tree = JSON.stringify(renderer!.toJSON());
+    expect(tree.indexOf('after-save-content')).toBeGreaterThan(tree.indexOf('btn-save-scenario'));
+    expect(tree.indexOf('after-save-content')).toBeLessThan(tree.indexOf('scenario-item-0'));
   });
 });

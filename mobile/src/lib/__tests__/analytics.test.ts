@@ -24,6 +24,7 @@ import {
   trackOptimizerPlanGenerated,
   trackOptimizerPlanSaved,
 } from '../optimizer-analytics';
+import { resetComparisonStartedForTests, trackComparisonStartedOnce } from '../comparison-adoption';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -56,6 +57,7 @@ describe('typed analytics runtime', () => {
     resetReviewSessionStateForTests();
     setAnalyticsDryRunForTests(true);
     clearAnalyticsDryRunSink();
+    resetComparisonStartedForTests();
   });
 
   it.each(['rewarded_export_ad_failed', 'purchase_failed'] as const)(
@@ -305,6 +307,24 @@ describe('typed analytics runtime', () => {
     ]);
     expect(JSON.stringify(events)).not.toContain('amount');
     expect(JSON.stringify(events)).not.toContain('interest_saved":');
+  });
+
+  it('emits comparison_started only on the first comparison interaction of the session', () => {
+    expect(trackComparisonStartedOnce()).toBe(true);
+    expect(trackComparisonStartedOnce()).toBe(false);
+    expect(getAnalyticsDryRunSink().map(({ event }) => event)).toEqual(['comparison_started']);
+  });
+
+  it('allows comparison_started again after a qualified app session begins', async () => {
+    expect(trackComparisonStartedOnce()).toBe(true);
+    await trackAppOpen(1_000);
+    expect(trackComparisonStartedOnce()).toBe(true);
+
+    expect(getAnalyticsDryRunSink().map(({ event }) => event)).toEqual([
+      'comparison_started',
+      'app_open',
+      'comparison_started',
+    ]);
   });
 
   it('omits the break-even month when a portability comparison has no break-even', () => {

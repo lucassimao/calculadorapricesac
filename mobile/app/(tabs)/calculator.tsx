@@ -63,6 +63,7 @@ import {
   EntryModeSelector,
   InsuranceCostsSection,
   PortabilitySection,
+  PostSaveComparisonCta,
   PrepaymentOptimizerSheet,
   ScenarioSection,
   SummarySection,
@@ -515,6 +516,7 @@ export default function CalculatorScreen() {
   const [optimizerTargetPaymentText, setOptimizerTargetPaymentText] = useState('');
   const [optimizerResult, setOptimizerResult] = useState<OptimizerResult | null>(null);
   const [optimizerIsGenerating, setOptimizerIsGenerating] = useState(false);
+  const [postSaveComparisonCtaVisible, setPostSaveComparisonCtaVisible] = useState(false);
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
   const hasSkippedInitialCalculation = useRef(false);
   const exportClickBusyRef = useRef(false);
@@ -685,6 +687,7 @@ export default function CalculatorScreen() {
       const timeout = setTimeout(checkTrackedViewportElements, 250);
       return () => {
         clearTimeout(timeout);
+        setPostSaveComparisonCtaVisible(false);
         inlinePaywallTrackingRef.current.blurredAt = Date.now();
         trackInlinePaywallDismissal();
       };
@@ -935,7 +938,10 @@ export default function CalculatorScreen() {
     }
   };
 
-  const handleSaveScenario = async (scenarioToSave: Scenario = scenario): Promise<boolean> => {
+  const handleSaveScenario = async (
+    scenarioToSave: Scenario = scenario,
+    { showComparisonCta = true }: { showComparisonCta?: boolean } = {},
+  ): Promise<boolean> => {
     if (!scenarioToSave.name.trim()) {
       Alert.alert('Nome obrigatório', 'Informe um nome para o cenário.');
       return false;
@@ -989,6 +995,7 @@ export default function CalculatorScreen() {
       nextList.unshift({ ...scenarioToSave, id: newId });
     }
     if (!(await persistScenarios(nextList))) return false;
+    if (showComparisonCta) setPostSaveComparisonCtaVisible(true);
     if (newId) {
       if (scenarioToSave === scenario) {
         updateScenarioFromUser((currentScenario) => ({ ...currentScenario, id: newId }));
@@ -1198,7 +1205,7 @@ export default function CalculatorScreen() {
       savedScenarioCount: scenarios.length,
     });
     if (saveGate === 'scenario_limit_paywall') setOptimizerVisible(false);
-    const saved = await handleSaveScenario(plannedScenario);
+    const saved = await handleSaveScenario(plannedScenario, { showComparisonCta: false });
     if (!saved) return;
     trackOptimizerPlanSaved(optimizerResult.goal);
     setOptimizerVisible(false);
@@ -2416,6 +2423,17 @@ export default function CalculatorScreen() {
             onLoad={handleLoadScenario}
             onDelete={handleDeleteScenario}
             onOptimize={(target) => openPrepaymentOptimizer('saved_scenarios', target)}
+            afterSaveContent={
+              postSaveComparisonCtaVisible ? (
+                <PostSaveComparisonCta
+                  onCompare={() => {
+                    setPostSaveComparisonCtaVisible(false);
+                    router.push('/(tabs)/comparison');
+                  }}
+                  onDismiss={() => setPostSaveComparisonCtaVisible(false)}
+                />
+              ) : null
+            }
           />
 
           {__DEV__ ? (

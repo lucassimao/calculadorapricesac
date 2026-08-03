@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { ReactNode } from 'react';
 import type { Scenario } from '@loan-engine/loan';
 import { formatCurrency } from '@loan-engine/calculations';
 import { useTheme } from '../../lib/theme';
@@ -12,6 +13,7 @@ interface ScenarioSectionProps {
   onLoad: (scenario: Scenario) => void;
   onDelete: (id: string, name: string) => void;
   onOptimize: (scenario: Scenario) => void;
+  afterSaveContent?: ReactNode;
 }
 
 export function ScenarioSection({
@@ -23,6 +25,7 @@ export function ScenarioSection({
   onLoad,
   onDelete,
   onOptimize,
+  afterSaveContent,
 }: ScenarioSectionProps) {
   const { colors } = useTheme();
 
@@ -68,6 +71,7 @@ export function ScenarioSection({
           <Text style={[styles.secondaryButtonText, { color: colors.textSecondary }]}>Novo</Text>
         </Pressable>
       </View>
+      {afterSaveContent}
       {scenarios.length > 0 && (
         <View style={styles.list}>
           {scenarios.map((item, index) => (
