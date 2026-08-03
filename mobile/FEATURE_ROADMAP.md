@@ -20,12 +20,22 @@ For every item, in order:
 1. **Write the tests first** (TDD — failing test that reproduces the bug or specifies the feature), then implement until green.
 2. **Ask Claude for a code review of the diff** before anything else: run `claude -p "Review the uncommitted diff on this branch for correctness, edge cases, and consistency with mobile/FEATURE_ROADMAP.md item <id>. Be adversarial."` (non-interactive; if the `claude` CLI is unavailable, mark the step `[b] BLOCKED — owner action: claude CLI login` rather than skipping). Address every finding you agree is real; note disagreements + reasoning in the completion note. Re-request review after significant rework.
 3. **Run the full test suite**: `cd mobile && npm test` — all green, including pre-existing tests.
-4. **Visual/emulator tests (required for any item that touches UI):** validate the important flows locally with **Maestro on the Android emulator** (the agent runs on Linux) — keep the existing flows passing, and when the item adds or changes a screen (P0.3's CET display, all of P1, P2.1–P2.3, P2.5, P2.7's result screens), add or update a Maestro flow covering the new UI state in the same branch. Note in the completion note that visual verification was Android-only.
+4. **Visual/emulator tests (required for any item that touches UI):** validate with **Maestro on the Android emulator** (the agent runs on Linux). **Scoped-then-full policy (owner decision 2026-08-03, for speed):** while developing the item, run ONLY the flows affected by the change (the item's new/updated flow + the screens it touches) — do NOT run the full suite on every iteration. Run the **full Maestro suite exactly once, immediately before commit**; if it finds breakage, fix and re-run only the previously-failing + affected flows, then commit (no second full run required). When the item adds or changes a screen, add or update a flow covering the new UI state in the same branch. Note in the completion note that visual verification was Android-only.
 5. **Static checks, immediately before commit**: `cd mobile && npx tsc --noEmit`; lint if a lint script exists; apply the repo's formatter (e.g. `npx prettier --write` on touched files if Prettier is configured). Plus `cd marketing && npm run build` whenever `mobile/packages/@loan-engine/*` or anything the site imports was touched.
 6. **Commit** locally with a descriptive message (one commit per item, plus the roadmap checkbox update). **Do not push, open PRs, publish releases, or submit builds.**
 7. Only when steps 1–6 are all clean is the item done: check it off with its completion note and **proceed to the next item in the list**.
 
 - **Blocked protocol:** if an item needs owner-only access (App Store Connect, PostHog web UI, real device, paid accounts), complete every automatable part, then mark the checkbox `[b]` with `BLOCKED — owner action: <exact steps for Lucas>`. Never fake or skip the blocked part silently.
+
+### Parallel site track (owner decision 2026-08-03)
+
+To speed things up, the site items that do NOT depend on P2 features may be worked by a **second agent in parallel** with the mobile track:
+
+- **Site track scope:** P3.1 (web PostHog), P3.4 (showcase pages), P3.5 (guias revamp + linking). Nothing else — P3.2 touches the mobile app and P3.3's open sub-items unlock only when their P2 features ship; both stay on the mobile track.
+- **Isolation:** the site agent runs in its own **git worktree on branch `site-track`** (`git worktree add ../calculadora-site-track -b site-track`), and may touch ONLY `marketing/`, `mobile/maestro/screenshots/` (new capture flows for P3.4 — additive files only), and its own checkbox/notes in this file. It must never edit the engine, the app code, or another item's notes.
+- **Merge:** after each completed item, merge `site-track` into `main` (resolve only roadmap-note conflicts, which are append-only and trivial). The mobile agent keeps working on `main` as before.
+- **Order within the site track:** P3.5 step 1 (internal links) → P3.1 → P3.4 pages → P3.5 content revamp (screenshots reuse P3.4's pipeline).
+- The full execution protocol applies to the site track too, with the obvious substitution: "full test suite" = `cd marketing && npm test && npm run build`; Maestro applies only to the screenshot-capture flows it adds.
 
 ### Repo orientation
 
