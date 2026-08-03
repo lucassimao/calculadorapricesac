@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { CorrectionIndexType, LoanSummary } from '@loan-engine/loan';
+import type { CorrectionIndexType, LoanSummary, Scenario } from '@loan-engine/loan';
 import { formatCetResult, formatCurrency } from '@loan-engine/calculations';
-import { formatCorrectionRate } from '../../lib/exports/formatters';
+import { formatCorrectionRate, formatInsuranceChargeTiming } from '../../lib/exports/formatters';
 import { useTheme } from '../../lib/theme';
 
 interface SummarySectionProps {
@@ -12,6 +12,7 @@ interface SummarySectionProps {
   indexType?: CorrectionIndexType;
   indexRate?: number;
   cetNotApplicable?: boolean;
+  insuranceChargeTiming?: Scenario['insuranceChargeTiming'];
 }
 
 export function SummarySection({
@@ -22,6 +23,7 @@ export function SummarySection({
   indexType,
   indexRate,
   cetNotApplicable = false,
+  insuranceChargeTiming,
 }: SummarySectionProps) {
   const { colors } = useTheme();
   const hasTotalIndexCorrection = summary.totalIndexCorrection !== 0;
@@ -72,6 +74,44 @@ export function SummarySection({
             value={formatCurrency(summary.totalMonthlyCosts)}
             colors={colors}
           />
+          {((summary.totalMipInsurance ?? 0) > 0 || (summary.totalDfiInsurance ?? 0) > 0) && (
+            <>
+              <SummaryRow
+                label="Seguros: MIP + DFI (incluídos nos custos mensais)"
+                value={formatCurrency(
+                  (summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0),
+                )}
+                colors={colors}
+                testID="summary-insurance-mip-dfi"
+              />
+              {(summary.totalMipInsurance ?? 0) > 0 && (
+                <SummaryRow
+                  label="MIP (saldo devedor)"
+                  value={formatCurrency(summary.totalMipInsurance ?? 0)}
+                  colors={colors}
+                />
+              )}
+              {(summary.totalDfiInsurance ?? 0) > 0 && (
+                <SummaryRow
+                  label="DFI (valor do imóvel)"
+                  value={formatCurrency(summary.totalDfiInsurance ?? 0)}
+                  colors={colors}
+                />
+              )}
+              <SummaryRow
+                label="Cobrança dos seguros"
+                value={formatInsuranceChargeTiming(insuranceChargeTiming)}
+                colors={colors}
+              />
+            </>
+          )}
+          {(summary.totalAdminFees ?? 0) > 0 && (
+            <SummaryRow
+              label="Tarifa administrativa (incluída nos custos mensais)"
+              value={formatCurrency(summary.totalAdminFees ?? 0)}
+              colors={colors}
+            />
+          )}
           <SummaryRow
             label="Total com Custos"
             value={formatCurrency(summary.totalPaymentWithCosts)}
@@ -172,6 +212,7 @@ interface SummaryRowProps {
 }
 
 function SummaryRow({ label, value, colors, testID }: SummaryRowProps) {
+  const keepsValueOnOneLine = value.startsWith('R$');
   return (
     <View
       style={[styles.summaryRow, { borderBottomColor: colors.borderLight }]}
@@ -189,6 +230,9 @@ function SummaryRow({ label, value, colors, testID }: SummaryRowProps) {
       <Text
         style={[styles.summaryValue, { color: colors.text }]}
         testID={testID ? `${testID}-value` : undefined}
+        numberOfLines={keepsValueOnOneLine ? 1 : undefined}
+        adjustsFontSizeToFit={keepsValueOnOneLine || undefined}
+        minimumFontScale={keepsValueOnOneLine ? 0.72 : undefined}
       >
         {value}
       </Text>
@@ -230,18 +274,21 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
   },
   summaryLabel: {
     fontSize: 14,
-    flexShrink: 0,
+    flex: 1,
+    flexShrink: 1,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '600',
-    flex: 1,
-    marginLeft: 12,
+    flexShrink: 0,
+    maxWidth: '52%',
     textAlign: 'right',
   },
 });

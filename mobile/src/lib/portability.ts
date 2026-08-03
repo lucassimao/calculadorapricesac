@@ -153,7 +153,6 @@ export function createPortabilityScenario(
     nextDueDate: currentScenario.nextDueDate ? new Date(currentScenario.nextDueDate) : undefined,
     prepayments: [],
     fgtsEvents: [],
-    propertyValue: undefined,
     downPayment: undefined,
     includeIOF: false,
     iofRate: 0,

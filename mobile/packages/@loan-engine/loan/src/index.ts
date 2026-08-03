@@ -15,6 +15,7 @@ export type CorrectionIndexType = 'TR' | 'IPCA';
 export type EntryMode = 'new_loan' | 'existing_contract';
 
 export interface Scenario {
+  schemaVersion?: number;
   id: string;
   name: string;
   system: LoanSystem;
@@ -35,9 +36,15 @@ export interface Scenario {
   includeIOF?: boolean;
   iofRate?: number;
   includeInsurance?: boolean;
+  /** @deprecated Stored v1 scenarios are migrated to mipRate. */
   insuranceRate?: number;
+  mipRate?: number;
+  dfiRate?: number;
+  borrowerAge?: number;
+  insuranceChargeTiming?: 'monthly' | 'prepaid_at_signing';
   includeAdminFee?: boolean;
   adminFeeRate?: number;
+  adminFee?: number;
   includeOpeningFee?: boolean;
   openingFee?: number;
   itbiRate?: number;
@@ -74,6 +81,8 @@ export interface ScheduleRow {
   prepaymentAmount?: number;
   prepaymentDescription?: string;
   insurance?: number;
+  mipInsurance?: number;
+  dfiInsurance?: number;
   adminFee?: number;
   extraCosts?: number;
   totalCost?: number;
@@ -110,4 +119,7 @@ export interface LoanSummary {
   totalFgtsUsed: number;
   totalPaymentNet: number;
   totalIndexCorrection: number;
+  totalMipInsurance?: number;
+  totalDfiInsurance?: number;
+  totalAdminFees?: number;
 }

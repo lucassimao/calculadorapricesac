@@ -15,8 +15,13 @@ export interface ExistingContractInput {
   rateType: RateType;
   remainingInstallments: number;
   nextDueDate: Date;
+  propertyValue?: number;
   insuranceRate?: number;
+  mipRate?: number;
+  dfiRate?: number;
+  borrowerAge?: number;
   adminFeeRate?: number;
+  adminFee?: number;
   indexType?: CorrectionIndexType;
   indexRate?: number;
 }
@@ -38,8 +43,10 @@ export function inferExistingContractDueDay(nextDueDate: Date): number {
 }
 
 export function createExistingContractScenario(input: ExistingContractInput): Scenario {
-  const insuranceRate = input.insuranceRate ?? 0;
+  const mipRate = input.mipRate ?? input.insuranceRate ?? 0;
+  const dfiRate = input.dfiRate ?? 0;
   const adminFeeRate = input.adminFeeRate ?? 0;
+  const adminFee = input.adminFee;
   const nextDueDate = new Date(input.nextDueDate);
 
   return {
@@ -56,11 +63,15 @@ export function createExistingContractScenario(input: ExistingContractInput): Sc
     dueDay: inferExistingContractDueDay(nextDueDate),
     entryMode: 'existing_contract',
     nextDueDate,
+    propertyValue: input.propertyValue,
     prepayments: [],
     fgtsEvents: [],
-    includeInsurance: insuranceRate > 0,
-    insuranceRate,
-    includeAdminFee: adminFeeRate > 0,
+    includeInsurance: mipRate > 0 || dfiRate > 0,
+    mipRate,
+    dfiRate,
+    borrowerAge: input.borrowerAge,
+    includeAdminFee: (adminFee ?? 0) > 0 || adminFeeRate > 0,
+    adminFee,
     adminFeeRate,
     includeIOF: false,
     iofRate: 0,

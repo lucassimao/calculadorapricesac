@@ -1,0 +1,21 @@
+[
+  {
+    "schemaVersion": 2,
+    "id": "split-insurance",
+    "name": "Seguros separados",
+    "system": "SAC",
+    "loanMode": "property",
+    "principal": 240000,
+    "propertyValue": 300000,
+    "downPayment": 60000,
+    "rate": 0.9,
+    "rateType": "monthly",
+    "term": 240,
+    "termUnit": "months",
+    "startDate": "2026-01-01T00:00:00.000Z",
+    "dueDay": 10,
+    "borrowerAge": 42,
+    "mipRate": 0.0395,
+    "dfiRate": 0.006
+  }
+]

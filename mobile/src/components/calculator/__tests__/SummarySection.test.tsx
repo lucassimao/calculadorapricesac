@@ -64,4 +64,38 @@ describe('SummarySection', () => {
     expect(JSON.stringify(renderer!.toJSON())).toContain('Não se aplica ao saldo atual');
     expect(JSON.stringify(renderer!.toJSON())).toContain('Total de Juros');
   });
+
+  it('shows split insurance, admin fee, and the selected charge convention', async () => {
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <SummarySection
+          summary={{
+            ...summary,
+            totalMonthlyCosts: 350,
+            totalPaymentWithCosts: 120_350,
+            totalMipInsurance: 180,
+            totalDfiInsurance: 120,
+            totalAdminFees: 50,
+          }}
+          principal={100_000}
+          isPremium={false}
+          isCalculating={false}
+          insuranceChargeTiming="prepaid_at_signing"
+        />,
+      );
+    });
+
+    const tree = JSON.stringify(renderer!.toJSON());
+    expect(tree).toContain('Seguros: MIP + DFI (incluídos nos custos mensais)');
+    expect(tree).toContain('MIP (saldo devedor)');
+    expect(tree).toContain('DFI (valor do imóvel)');
+    expect(tree).toContain('Cobrança dos seguros');
+    expect(tree).toContain('2 competências na 1ª parcela; sem seguro na última');
+    expect(tree).toContain('Tarifa administrativa (incluída nos custos mensais)');
+    const insuranceValue = renderer!.root.findByProps({
+      testID: 'summary-insurance-mip-dfi-value',
+    });
+    expect(insuranceValue.props.numberOfLines).toBe(1);
+    expect(insuranceValue.props.adjustsFontSizeToFit).toBe(true);
+  });
 });

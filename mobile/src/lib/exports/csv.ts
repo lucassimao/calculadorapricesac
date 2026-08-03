@@ -14,6 +14,7 @@ import {
   formatCorrectionRate,
   formatEffectiveInstallmentCount,
   formatExportTerm,
+  formatInsuranceChargeTiming,
 } from './formatters';
 
 const CSV_SEPARATOR = ';';
@@ -136,6 +137,39 @@ const buildCsv = (
     );
     lines.push(buildCsvLine(['Custos Iniciais', formatCsvNumber(summary.totalUpfrontCosts)]));
     lines.push(buildCsvLine(['Custos Mensais', formatCsvNumber(summary.totalMonthlyCosts)]));
+    const totalInsurance = (summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0);
+    if (totalInsurance > 0) {
+      lines.push(
+        buildCsvLine([
+          'Seguros: MIP + DFI (incluídos nos custos mensais)',
+          formatCsvNumber(totalInsurance),
+        ]),
+      );
+      if ((summary.totalMipInsurance ?? 0) > 0) {
+        lines.push(
+          buildCsvLine(['MIP (saldo devedor)', formatCsvNumber(summary.totalMipInsurance ?? 0)]),
+        );
+      }
+      if ((summary.totalDfiInsurance ?? 0) > 0) {
+        lines.push(
+          buildCsvLine(['DFI (valor do imóvel)', formatCsvNumber(summary.totalDfiInsurance ?? 0)]),
+        );
+      }
+      lines.push(
+        buildCsvLine([
+          'Cobrança dos seguros',
+          formatInsuranceChargeTiming(scenario.insuranceChargeTiming),
+        ]),
+      );
+    }
+    if ((summary.totalAdminFees ?? 0) > 0) {
+      lines.push(
+        buildCsvLine([
+          'Tarifa administrativa (incluída nos custos mensais)',
+          formatCsvNumber(summary.totalAdminFees ?? 0),
+        ]),
+      );
+    }
     lines.push(buildCsvLine(['Total com Custos', formatCsvNumber(summary.totalPaymentWithCosts)]));
     lines.push(buildCsvLine(['FGTS Usado', formatCsvNumber(summary.totalFgtsUsed)]));
     lines.push(buildCsvLine(['Total Pago Líquido', formatCsvNumber(summary.totalPaymentNet)]));

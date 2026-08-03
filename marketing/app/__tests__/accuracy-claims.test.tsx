@@ -30,7 +30,10 @@ describe('constrained accuracy claims', () => {
     expect(copy).toContain('0,10 ponto percentual');
     expect(copy).toContain('custo inicial agregado implícito');
     expect(copy).toContain('nem arbitra a convenção de juros do primeiro período');
-    expect(copy).toContain('não cobre TR, IPCA, MIP ou DFI');
+    expect(copy).toContain('taxas e bases de MIP/DFI na contratação');
+    expect(copy).toContain('tarifa e os totais das três primeiras prestações');
+    expect(copy).toContain('Isso não valida TR');
+    expect(copy).toContain('TR, IPCA nem combinações específicas de apólice');
   });
 
   it('describes usage-correct FGTS recurrence rules with a dated official source and app CTA', () => {
@@ -92,5 +95,40 @@ describe('constrained accuracy claims', () => {
 
     render(<UnlockCTA />);
     expect(screen.getByText(/amortização e portabilidade do contrato atual/i)).toBeInTheDocument();
+  });
+
+  it('explains why MIP, DFI, and the admin fee make the real installment higher', () => {
+    const guide = guides.find((candidate) => candidate.slug === 'parcela-real-maior-mip-dfi-taxas');
+    const copy = JSON.stringify(guide);
+
+    expect(guide?.title).toContain('parcela real fica maior');
+    expect(copy).toContain('MIP');
+    expect(copy).toContain('saldo devedor');
+    expect(copy).toContain('DFI');
+    expect(copy).toContain('valor do imóvel');
+    expect(copy).toContain('faixa etária');
+    expect(copy).toContain('estimativa — confira sua apólice');
+    expect(copy).toContain('Seguros: MIP + DFI');
+    expect(copy).toContain('documento histórico mantém o MIP sobre o valor original');
+    expect(copy).toContain('limite da cobertura MIP acompanha o saldo devedor');
+    expect(copy).toContain('convenção de cálculo do app');
+    expect(copy).toContain('CET publicado de 10,43% não é reproduzido');
+    expect(guide?.screenshots).toEqual([
+      {
+        src: '/recursos/parcela-real-maior-mip-dfi-taxas/resumo.webp',
+        alt: 'Resumo do app com seguros MIP e DFI separados e forma de cobrança.',
+      },
+    ]);
+    expect(copy).toContain('https://www.gov.br/susep/');
+    expect(copy).toContain('Baixar o app');
+  });
+
+  it('advertises split MIP/DFI costs on the landing and unlock pitch', () => {
+    const { unmount } = render(<Home />);
+    expect(screen.getByText(/MIP e DFI separados/i)).toBeInTheDocument();
+    unmount();
+
+    render(<UnlockCTA />);
+    expect(screen.getByText(/seguros MIP e DFI por base real/i)).toBeInTheDocument();
   });
 });

@@ -268,7 +268,8 @@ export default function Home() {
           <div className={styles.featureCard}>
             <div className={styles.featureTitle}>Custos reais</div>
             <p className={styles.featureText}>
-              Inclua IOF, seguro, tarifas administrativas, ITBI e cartório para um cenário fiel.
+              Inclua MIP e DFI separados, tarifa administrativa, IOF, ITBI e cartório para um
+              cenário fiel.
             </p>
           </div>
           <div className={styles.featureCard}>

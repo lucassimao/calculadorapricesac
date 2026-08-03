@@ -414,6 +414,69 @@ describe('exports', () => {
     );
   });
 
+  it('labels split insurance totals in CSV, XLSX, and PDF', async () => {
+    printToFileAsync.mockResolvedValue({
+      uri: 'file:///cache/relatorio.pdf',
+      base64: 'JVBERi0=',
+    });
+    const insuranceSummary: LoanSummary = {
+      ...summary,
+      totalMipInsurance: 180,
+      totalDfiInsurance: 120,
+      totalAdminFees: 50,
+      totalMonthlyCosts: 350,
+      totalPaymentWithCosts: 120350,
+    };
+
+    const prepaidScenario: Scenario = {
+      ...scenario,
+      insuranceChargeTiming: 'prepaid_at_signing',
+    };
+    await exportCsv(schedule, prepaidScenario, insuranceSummary);
+    await exportXlsx(schedule, prepaidScenario, insuranceSummary);
+    await exportPdf(prepaidScenario, insuranceSummary, schedule);
+
+    const csvFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.csv'));
+    const xlsxFile = createdFiles.find((file) => file.uri.includes('relatorio_financiamento.xlsx'));
+    const csvRows = parseCsv(csvFile?.writes[0] as string);
+    const workbook = XLSX.read(xlsxFile?.writes[0], { type: 'array' });
+    const worksheetRows = XLSX.utils.sheet_to_json<(string | number)[]>(
+      workbook.Sheets.Amortizacao,
+      { header: 1 },
+    );
+    const html = normalizeHtml(printToFileAsync.mock.calls[0]?.[0]?.html as string);
+
+    expect(csvRows).toContainEqual(['Seguros: MIP + DFI (incluídos nos custos mensais)', '300,00']);
+    expect(worksheetRows).toContainEqual([
+      'Seguros: MIP + DFI (incluídos nos custos mensais)',
+      300,
+    ]);
+    expect(html).toContain(
+      '<strong>Seguros: MIP + DFI (incluídos nos custos mensais):</strong> R$ 300,00',
+    );
+    expect(csvRows).toContainEqual([
+      'Cobrança dos seguros',
+      '2 competências na 1ª parcela; sem seguro na última',
+    ]);
+    expect(worksheetRows).toContainEqual([
+      'Cobrança dos seguros',
+      '2 competências na 1ª parcela; sem seguro na última',
+    ]);
+    expect(html).toContain(
+      '<strong>Cobrança dos seguros:</strong> 2 competências na 1ª parcela; sem seguro na última',
+    );
+    expect(csvRows).toContainEqual(['MIP (saldo devedor)', '180,00']);
+    expect(csvRows).toContainEqual(['DFI (valor do imóvel)', '120,00']);
+    expect(worksheetRows).toContainEqual(['MIP (saldo devedor)', 180]);
+    expect(worksheetRows).toContainEqual(['DFI (valor do imóvel)', 120]);
+    expect(html).toContain('<strong>MIP (saldo devedor):</strong> R$ 180,00');
+    expect(html).toContain('<strong>DFI (valor do imóvel):</strong> R$ 120,00');
+    expect(csvRows).toContainEqual([
+      'Tarifa administrativa (incluída nos custos mensais)',
+      '50,00',
+    ]);
+  });
+
   it('exports professional PDF with brand cover, contact footer, logo, and client name', async () => {
     printToFileAsync.mockResolvedValue({
       uri: 'file:///cache/relatorio.pdf',

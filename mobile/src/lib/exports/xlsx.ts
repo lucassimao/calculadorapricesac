@@ -15,6 +15,7 @@ import {
   formatCorrectionRate,
   formatEffectiveInstallmentCount,
   formatExportTerm,
+  formatInsuranceChargeTiming,
 } from './formatters';
 
 const CURRENCY_FORMAT = '"R$" #,##0.00';
@@ -25,6 +26,10 @@ const SUMMARY_CURRENCY_LABELS = new Set([
   'Entrada',
   'Custos Iniciais',
   'Custos Mensais',
+  'Seguros: MIP + DFI (incluídos nos custos mensais)',
+  'MIP (saldo devedor)',
+  'DFI (valor do imóvel)',
+  'Tarifa administrativa (incluída nos custos mensais)',
   'Total com Custos',
   'FGTS Usado',
   'Total Pago Líquido',
@@ -136,6 +141,26 @@ export async function exportXlsx(
         : [['CET (a.a.)', formatCetResult(summary.cet, '.')]]),
       ['Custos Iniciais', summary.totalUpfrontCosts],
       ['Custos Mensais', summary.totalMonthlyCosts],
+      ...((summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0) > 0
+        ? ([
+            [
+              'Seguros: MIP + DFI (incluídos nos custos mensais)',
+              (summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0),
+            ],
+            ...((summary.totalMipInsurance ?? 0) > 0
+              ? [['MIP (saldo devedor)', summary.totalMipInsurance ?? 0]]
+              : []),
+            ...((summary.totalDfiInsurance ?? 0) > 0
+              ? [['DFI (valor do imóvel)', summary.totalDfiInsurance ?? 0]]
+              : []),
+            ['Cobrança dos seguros', formatInsuranceChargeTiming(scenario.insuranceChargeTiming)],
+          ] as (string | number)[][])
+        : []),
+      ...((summary.totalAdminFees ?? 0) > 0
+        ? ([
+            ['Tarifa administrativa (incluída nos custos mensais)', summary.totalAdminFees ?? 0],
+          ] as (string | number)[][])
+        : []),
       ['Total com Custos', summary.totalPaymentWithCosts],
       ['FGTS Usado', summary.totalFgtsUsed],
       ['Total Pago Líquido', summary.totalPaymentNet],

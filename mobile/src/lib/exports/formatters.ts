@@ -16,3 +16,9 @@ export function formatEffectiveInstallmentCount(installmentCount: number) {
 export function formatCorrectionRate(rate: number | undefined) {
   return `${(rate ?? 0).toFixed(5).replace('.', ',')}% a.m.`;
 }
+
+export function formatInsuranceChargeTiming(timing: Scenario['insuranceChargeTiming']) {
+  return timing === 'prepaid_at_signing'
+    ? '2 competências na 1ª parcela; sem seguro na última'
+    : 'Mensal';
+}

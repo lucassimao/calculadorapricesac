@@ -1,0 +1,97 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: tab-calculator
+- scrollUntilVisible:
+    element:
+      id: input-borrower-age
+    direction: DOWN
+    timeout: 25000
+    speed: 60
+    waitToSettleTimeoutMs: 500
+    visibilityPercentage: 30
+- tapOn:
+    id: input-borrower-age
+- inputText: '28'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: btn-apply-mip-estimate
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- tapOn:
+    id: btn-apply-mip-estimate
+- scrollUntilVisible:
+    element:
+      text: 'estimativa — confira sua apólice.*'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible:
+    text: 'estimativa — confira sua apólice.*'
+- scrollUntilVisible:
+    element:
+      text: 'MIP (% do saldo devedor ao mês)'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible:
+    text: 'MIP (% do saldo devedor ao mês)'
+- assertVisible:
+    id: input-mip-rate
+    text: '0,0202'
+- scrollUntilVisible:
+    element:
+      text: 'DFI (% do valor do imóvel ao mês)'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible:
+    text: 'DFI (% do valor do imóvel ao mês)'
+- tapOn:
+    id: input-dfi-rate
+- eraseText
+- inputText: '0.01337'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: 'Cobrança dos seguros'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible:
+    text: 'Cobrança dos seguros'
+- tapOn:
+    id: btn-insurance-timing-prepaid
+- scrollUntilVisible:
+    element:
+      text: 'Tarifa administrativa (R$ ao mês)'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- tapOn:
+    id: input-admin-fee
+- inputText: '25'
+- hideKeyboard
+- assertVisible:
+    id: input-admin-fee
+    text: 'R$ 25'
+- scrollUntilVisible:
+    element:
+      text: 'Seguros: MIP + DFI (incluídos nos custos mensais)'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible:
+    id: summary-insurance-mip-dfi
+- scrollUntilVisible:
+    element:
+      text: '2 competências na 1ª parcela; sem seguro na última'
+    direction: DOWN
+    timeout: 12000
+    visibilityPercentage: 30
+- assertVisible:
+    text: '2 competências na 1ª parcela; sem seguro na última'

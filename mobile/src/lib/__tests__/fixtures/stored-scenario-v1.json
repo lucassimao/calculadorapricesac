@@ -1,0 +1,18 @@
+[
+  {
+    "id": "legacy-insurance",
+    "name": "Seguro legado",
+    "system": "PRICE",
+    "principal": 180000,
+    "rate": 0.8,
+    "rateType": "monthly",
+    "term": 120,
+    "termUnit": "months",
+    "startDate": "2026-01-01T00:00:00.000Z",
+    "dueDay": 5,
+    "includeInsurance": true,
+    "insuranceRate": 0.031,
+    "includeAdminFee": true,
+    "adminFeeRate": 0.01
+  }
+]

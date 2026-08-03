@@ -22,6 +22,24 @@ export interface BankParityFixture {
   };
 }
 
+export interface InsuranceBankParityFixture {
+  id: string;
+  source: BankParityFixture['source'];
+  scenario: Scenario;
+  expectedRows: {
+    installmentNumber: number;
+    totalCost: number;
+    adminFee: number;
+  }[];
+  expectedOrigination: {
+    mipInsurance: number;
+    dfiInsurance: number;
+  };
+  publishedCetAnnualPercent: number;
+  modeledCetAnnualPercent: number;
+  paymentTolerance: number;
+}
+
 const itauCgiSource = {
   bank: 'Itaú Unibanco',
   product: 'Crédito com Garantia de Imóvel',
@@ -87,3 +105,50 @@ export const bankParityFixtures: BankParityFixture[] = [
     },
   },
 ];
+
+export const insuranceBankParityFixture: InsuranceBankParityFixture = {
+  id: 'itau-habitacional-sac-mip-dfi-2008-03',
+  source: {
+    bank: 'Itaú Unibanco',
+    product: 'Crédito Imobiliário',
+    title: 'Entenda como são calculadas as suas prestações',
+    url: 'https://ww3.itau.com.br/imobline/pre/pdf/calculoprestacao.pdf',
+    referenceDate: '2008-03',
+    accessedAt: '2026-08-03',
+    scope:
+      'Exemplo oficial SAC de R$ 80.000 em 300 meses para imóvel de R$ 100.000, comprador de 28 anos, com MIP, DFI, tarifa fixa e TR discriminados nas três primeiras prestações. Valida os seguros exatamente na contratação; não valida a base decrescente do MIP ao longo do contrato.',
+    methodology:
+      'A primeira prestação cobra MIP e DFI em dobro por incluir a assinatura; as seguintes cobram uma competência. O PDF histórico mantém MIP em 0,0202% do valor original, enquanto o motor usa saldo devedor: por isso, em uma execução auxiliar com o índice desativado, só a primeira competência valida exatamente a base MIP; as seguintes comprovam a queda esperada do motor, não paridade de componente. A tolerância de R$ 1,50 nos totais com TR ativa também cobre a diferença sistemática na ordem da correção e não valida correção monetária. O motor projeta a TR corrente nos 300 fluxos e calcula CET de 11,72% a.a.; não reproduz o CET publicado de 10,43% porque o documento não divulga datas, todos os fluxos nem as demais despesas usadas no CET. Este fixture valida apenas as três prestações e os componentes na contratação, sem alegar paridade de CET. Os valores foram associados pelas taxas publicadas (MIP: 0,0202% de R$ 80 mil; DFI: 0,01337% de R$ 100 mil), pois a extração textual da tabela pode inverter a ordem visual das duas colunas.',
+  },
+  scenario: {
+    id: 'itau-habitacional-sac-mip-dfi-2008-03',
+    name: 'Itaú SAC com MIP/DFI — março/2008',
+    system: 'SAC',
+    loanMode: 'property',
+    principal: 80_000,
+    propertyValue: 100_000,
+    downPayment: 20_000,
+    rate: 0.7207,
+    rateType: 'monthly',
+    term: 300,
+    termUnit: 'months',
+    startDate: new Date(2008, 2, 1),
+    dueDay: 1,
+    indexType: 'TR',
+    indexRate: 0.1241,
+    borrowerAge: 28,
+    mipRate: 0.0202,
+    dfiRate: 0.01337,
+    adminFee: 25,
+    insuranceChargeTiming: 'prepaid_at_signing',
+  },
+  expectedRows: [
+    { installmentNumber: 1, totalCost: 927.29, adminFee: 25 },
+    { installmentNumber: 2, totalCost: 897.23, adminFee: 25 },
+    { installmentNumber: 3, totalCost: 896.69, adminFee: 25 },
+  ],
+  expectedOrigination: { mipInsurance: 32.32, dfiInsurance: 26.74 },
+  publishedCetAnnualPercent: 10.43,
+  modeledCetAnnualPercent: 11.72,
+  paymentTolerance: 1.5,
+};

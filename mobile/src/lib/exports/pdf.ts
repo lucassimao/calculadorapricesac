@@ -28,6 +28,7 @@ import {
   formatCorrectionRate,
   formatEffectiveInstallmentCount,
   formatExportTerm,
+  formatInsuranceChargeTiming,
 } from './formatters';
 
 const PDF_READY_TIMEOUT_MS = 5000;
@@ -539,6 +540,11 @@ function buildProfessionalHtml(
               <p><strong>Total Juros:</strong> ${formatCurrency(summary.totalInterest)}</p>
               <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
               <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
+              ${(summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0) > 0 ? `<p><strong>Seguros: MIP + DFI (incluídos nos custos mensais):</strong> ${formatCurrency((summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0))}</p>` : ''}
+              ${(summary.totalMipInsurance ?? 0) > 0 ? `<p><strong>MIP (saldo devedor):</strong> ${formatCurrency(summary.totalMipInsurance ?? 0)}</p>` : ''}
+              ${(summary.totalDfiInsurance ?? 0) > 0 ? `<p><strong>DFI (valor do imóvel):</strong> ${formatCurrency(summary.totalDfiInsurance ?? 0)}</p>` : ''}
+              ${(summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0) > 0 ? `<p><strong>Cobrança dos seguros:</strong> ${formatInsuranceChargeTiming(scenario.insuranceChargeTiming)}</p>` : ''}
+              ${(summary.totalAdminFees ?? 0) > 0 ? `<p><strong>Tarifa administrativa (incluída nos custos mensais):</strong> ${formatCurrency(summary.totalAdminFees ?? 0)}</p>` : ''}
               <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
               ${scenario.entryMode === 'existing_contract' ? '<p><strong>CET:</strong> Não se aplica ao saldo atual</p>' : `<p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>`}
               <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>
@@ -624,6 +630,11 @@ function buildPremiumHtml(
           <p><strong>Total Juros:</strong> ${formatCurrency(summary.totalInterest)}</p>
           <p><strong>Custos Iniciais:</strong> ${formatCurrency(summary.totalUpfrontCosts)}</p>
           <p><strong>Custos Mensais:</strong> ${formatCurrency(summary.totalMonthlyCosts)}</p>
+          ${(summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0) > 0 ? `<p><strong>Seguros: MIP + DFI (incluídos nos custos mensais):</strong> ${formatCurrency((summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0))}</p>` : ''}
+          ${(summary.totalMipInsurance ?? 0) > 0 ? `<p><strong>MIP (saldo devedor):</strong> ${formatCurrency(summary.totalMipInsurance ?? 0)}</p>` : ''}
+          ${(summary.totalDfiInsurance ?? 0) > 0 ? `<p><strong>DFI (valor do imóvel):</strong> ${formatCurrency(summary.totalDfiInsurance ?? 0)}</p>` : ''}
+          ${(summary.totalMipInsurance ?? 0) + (summary.totalDfiInsurance ?? 0) > 0 ? `<p><strong>Cobrança dos seguros:</strong> ${formatInsuranceChargeTiming(scenario.insuranceChargeTiming)}</p>` : ''}
+          ${(summary.totalAdminFees ?? 0) > 0 ? `<p><strong>Tarifa administrativa (incluída nos custos mensais):</strong> ${formatCurrency(summary.totalAdminFees ?? 0)}</p>` : ''}
           <p><strong>Total com Custos:</strong> ${formatCurrency(summary.totalPaymentWithCosts)}</p>
           ${scenario.entryMode === 'existing_contract' ? '<p><strong>CET:</strong> Não se aplica ao saldo atual</p>' : `<p><strong>CET (a.a.):</strong> ${formatCetResult(summary.cet)}</p>`}
           <p><strong>FGTS Usado:</strong> ${formatCurrency(summary.totalFgtsUsed)}</p>

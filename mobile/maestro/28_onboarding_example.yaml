@@ -28,7 +28,10 @@ appId: com.lsimaocosta.calculadorapricesac
     element:
       id: summary-first-payment-value
     direction: DOWN
-    timeout: 20000
+    timeout: 30000
+    speed: 60
+    waitToSettleTimeoutMs: 500
+    visibilityPercentage: 30
 - assertVisible:
     id: section-summary
 - assertVisible:

@@ -91,7 +91,7 @@ describe('loan portability comparison', () => {
       termUnit: 'months',
       entryMode: 'existing_contract',
       includeInsurance: true,
-      insuranceRate: 0.02,
+      mipRate: 0.02,
       includeAdminFee: true,
       adminFeeRate: 0.01,
       prepayments: [],
@@ -187,6 +187,37 @@ describe('loan portability comparison', () => {
 
     expect(result.newMonthlyPayments).toEqual(result.currentMonthlyPayments);
     expect(result.totalSavings).toBe(0);
+  });
+
+  it('keeps split MIP, DFI, property basis, and fixed admin fee symmetric', () => {
+    const current = createExistingContractScenario({
+      id: 'split-insurance',
+      name: 'Contrato atual',
+      system: 'PRICE',
+      currentBalance: 100_000,
+      rate: 0.8,
+      rateType: 'monthly',
+      remainingInstallments: 24,
+      nextDueDate: new Date(2026, 7, 20),
+      borrowerAge: 38,
+      mipRate: 0.02,
+      dfiRate: 0.01,
+      adminFee: 25,
+    });
+    current.propertyValue = 200_000;
+
+    const result = calculatePortabilityComparison(current, {
+      rate: 0.8,
+      rateType: 'monthly',
+      term: 24,
+      costs: 0,
+    });
+
+    expect(result.proposalScenario.propertyValue).toBe(200_000);
+    expect(result.proposalScenario.mipRate).toBe(0.02);
+    expect(result.proposalScenario.dfiRate).toBe(0.01);
+    expect(result.proposalScenario.adminFee).toBe(25);
+    expect(result.newMonthlyPayments).toEqual(result.currentMonthlyPayments);
   });
 
   it('accepts a zero-interest portability proposal supported by the engine', () => {

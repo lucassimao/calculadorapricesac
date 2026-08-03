@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { generateAmortizationSchedule } from '@loan-engine/calculations';
 import { createExistingContractScenario, getScenarioEntryMode } from '../existing-contract';
 
 describe('existing-contract scenario conversion', () => {
@@ -53,7 +54,7 @@ describe('existing-contract scenario conversion', () => {
 
     expect(scenario).toMatchObject({
       includeInsurance: true,
-      insuranceRate: 0.025,
+      mipRate: 0.025,
       includeAdminFee: true,
       adminFeeRate: 0.01,
       indexType: 'TR',
@@ -63,6 +64,7 @@ describe('existing-contract scenario conversion', () => {
       includeOpeningFee: false,
       openingFee: 0,
     });
+    expect(generateAmortizationSchedule(scenario)[1]?.adminFee).toBeCloseTo(18.02, 2);
   });
 
   it('keeps legacy scenarios in new-loan analytics mode', () => {

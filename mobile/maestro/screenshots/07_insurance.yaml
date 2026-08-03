@@ -1,0 +1,4 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../32_split_insurance_costs.yaml
+- takeScreenshot: ../../../marketing/public/recursos/_captures/insurance

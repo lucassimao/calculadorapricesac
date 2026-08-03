@@ -9,8 +9,8 @@ export function UnlockCTA() {
       <div className={styles.unlockTitle}>Baixe o app para desbloquear</div>
       <p className={styles.unlockList}>
         amortizações recorrentes · amortização e portabilidade do contrato atual · FGTS com regras
-        por tipo de uso · custos (IOF, ITBI, seguro, cartório) · tabela completa · exportar PDF,
-        XLSX e CSV · salvar cenários
+        por tipo de uso · seguros MIP e DFI por base real · custos (IOF, ITBI, cartório) · tabela
+        completa · exportar PDF, XLSX e CSV · salvar cenários
       </p>
       <AppStoreLink className="" href={appStoreUrl} location="simulator">
         <span

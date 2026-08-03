@@ -308,7 +308,7 @@ export const guides: Guide[] = [
           },
           {
             type: 'callout',
-            text: 'Escopo da conferência: crédito prefixado, SAC e Price, sem seguros individualizados. A validação ainda não cobre TR, IPCA, MIP ou DFI; confira sempre a proposta e o CET fornecidos pelo seu banco.',
+            text: 'Escopo da conferência: SAC e Price foram validados no crédito prefixado. No exemplo imobiliário oficial do Itaú, uma execução auxiliar sem índice reproduz as taxas e bases de MIP/DFI na contratação; o fixture com TR reproduz a tarifa e os totais das três primeiras prestações dentro de R$ 1,50. O CET publicado de 10,43% não é reproduzido: ao projetar a TR informada nos 300 fluxos, o motor calcula 11,72%, e o documento não divulga datas, todos os fluxos nem as demais despesas usadas naquele CET. A cobrança dupla de seguros é uma opção explícita. Isso não valida TR, IPCA nem combinações específicas de apólice; confira sempre a proposta e o CET do seu banco.',
           },
         ],
       },
@@ -697,10 +697,130 @@ export const guides: Guide[] = [
         a: 'Sim. Use o modo de contrato atual para medir separadamente o impacto de uma amortização e o resultado nominal de uma proposta de portabilidade.',
       },
     ],
-    related: ['amortizar-prazo-ou-parcela', 'o-que-e-cet', 'sac-ou-price'],
+    related: [
+      'parcela-real-maior-mip-dfi-taxas',
+      'amortizar-prazo-ou-parcela',
+      'o-que-e-cet',
+      'sac-ou-price',
+    ],
     example: referenceExample,
     screenshots: guideScreenshots.table,
     resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
+  },
+  {
+    slug: 'parcela-real-maior-mip-dfi-taxas',
+    title: 'Por que a parcela real fica maior que a simulada? MIP, DFI e taxas',
+    metaTitle: 'Parcela real maior: entenda MIP, DFI e taxas',
+    description:
+      'Entenda por que o boleto do financiamento pode superar a simulação: MIP sobre saldo devedor, DFI sobre o imóvel e tarifa administrativa.',
+    updated: UPDATED,
+    hook: 'Juros e amortização não são o boleto inteiro: seguros e tarifa entram todo mês.',
+    intro:
+      'A parcela principal mostra amortização e juros, mas o boleto imobiliário também pode trazer seguros obrigatórios e tarifa administrativa. Quando a simulação omite esses itens ou usa a base errada, a parcela real aparece maior.',
+    sections: [
+      {
+        heading: 'O que compõe a parcela real',
+        blocks: [
+          {
+            type: 'list',
+            items: [
+              'Amortização: reduz o saldo devedor.',
+              'Juros: incidem sobre o saldo conforme a taxa contratada.',
+              'MIP: seguro de morte e invalidez permanente.',
+              'DFI: seguro de danos físicos ao imóvel.',
+              'Tarifa administrativa mensal, quando prevista no contrato.',
+            ],
+          },
+          {
+            type: 'callout',
+            text: 'No resumo e nas exportações do app, o total aparece como “Seguros: MIP + DFI”, separado dos demais custos mensais.',
+          },
+        ],
+      },
+      {
+        heading: 'MIP e DFI usam bases diferentes',
+        blocks: [
+          {
+            type: 'p',
+            text: 'A SUSEP informa que o limite da cobertura MIP acompanha o saldo devedor a cada mês. Como convenção de cálculo do app, a taxa mensal informada é aplicada a essa base; a alíquota depende da faixa etária do proponente e pode mudar durante o contrato.',
+          },
+          {
+            type: 'p',
+            text: 'Para o DFI, a SUSEP relaciona o limite da cobertura ao valor de avaliação atualizado do imóvel. A convenção de cálculo do app aplica a taxa mensal informada ao valor do imóvel; por isso o componente tende a permanecer mais estável — salvo atualização prevista na apólice.',
+          },
+          {
+            type: 'callout',
+            text: 'Os presets por idade são “estimativa — confira sua apólice”. A taxa MIP continua editável, porque seguradora, produto, composição de renda e reenquadramento podem mudar o valor real.',
+          },
+          {
+            type: 'source',
+            text: 'SUSEP — Seguro Habitacional: limites máximos das coberturas MIP e DFI vinculados, respectivamente, ao saldo devedor mensal e ao valor de avaliação atualizado (consultado em 3 de agosto de 2026).',
+            href: 'https://www.gov.br/susep/pt-br/assuntos/meu-futuro-seguro/seguros-previdencia-e-capitalizacao/seguros/seguro-habitacional',
+          },
+        ],
+      },
+      {
+        heading: 'Exemplo bancário conferido',
+        blocks: [
+          {
+            type: 'p',
+            text: 'O exemplo oficial histórico do Itaú usa imóvel de R$ 100.000, financiamento SAC de R$ 80.000 em 300 meses, comprador de 28 anos, MIP de 0,0202% a.m., DFI de 0,01337% a.m. e tarifa administrativa de R$ 25. A tabela discrimina esses itens nas três primeiras prestações.',
+          },
+          {
+            type: 'p',
+            text: 'Na primeira prestação, o material cobra dois meses de MIP e DFI: uma competência na assinatura e outra no primeiro vencimento. Essa convenção fica disponível como escolha explícita no app e retira os seguros da última parcela. O documento histórico mantém o MIP sobre o valor original nas linhas publicadas; o motor reduz a base com o saldo devedor. Em uma execução auxiliar sem índice, a primeira competência valida exatamente as taxas e bases na contratação; as linhas seguintes do fixture com TR validam apenas os totais dentro da tolerância de R$ 1,50. A diferença conhecida na ordem da TR também está nessa tolerância, que não comprova a correção monetária. O CET publicado de 10,43% não é reproduzido: a projeção da TR no motor resulta em 11,72%, e faltam no documento os 300 fluxos, datas e demais despesas necessários para reconciliá-lo.',
+          },
+          {
+            type: 'source',
+            text: 'Itaú Unibanco — Entenda como são calculadas as suas prestações (metadados do PDF: março/2008; consultado em 3 de agosto de 2026).',
+            href: 'https://ww3.itau.com.br/imobline/pre/pdf/calculoprestacao.pdf',
+          },
+        ],
+      },
+      {
+        heading: 'Como aproximar o boleto no simulador',
+        blocks: [
+          {
+            type: 'list',
+            items: [
+              'Informe a idade e aplique o preset MIP somente como ponto de partida.',
+              'Substitua MIP e DFI pelas taxas da sua apólice ou proposta.',
+              'Selecione a cobrança mensal ou duas competências na primeira parcela conforme sua apólice.',
+              'Informe a tarifa administrativa em reais por mês.',
+              'Compare o total da primeira parcela com o boleto e confira o CET.',
+            ],
+          },
+          {
+            type: 'appCta',
+            text: 'Separe MIP, DFI e tarifa para simular a parcela completa e exportar os custos.',
+            label: 'Baixar o app',
+          },
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'MIP e DFI são a mesma taxa?',
+        a: 'Não. O MIP cobre morte e invalidez e incide no saldo devedor; o DFI cobre danos ao imóvel e incide no valor do imóvel.',
+      },
+      {
+        q: 'Por que o MIP muda com a idade?',
+        a: 'A apólice define taxas por idade ou faixa etária e pode prever reenquadramentos ao longo do contrato. Confirme a regra do seu seguro.',
+      },
+      {
+        q: 'A tarifa administrativa é percentual?',
+        a: 'No exemplo bancário conferido ela é um valor fixo de R$ 25 por mês. Use o valor expresso no seu contrato ou boleto.',
+      },
+    ],
+    related: ['o-que-e-cet', 'amortizar-ou-portar-financiamento-atual', 'sac-ou-price'],
+    example: referenceExample,
+    screenshots: [
+      {
+        src: '/recursos/parcela-real-maior-mip-dfi-taxas/resumo.webp',
+        alt: 'Resumo do app com seguros MIP e DFI separados e forma de cobrança.',
+      },
+    ],
+    resourceSlug: 'cet-custo-real-financiamento',
   },
   {
     slug: 'entrada-financiamento',

@@ -10,7 +10,7 @@ import {
   validateScenario,
 } from '@loan-engine/calculations';
 import type { Scenario } from '@loan-engine/loan';
-import { bankParityFixtures } from './fixtures/bank-parity.fixtures';
+import { bankParityFixtures, insuranceBankParityFixture } from './fixtures/bank-parity.fixtures';
 
 const baseScenario: Scenario = {
   id: 'test',
@@ -42,6 +42,86 @@ function expectReconciled(schedule: ReturnType<typeof generateAmortizationSchedu
 }
 
 describe('generateAmortizationSchedule', () => {
+  it('splits MIP on the outstanding balance, DFI on property value, and a fixed admin fee', () => {
+    const scenario: Scenario = {
+      ...baseScenario,
+      loanMode: 'property',
+      propertyValue: 200_000,
+      downPayment: 100_000,
+      principal: 100_000,
+      mipRate: 0.02,
+      dfiRate: 0.01,
+      borrowerAge: 38,
+      adminFee: 25,
+    };
+
+    const schedule = generateAmortizationSchedule(scenario);
+    const first = schedule[1];
+    const second = schedule[2];
+    const summary = calculateLoanSummary(schedule, scenario);
+
+    expect(first.mipInsurance).toBe(20);
+    expect(first.dfiInsurance).toBe(20);
+    expect(first.insurance).toBe(40);
+    expect(first.adminFee).toBe(25);
+    expect(first.extraCosts).toBe(65);
+    expect(second.dfiInsurance).toBe(20);
+    expect(second.mipInsurance).toBeLessThan(first.mipInsurance ?? 0);
+    expect(summary.totalMipInsurance).toBeGreaterThan(0);
+    expect(summary.totalDfiInsurance).toBe(240);
+    expect(summary.totalAdminFees).toBe(300);
+    expect(summary.totalMipInsurance! + summary.totalDfiInsurance!).toBe(
+      schedule.reduce((total, row) => total + (row.insurance ?? 0), 0),
+    );
+  });
+
+  it('moves the prepaid insurance exemption to an early-payoff final installment', () => {
+    const schedule = generateAmortizationSchedule({
+      ...baseScenario,
+      loanMode: 'property',
+      propertyValue: 20_000,
+      downPayment: 10_000,
+      mipRate: 0.02,
+      dfiRate: 0.01,
+      insuranceChargeTiming: 'prepaid_at_signing',
+      prepayments: [
+        {
+          id: 'early-payoff',
+          date: new Date(2026, 10, 5),
+          amount: 100_000,
+          type: 'fixed_amount',
+          strategy: 'reduce_term',
+        },
+      ],
+    });
+
+    expect(schedule[1]?.insurance).toBe(8);
+    expect(schedule).toHaveLength(11);
+    expect(schedule.at(-1)?.installmentNumber).toBe(10);
+    expect(schedule.at(-1)?.insurance).toBeUndefined();
+  });
+
+  it.each(['PRICE', 'SAC'] as const)(
+    'charges one insurance competence for a one-installment %s loan',
+    (system) => {
+      const schedule = generateAmortizationSchedule({
+        ...baseScenario,
+        system,
+        term: 1,
+        loanMode: 'property',
+        propertyValue: 20_000,
+        downPayment: 10_000,
+        mipRate: 0.02,
+        dfiRate: 0.01,
+        insuranceChargeTiming: 'prepaid_at_signing',
+      });
+
+      expect(schedule[1]?.mipInsurance).toBe(2);
+      expect(schedule[1]?.dfiInsurance).toBe(2);
+      expect(schedule[1]?.insurance).toBe(4);
+    },
+  );
+
   it('matches spreadsheet values for Price example', () => {
     const schedule = generateAmortizationSchedule({ ...baseScenario, system: 'PRICE' });
     const firstPayment = schedule[1];
@@ -769,6 +849,49 @@ describe('published bank parity', () => {
       );
     }
   });
+
+  it('extends P0.8 with the published Itaú SAC schedule including MIP, DFI, and admin fee', () => {
+    const fixture = insuranceBankParityFixture;
+    const schedule = generateAmortizationSchedule(fixture.scenario);
+    const insuranceOnlySchedule = generateAmortizationSchedule({
+      ...fixture.scenario,
+      indexType: undefined,
+      indexRate: undefined,
+    });
+
+    expect(fixture.source.url).toBe(
+      'https://ww3.itau.com.br/imobline/pre/pdf/calculoprestacao.pdf',
+    );
+    expect(fixture.source.referenceDate).toBe('2008-03');
+    for (const expected of fixture.expectedRows) {
+      const row = schedule.find(
+        (candidate) => candidate.installmentNumber === expected.installmentNumber,
+      );
+      expect(row).toBeDefined();
+      expect(Math.abs((row?.totalCost ?? 0) - expected.totalCost)).toBeLessThanOrEqual(
+        fixture.paymentTolerance,
+      );
+      expect(row?.adminFee).toBe(expected.adminFee);
+    }
+    expect(insuranceOnlySchedule[1]?.mipInsurance).toBe(fixture.expectedOrigination.mipInsurance);
+    expect(insuranceOnlySchedule[1]?.dfiInsurance).toBe(fixture.expectedOrigination.dfiInsurance);
+    expect(schedule[2]?.mipInsurance).toBeLessThan(schedule[1]?.mipInsurance ?? 0);
+    expect(schedule[3]?.mipInsurance).toBeLessThan(schedule[2]?.mipInsurance ?? 0);
+    expect(fixture.source.methodology).toContain('só a primeira competência valida exatamente');
+    expect(fixture.source.methodology).toContain('não valida correção monetária');
+    const summary = calculateLoanSummary(schedule, fixture.scenario);
+    expect(summary.cet).toEqual({
+      status: 'available',
+      root: 'positive',
+      annualRate: fixture.modeledCetAnnualPercent,
+    });
+    expect(fixture.publishedCetAnnualPercent).toBe(10.43);
+    expect(fixture.modeledCetAnnualPercent - fixture.publishedCetAnnualPercent).toBeCloseTo(
+      1.29,
+      2,
+    );
+    expect(fixture.source.methodology).toContain('não reproduz o CET publicado');
+  });
 });
 
 describe('event application dates', () => {
@@ -991,6 +1114,24 @@ describe('validateScenario', () => {
     });
 
     expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('warns when DFI has no property-value basis', () => {
+    const result = validateScenario({
+      ...baseScenario,
+      includeInsurance: true,
+      dfiRate: 0.01,
+    });
+
+    expect(result.warnings).toContain(
+      'Taxa DFI informada sem valor do imóvel; o DFI foi calculado como zero.',
+    );
+  });
+
+  it.each([17, 28.5, 81])('warns for borrower age %s outside the preset range', (age) => {
+    expect(validateScenario({ ...baseScenario, borrowerAge: age }).warnings).toContain(
+      'Idade fora da faixa de estimativa (18 a 80 anos); informe a taxa MIP da apólice manualmente.',
+    );
   });
 
   it('requires a correction rate when an index is selected', () => {

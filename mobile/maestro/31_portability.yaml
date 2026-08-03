@@ -61,6 +61,14 @@ appId: com.lsimaocosta.calculadorapricesac
 - eraseText
 - inputText: '180'
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: input-portability-costs
+    direction: DOWN
+    timeout: 12000
+    speed: 60
+    waitToSettleTimeoutMs: 500
+    visibilityPercentage: 30
 - tapOn:
     id: input-portability-costs
 - inputText: '2000'

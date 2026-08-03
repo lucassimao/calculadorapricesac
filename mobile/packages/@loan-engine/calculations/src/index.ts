@@ -201,19 +201,46 @@ function takeEventsDueBy<T extends { date: Date }>(
   return dueEvents;
 }
 
-function getMonthlyExtraCosts(balance: number, scenario: Scenario) {
-  const includeInsurance = scenario.includeInsurance ?? (scenario.insuranceRate ?? 0) > 0;
-  const includeAdminFee = scenario.includeAdminFee ?? (scenario.adminFeeRate ?? 0) > 0;
-  const insuranceRate = scenario.insuranceRate ?? 0;
+function getMonthlyExtraCosts(balance: number, scenario: Scenario, insuranceMultiplier = 1) {
+  const mipRate = scenario.mipRate ?? scenario.insuranceRate ?? 0;
+  const dfiRate = scenario.dfiRate ?? 0;
+  const includeInsurance = scenario.includeInsurance ?? (mipRate > 0 || dfiRate > 0);
+  const includeAdminFee =
+    scenario.includeAdminFee ?? ((scenario.adminFee ?? 0) > 0 || (scenario.adminFeeRate ?? 0) > 0);
   const adminFeeRate = scenario.adminFeeRate ?? 0;
-  const insurance = includeInsurance ? balance * (insuranceRate / 100) : 0;
-  const adminFee = includeAdminFee ? balance * (adminFeeRate / 100) : 0;
-  const extraCosts = insurance + adminFee;
+  const mipInsurance = roundCents(
+    includeInsurance ? balance * (mipRate / 100) * insuranceMultiplier : 0,
+  );
+  const dfiInsurance = roundCents(
+    includeInsurance ? (scenario.propertyValue ?? 0) * (dfiRate / 100) * insuranceMultiplier : 0,
+  );
+  const insurance = roundCents(mipInsurance + dfiInsurance);
+  const adminFee = roundCents(
+    includeAdminFee
+      ? (scenario.adminFee ?? 0) > 0
+        ? scenario.adminFee!
+        : balance * (adminFeeRate / 100)
+      : 0,
+  );
+  const extraCosts = roundCents(insurance + adminFee);
   return {
     insurance,
+    mipInsurance,
+    dfiInsurance,
     adminFee,
     extraCosts,
   };
+}
+
+function getInsuranceMultiplier(
+  installmentNumber: number,
+  termMonths: number,
+  chargeTiming: Scenario['insuranceChargeTiming'],
+): number {
+  if (chargeTiming !== 'prepaid_at_signing' || termMonths === 1) return 1;
+  if (installmentNumber === 1) return 2;
+  if (installmentNumber === termMonths) return 0;
+  return 1;
 }
 
 export function convertRateToMonthly(rate: number, isAnnual: boolean): number {
@@ -457,9 +484,10 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         amortizationCents = balanceCents;
       }
       let paymentCents = interestCents + amortizationCents;
-      const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(
+      const { insurance, mipInsurance, dfiInsurance, adminFee, extraCosts } = getMonthlyExtraCosts(
         fromCents(balanceCents),
         scenario,
+        getInsuranceMultiplier(i, termMonths, scenario.insuranceChargeTiming),
       );
 
       const installmentDate = new Date(currentDate);
@@ -510,6 +538,8 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
             : undefined,
         prepaymentDescription: appliedAmortizations.description,
         insurance: insurance > 0 ? roundCents(insurance) : undefined,
+        mipInsurance: mipInsurance > 0 ? roundCents(mipInsurance) : undefined,
+        dfiInsurance: dfiInsurance > 0 ? roundCents(dfiInsurance) : undefined,
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
         totalCost: roundCents(fromCents(paymentCents) + extraCosts),
@@ -551,9 +581,10 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
         amortizationCents = balanceCents;
       }
       let paymentCents = interestCents + amortizationCents;
-      const { insurance, adminFee, extraCosts } = getMonthlyExtraCosts(
+      const { insurance, mipInsurance, dfiInsurance, adminFee, extraCosts } = getMonthlyExtraCosts(
         fromCents(balanceCents),
         scenario,
+        getInsuranceMultiplier(i, termMonths, scenario.insuranceChargeTiming),
       );
 
       const installmentDate = new Date(currentDate);
@@ -603,6 +634,8 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
             : undefined,
         prepaymentDescription: appliedAmortizations.description,
         insurance: insurance > 0 ? roundCents(insurance) : undefined,
+        mipInsurance: mipInsurance > 0 ? roundCents(mipInsurance) : undefined,
+        dfiInsurance: dfiInsurance > 0 ? roundCents(dfiInsurance) : undefined,
         adminFee: adminFee > 0 ? roundCents(adminFee) : undefined,
         extraCosts: extraCosts > 0 ? roundCents(extraCosts) : undefined,
         totalCost: roundCents(fromCents(paymentCents) + extraCosts),
@@ -623,6 +656,36 @@ export function generateAmortizationSchedule(scenario: Scenario): ScheduleRow[] 
     }
   }
 
+  if (scenario.insuranceChargeTiming === 'prepaid_at_signing') {
+    const actualLastInstallment = schedule.at(-1);
+    if (
+      actualLastInstallment &&
+      actualLastInstallment.installmentNumber > 0 &&
+      actualLastInstallment.installmentNumber < termMonths &&
+      (actualLastInstallment.insurance ?? 0) > 0
+    ) {
+      const retainedFraction = actualLastInstallment.installmentNumber === 1 ? 0.5 : 0;
+      const retainedMip = roundCents((actualLastInstallment.mipInsurance ?? 0) * retainedFraction);
+      const retainedDfi = roundCents((actualLastInstallment.dfiInsurance ?? 0) * retainedFraction);
+      const retainedInsurance = roundCents(retainedMip + retainedDfi);
+      const previousInsurance = actualLastInstallment.insurance ?? 0;
+      const adjustedExtraCosts = roundCents(
+        Math.max(
+          (actualLastInstallment.extraCosts ?? 0) - previousInsurance + retainedInsurance,
+          0,
+        ),
+      );
+
+      actualLastInstallment.mipInsurance = retainedMip > 0 ? retainedMip : undefined;
+      actualLastInstallment.dfiInsurance = retainedDfi > 0 ? retainedDfi : undefined;
+      actualLastInstallment.insurance = retainedInsurance > 0 ? retainedInsurance : undefined;
+      actualLastInstallment.extraCosts = adjustedExtraCosts > 0 ? adjustedExtraCosts : undefined;
+      actualLastInstallment.totalCost = roundCents(
+        actualLastInstallment.payment + adjustedExtraCosts,
+      );
+    }
+  }
+
   return schedule;
 }
 
@@ -636,6 +699,9 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
       fgtsAmortization: acc.fgtsAmortization + (row.fgtsAmortization ?? 0),
       fgtsSubsidy: acc.fgtsSubsidy + (row.fgtsSubsidy ?? 0),
       indexCorrection: acc.indexCorrection + (row.indexCorrection ?? 0),
+      mipInsurance: acc.mipInsurance + (row.mipInsurance ?? 0),
+      dfiInsurance: acc.dfiInsurance + (row.dfiInsurance ?? 0),
+      adminFees: acc.adminFees + (row.adminFee ?? 0),
     }),
     {
       payment: 0,
@@ -645,6 +711,9 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
       fgtsAmortization: 0,
       fgtsSubsidy: 0,
       indexCorrection: 0,
+      mipInsurance: 0,
+      dfiInsurance: 0,
+      adminFees: 0,
     },
   );
 
@@ -700,6 +769,9 @@ export function calculateLoanSummary(schedule: ScheduleRow[], scenario: Scenario
     totalFgtsUsed: roundCents(fgtsDownPayment + totals.fgtsAmortization + totals.fgtsSubsidy),
     totalPaymentNet: roundCents(totals.netPayment),
     totalIndexCorrection: roundCents(totals.indexCorrection),
+    totalMipInsurance: roundCents(totals.mipInsurance),
+    totalDfiInsurance: roundCents(totals.dfiInsurance),
+    totalAdminFees: roundCents(totals.adminFees),
   };
 }
 
@@ -757,7 +829,11 @@ export function validateScenario(
     scenario.downPayment,
     scenario.iofRate,
     scenario.insuranceRate,
+    scenario.mipRate,
+    scenario.dfiRate,
+    scenario.borrowerAge,
     scenario.adminFeeRate,
+    scenario.adminFee,
     scenario.openingFee,
     scenario.itbiRate,
     scenario.registryFee,
@@ -803,7 +879,10 @@ export function validateScenario(
     scenario.downPayment,
     scenario.iofRate,
     scenario.insuranceRate,
+    scenario.mipRate,
+    scenario.dfiRate,
     scenario.adminFeeRate,
+    scenario.adminFee,
     scenario.openingFee,
     scenario.itbiRate,
     scenario.registryFee,
@@ -843,6 +922,16 @@ export function validateScenario(
   if (!Number.isInteger(scenario.dueDay) || scenario.dueDay < 1 || scenario.dueDay > 31) {
     errors.push('Dia de vencimento deve ser um inteiro entre 1 e 31.');
   }
+  if (
+    scenario.borrowerAge !== undefined &&
+    (!Number.isInteger(scenario.borrowerAge) ||
+      scenario.borrowerAge < 18 ||
+      scenario.borrowerAge > 80)
+  ) {
+    warnings.push(
+      'Idade fora da faixa de estimativa (18 a 80 anos); informe a taxa MIP da apólice manualmente.',
+    );
+  }
   if (scenario.entryMode === 'existing_contract') {
     if (!scenario.nextDueDate || !Number.isFinite(scenario.nextDueDate.getTime())) {
       errors.push('Informe uma data válida para a próxima parcela.');
@@ -875,10 +964,21 @@ export function validateScenario(
       errors.push('Informe a entrada para o modo imobiliário.');
     }
   }
-  if ((scenario.includeInsurance ?? false) && (scenario.insuranceRate ?? 0) <= 0) {
+  if (
+    (scenario.includeInsurance ?? false) &&
+    (scenario.mipRate ?? scenario.insuranceRate ?? 0) <= 0 &&
+    (scenario.dfiRate ?? 0) <= 0
+  ) {
     warnings.push('Seguro ativado sem taxa informada.');
   }
-  if ((scenario.includeAdminFee ?? false) && (scenario.adminFeeRate ?? 0) <= 0) {
+  if ((scenario.dfiRate ?? 0) > 0 && (scenario.propertyValue ?? 0) <= 0) {
+    warnings.push('Taxa DFI informada sem valor do imóvel; o DFI foi calculado como zero.');
+  }
+  if (
+    (scenario.includeAdminFee ?? false) &&
+    (scenario.adminFee ?? 0) <= 0 &&
+    (scenario.adminFeeRate ?? 0) <= 0
+  ) {
     warnings.push('Tarifa administrativa ativada sem taxa informada.');
   }
   if ((scenario.includeIOF ?? false) && (scenario.iofRate ?? 0) <= 0) {

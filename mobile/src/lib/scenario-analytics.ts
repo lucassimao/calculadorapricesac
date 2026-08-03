@@ -32,8 +32,14 @@ export function getScenarioAnalyticsContext(scenario: Scenario, scheduleLength?:
     prepayment_count: prepaymentCount,
     has_fgts: fgtsEventCount > 0,
     fgts_event_count: fgtsEventCount,
-    has_insurance: Boolean(scenario.includeInsurance && (scenario.insuranceRate ?? 0) > 0),
-    has_admin_fee: Boolean(scenario.includeAdminFee && (scenario.adminFeeRate ?? 0) > 0),
+    has_insurance: Boolean(
+      scenario.includeInsurance &&
+      ((scenario.mipRate ?? scenario.insuranceRate ?? 0) > 0 || (scenario.dfiRate ?? 0) > 0),
+    ),
+    has_admin_fee: Boolean(
+      scenario.includeAdminFee &&
+      ((scenario.adminFee ?? 0) > 0 || (scenario.adminFeeRate ?? 0) > 0),
+    ),
     has_iof: Boolean(scenario.includeIOF && (scenario.iofRate ?? 0) > 0),
     entry_mode: getScenarioEntryMode(scenario),
     effective_installments:

@@ -46,6 +46,7 @@ import { LoanCharts } from '../../src/components/LoanCharts';
 import {
   IndexSelector,
   EntryModeSelector,
+  InsuranceCostsSection,
   PortabilitySection,
   ScenarioSection,
   SummarySection,
@@ -126,6 +127,7 @@ import {
   trackCalculationPerformed,
   trackPortabilityCompared,
 } from '../../src/lib/scenario-analytics';
+import { getEstimatedMipRateForAge } from '../../src/lib/insurance-rates';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -383,8 +385,11 @@ export default function CalculatorScreen() {
   const [nextDueDateText, setNextDueDateText] = useState('');
   const [dueDayText, setDueDayText] = useState('5');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [insuranceRateText, setInsuranceRateText] = useState('0');
-  const [adminFeeRateText, setAdminFeeRateText] = useState('0');
+  const [borrowerAgeText, setBorrowerAgeText] = useState('');
+  const [mipRateText, setMipRateText] = useState('0');
+  const [dfiRateText, setDfiRateText] = useState('0');
+  const [adminFeeText, setAdminFeeText] = useState('');
+  const [adminFeeRateText, setAdminFeeRateText] = useState<string | undefined>(undefined);
   const [iofRateText, setIofRateText] = useState('0');
   const [openingFeeText, setOpeningFeeText] = useState('0');
   const [itbiRateText, setItbiRateText] = useState('0');
@@ -797,9 +802,18 @@ export default function CalculatorScreen() {
     return () => clearTimeout(timeout);
   }, [scenario]);
 
-  const persistScenarios = async (nextScenarios: Scenario[]) => {
-    setScenarios(nextScenarios);
-    await saveScenarios(nextScenarios);
+  const persistScenarios = async (nextScenarios: Scenario[]): Promise<boolean> => {
+    try {
+      await saveScenarios(nextScenarios);
+      setScenarios(nextScenarios);
+      return true;
+    } catch (error) {
+      Alert.alert(
+        'Não foi possível salvar',
+        error instanceof Error ? error.message : 'O cenário não foi alterado. Tente novamente.',
+      );
+      return false;
+    }
   };
 
   const handleSaveScenario = async () => {
@@ -848,14 +862,17 @@ export default function CalculatorScreen() {
       return;
     }
     const nextList = [...scenarios];
+    let newId: string | null = null;
     if (existingIndex >= 0) {
       nextList[existingIndex] = scenario;
     } else {
-      const newId = Date.now().toString();
+      newId = Date.now().toString();
       nextList.unshift({ ...scenario, id: newId });
+    }
+    if (!(await persistScenarios(nextList))) return;
+    if (newId) {
       updateScenarioFromUser((prev) => ({ ...prev, id: newId }));
     }
-    await persistScenarios(nextList);
     registerAnalyticsProperties({ saved_scenario_count: nextList.length });
     trackEvent('scenario_saved', {
       is_update: existingIndex >= 0,
@@ -901,10 +918,17 @@ export default function CalculatorScreen() {
     setStartDateText(formatDateBR(target.startDate));
     setNextDueDateText(target.nextDueDate ? formatDateBR(target.nextDueDate) : '');
     setDueDayText(String(target.dueDay));
-    setInsuranceRateText(
-      target.insuranceRate ? String(target.insuranceRate).replace('.', ',') : '0',
+    setBorrowerAgeText(target.borrowerAge ? String(target.borrowerAge) : '');
+    setMipRateText(
+      (target.mipRate ?? target.insuranceRate)
+        ? String(target.mipRate ?? target.insuranceRate).replace('.', ',')
+        : '0',
     );
-    setAdminFeeRateText(target.adminFeeRate ? String(target.adminFeeRate).replace('.', ',') : '0');
+    setDfiRateText(target.dfiRate ? String(target.dfiRate).replace('.', ',') : '0');
+    setAdminFeeText(formatCurrencyValue(target.adminFee));
+    setAdminFeeRateText(
+      target.adminFeeRate ? String(target.adminFeeRate).replace('.', ',') : undefined,
+    );
     setIofRateText(target.iofRate ? String(target.iofRate).replace('.', ',') : '0');
     setOpeningFeeText(formatCurrencyValue(target.openingFee));
     setItbiRateText(target.itbiRate ? String(target.itbiRate).replace('.', ',') : '0');
@@ -944,7 +968,7 @@ export default function CalculatorScreen() {
         style: 'destructive',
         onPress: async () => {
           const nextList = scenarios.filter((s) => s.id !== id);
-          await persistScenarios(nextList);
+          if (!(await persistScenarios(nextList))) return;
           registerAnalyticsProperties({ saved_scenario_count: nextList.length });
           trackEvent('scenario_deleted', {
             remaining_scenarios: nextList.length,
@@ -1591,8 +1615,11 @@ export default function CalculatorScreen() {
     setIndexRateLabel(null);
     setIndexRateHelper(null);
     manualIndexRateEdited.current = false;
-    setInsuranceRateText('0');
-    setAdminFeeRateText('0');
+    setBorrowerAgeText('');
+    setMipRateText('0');
+    setDfiRateText('0');
+    setAdminFeeText('');
+    setAdminFeeRateText(undefined);
     setIofRateText('0');
     setOpeningFeeText('');
     setItbiRateText('0');
@@ -1639,8 +1666,11 @@ export default function CalculatorScreen() {
     setIndexRateLabel(null);
     setIndexRateHelper(null);
     manualIndexRateEdited.current = false;
-    setInsuranceRateText('0');
-    setAdminFeeRateText('0');
+    setBorrowerAgeText('');
+    setMipRateText('0');
+    setDfiRateText('0');
+    setAdminFeeText('');
+    setAdminFeeRateText(undefined);
     setIofRateText('0');
     setOpeningFeeText('');
     setItbiRateText('0');
@@ -1679,8 +1709,11 @@ export default function CalculatorScreen() {
     setIndexRateLabel(null);
     setIndexRateHelper(null);
     manualIndexRateEdited.current = false;
-    setInsuranceRateText('0');
-    setAdminFeeRateText('0');
+    setBorrowerAgeText('');
+    setMipRateText('0');
+    setDfiRateText('0');
+    setAdminFeeText('');
+    setAdminFeeRateText(undefined);
     setIofRateText('0');
     setOpeningFeeText('');
     setItbiRateText('0');
@@ -1905,7 +1938,11 @@ export default function CalculatorScreen() {
           rateType: scenario.rateType,
           remainingInstallments: getScenarioTermMonths(scenario),
           nextDueDate,
-          insuranceRate: scenario.insuranceRate,
+          propertyValue: scenario.propertyValue,
+          borrowerAge: scenario.borrowerAge,
+          mipRate: scenario.mipRate ?? scenario.insuranceRate,
+          dfiRate: scenario.dfiRate,
+          adminFee: scenario.adminFee,
           adminFeeRate: scenario.adminFeeRate,
           indexType: scenario.indexType,
           indexRate: scenario.indexRate,
@@ -1918,7 +1955,7 @@ export default function CalculatorScreen() {
         setDueDayText(String(existingScenario.dueDay));
         setIofRateText('0');
         setOpeningFeeText('');
-        setPropertyValueText('');
+        setPropertyValueText(formatCurrencyValue(existingScenario.propertyValue));
         setDownPaymentText('');
         setItbiRateText('0');
         setRegistryFeeText('');
@@ -1938,6 +1975,9 @@ export default function CalculatorScreen() {
           fgtsEvents: [],
           propertyValue: undefined,
           downPayment: undefined,
+          dfiRate: undefined,
+          insuranceChargeTiming: undefined,
+          includeInsurance: (scenario.mipRate ?? scenario.insuranceRate ?? 0) > 0,
           itbiRate: undefined,
           registryFee: undefined,
         };
@@ -1946,6 +1986,7 @@ export default function CalculatorScreen() {
         setDueDayText(String(nextScenario.dueDay));
         setNextDueDateText('');
         setPropertyValueText('');
+        setDfiRateText('0');
         setDownPaymentText('');
         setPortabilityRateText('');
         setPortabilityTermText('');
@@ -2136,6 +2177,7 @@ export default function CalculatorScreen() {
               if (mode === 'standard') {
                 setPropertyValueText('');
                 setDownPaymentText('');
+                setDfiRateText('0');
                 updateScenarioFromUser((prev) => ({
                   ...prev,
                   loanMode: 'standard',
@@ -2143,6 +2185,9 @@ export default function CalculatorScreen() {
                   downPayment: undefined,
                   itbiRate: undefined,
                   registryFee: undefined,
+                  dfiRate: undefined,
+                  insuranceChargeTiming: undefined,
+                  includeInsurance: (prev.mipRate ?? prev.insuranceRate ?? 0) > 0,
                 }));
               } else {
                 updateScenarioFromUser((prev) => ({ ...prev, loanMode: 'property' }));
@@ -2428,7 +2473,7 @@ export default function CalculatorScreen() {
             <Text style={[styles.helperText, { color: colors.textTertiary }]}>
               {isExistingContract
                 ? 'Informe apenas seguros e tarifas mensais que ainda aparecem no boleto.'
-                : 'Use taxas mensais (%) sobre o saldo devedor. Custos iniciais são cobrados na assinatura.'}
+                : 'MIP incide no saldo devedor; DFI, no valor do imóvel. Custos iniciais são cobrados na assinatura.'}
             </Text>
             {isExistingContract ? null : (
               <>
@@ -2451,40 +2496,98 @@ export default function CalculatorScreen() {
               </>
             )}
 
-            <Text style={[styles.label, themedStyles.label]}>Seguro (% do saldo ao mês)</Text>
-            <TextInput
-              value={insuranceRateText}
-              onChangeText={(text) => {
-                setInsuranceRateText(text);
+            <InsuranceCostsSection
+              borrowerAgeText={borrowerAgeText}
+              mipRateText={mipRateText}
+              dfiRateText={dfiRateText}
+              adminFeeText={adminFeeText}
+              legacyAdminFeeRateText={adminFeeRateText}
+              showDfi={isPropertyMode || isExistingContract}
+              showInsuranceTiming={isPropertyMode && !isExistingContract}
+              insuranceChargeTiming={scenario.insuranceChargeTiming ?? 'monthly'}
+              isExistingContract={isExistingContract}
+              propertyValueText={propertyValueText}
+              onPropertyValueTextChange={(text) => {
+                const { display, value } = maskCurrencyInput(text);
+                setPropertyValueText(display);
                 updateScenarioFromUser((prev) => ({
                   ...prev,
-                  insuranceRate: parseNumberInput(text),
-                  includeInsurance: parseNumberInput(text) > 0,
+                  propertyValue: value > 0 ? value : undefined,
                 }));
               }}
-              keyboardType="numeric"
-              style={[styles.input, themedStyles.input]}
-              placeholderTextColor={colors.textTertiary}
-              accessibilityLabel="Taxa de seguro"
-            />
-
-            <Text style={[styles.label, themedStyles.label]}>
-              Tarifa administrativa (% do saldo ao mês)
-            </Text>
-            <TextInput
-              value={adminFeeRateText}
-              onChangeText={(text) => {
+              onBorrowerAgeTextChange={(text) => {
+                setBorrowerAgeText(text);
+              }}
+              onBorrowerAgeBlur={() => {
+                const normalizedAge = borrowerAgeText.trim();
+                const age = /^\d+$/.test(normalizedAge) ? Number(normalizedAge) : undefined;
+                updateScenarioFromUser((prev) => ({
+                  ...prev,
+                  borrowerAge: age,
+                }));
+              }}
+              onApplyAgeEstimate={() => {
+                const normalizedAge = borrowerAgeText.trim();
+                const estimate = /^\d+$/.test(normalizedAge)
+                  ? getEstimatedMipRateForAge(Number(normalizedAge))
+                  : null;
+                if (estimate === null) {
+                  Alert.alert(
+                    'Idade sem estimativa',
+                    'Informe uma idade inteira entre 18 e 80 anos.',
+                  );
+                  return;
+                }
+                setMipRateText(String(estimate).replace('.', ','));
+                updateScenarioFromUser((prev) => ({
+                  ...prev,
+                  insuranceRate: undefined,
+                  borrowerAge: Number(normalizedAge),
+                  mipRate: estimate,
+                  includeInsurance: estimate > 0 || (prev.dfiRate ?? 0) > 0,
+                }));
+              }}
+              onMipRateTextChange={(text) => {
+                setMipRateText(text);
+                const mipRate = parseNumberInput(text);
+                updateScenarioFromUser((prev) => ({
+                  ...prev,
+                  insuranceRate: undefined,
+                  mipRate,
+                  includeInsurance: mipRate > 0 || (prev.dfiRate ?? 0) > 0,
+                }));
+              }}
+              onDfiRateTextChange={(text) => {
+                setDfiRateText(text);
+                const dfiRate = parseNumberInput(text);
+                updateScenarioFromUser((prev) => ({
+                  ...prev,
+                  dfiRate,
+                  includeInsurance: dfiRate > 0 || (prev.mipRate ?? prev.insuranceRate ?? 0) > 0,
+                }));
+              }}
+              onInsuranceChargeTimingChange={(insuranceChargeTiming) => {
+                updateScenarioFromUser((prev) => ({ ...prev, insuranceChargeTiming }));
+              }}
+              onAdminFeeTextChange={(text) => {
+                const { display, value } = maskCurrencyInput(text);
+                setAdminFeeText(display);
+                updateScenarioFromUser((prev) => ({
+                  ...prev,
+                  adminFeeRate: value > 0 ? undefined : parseNumberInput(adminFeeRateText ?? '0'),
+                  adminFee: value,
+                  includeAdminFee: value > 0 || parseNumberInput(adminFeeRateText ?? '0') > 0,
+                }));
+              }}
+              onLegacyAdminFeeRateTextChange={(text) => {
                 setAdminFeeRateText(text);
+                const adminFeeRate = parseNumberInput(text);
                 updateScenarioFromUser((prev) => ({
                   ...prev,
-                  adminFeeRate: parseNumberInput(text),
-                  includeAdminFee: parseNumberInput(text) > 0,
+                  adminFeeRate,
+                  includeAdminFee: adminFeeRate > 0 || (prev.adminFee ?? 0) > 0,
                 }));
               }}
-              keyboardType="numeric"
-              style={[styles.input, themedStyles.input]}
-              placeholderTextColor={colors.textTertiary}
-              accessibilityLabel="Taxa administrativa"
             />
 
             {isExistingContract ? null : (
@@ -2604,6 +2707,7 @@ export default function CalculatorScreen() {
             indexType={scenario.indexType}
             indexRate={scenario.indexRate}
             cetNotApplicable={isExistingContract}
+            insuranceChargeTiming={scenario.insuranceChargeTiming}
           />
 
           <AdBanner enabled={showAds} />
