@@ -11,16 +11,16 @@ import { resources } from './recursos/content';
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Simulador de Financiamento Imobiliário SAC e Price' },
+  title: { absolute: 'Calculadora SAC e Price — Simulador de Financiamento' },
   description:
-    'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
+    'Calculadora SAC e Price com tabela SAC e simulador de amortização. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Simulador SAC e Price',
+    title: 'Calculadora SAC e Price — Simulador de Financiamento',
     description:
-      'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
+      'Calculadora SAC e Price com tabela SAC e simulador de amortização. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
     url: siteUrl,
     images: [
       {
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    title: 'Simulador SAC e Price',
+    title: 'Calculadora SAC e Price — Simulador de Financiamento',
     description:
-      'Simulador de financiamento imobiliário com SAC e Price. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
+      'Calculadora SAC e Price com tabela SAC e simulador de amortização. Compare parcelas, custos, CET e visualize tabelas e gráficos.',
     images: [`${siteUrl}/twitter-image`],
   },
 };
@@ -79,7 +79,7 @@ export default function Home() {
             Funciona offline • sem cadastro
           </span>
           <h1 className={`${styles.heroTitle} ${styles.fadeUp} ${styles.delay1}`}>
-            Simule financiamento imobiliário com SAC e Price, sem perder tempo.
+            Calculadora SAC e Price — simulador de financiamento
           </h1>
           <p className={`${styles.heroSubtitle} ${styles.fadeUp} ${styles.delay2}`}>
             Calcule parcelas, juros, custos e CET com metodologia transparente. Compare os sistemas

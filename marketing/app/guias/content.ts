@@ -1,12 +1,21 @@
 // Editorial guides (SEO content). Single source for the /guias index, the
 // /guias/[slug] pages, their structured data, and the sitemap.
 
+import {
+  calculateLoanSummary,
+  formatCetResult,
+  formatCurrency,
+  generateAmortizationSchedule,
+} from '@loan-engine/calculations';
+import type { Scenario } from '@loan-engine/loan';
+
 export type Block =
   | { type: 'p'; text: string }
   | { type: 'list'; items: string[] }
   | { type: 'table'; head: string[]; rows: string[][] }
   | { type: 'callout'; text: string }
   | { type: 'source'; text: string; href: string }
+  | { type: 'internalLink'; text: string; href: string; label: string }
   | { type: 'appCta'; text: string; label: string };
 
 export interface Section {
@@ -17,6 +26,20 @@ export interface Section {
 export interface Faq {
   q: string;
   a: string;
+}
+
+export interface GuideScreenshot {
+  src: string;
+  alt: string;
+}
+
+export interface GuideExample {
+  sacFirstPayment: string;
+  sacLastPayment: string;
+  sacTotalInterest: string;
+  priceTotalInterest: string;
+  sacCet: string;
+  priceCet: string;
 }
 
 export interface Guide {
@@ -35,11 +58,80 @@ export interface Guide {
   sections: Section[];
   faq: Faq[];
   related: string[];
+  example: GuideExample;
+  screenshots: GuideScreenshot[];
   /** Closest product-tour page in /recursos, created by P3.4. */
   resourceSlug: string;
 }
 
-const UPDATED = '2026-06-02';
+const UPDATED = '2026-08-03';
+
+const referenceScenario: Scenario = {
+  id: 'marketing-reference',
+  name: 'Exemplo de referência',
+  system: 'SAC',
+  loanMode: 'property',
+  propertyValue: 400_000,
+  downPayment: 80_000,
+  principal: 320_000,
+  rate: 11.5,
+  rateType: 'annual',
+  term: 360,
+  termUnit: 'months',
+  startDate: new Date(2026, 0, 1),
+  dueDay: 5,
+};
+
+function exampleFor(system: 'SAC' | 'PRICE') {
+  const scenario = { ...referenceScenario, id: `marketing-reference-${system}`, system };
+  return calculateLoanSummary(generateAmortizationSchedule(scenario), scenario);
+}
+
+const referenceSac = exampleFor('SAC');
+const referencePrice = exampleFor('PRICE');
+
+export const referenceExample: GuideExample = {
+  sacFirstPayment: formatCurrency(referenceSac.firstPayment),
+  sacLastPayment: formatCurrency(referenceSac.lastPayment),
+  sacTotalInterest: formatCurrency(referenceSac.totalInterest),
+  priceTotalInterest: formatCurrency(referencePrice.totalInterest),
+  sacCet: formatCetResult(referenceSac.cet),
+  priceCet: formatCetResult(referencePrice.cet),
+};
+
+const guideScreenshots = {
+  sac: [
+    { src: '/recursos/simulador-sac-ou-price/resumo.webp', alt: 'Resumo do financiamento no app.' },
+    {
+      src: '/recursos/simulador-sac-ou-price/graficos.webp',
+      alt: 'Gráficos de saldo e parcelas no app.',
+    },
+  ],
+  table: [
+    {
+      src: '/recursos/amortizacao-reduzir-prazo-ou-parcela/tabela.webp',
+      alt: 'Tabela de amortização do app.',
+    },
+  ],
+  fgts: [
+    {
+      src: '/recursos/fgts-no-financiamento-simulador/resumo.webp',
+      alt: 'Resumo do financiamento com FGTS no app.',
+    },
+  ],
+  cet: [
+    {
+      src: '/recursos/cet-custo-real-financiamento/resumo.webp',
+      alt: 'Resumo com juros, total pago e CET no app.',
+    },
+  ],
+  entry: [
+    {
+      src: '/recursos/renda-para-financiar-imovel/resumo.webp',
+      alt: 'Primeira parcela exibida no resumo do app.',
+    },
+  ],
+} satisfies Record<string, GuideScreenshot[]>;
 
 export const guides: Guide[] = [
   {
@@ -106,9 +198,15 @@ export const guides: Guide[] = [
             type: 'list',
             items: [
               'Escolha SAC se você aguenta uma parcela inicial maior e quer economizar no total de juros.',
-              'Escolha Price se prefere uma parcela fixa e mais baixa no começo, mesmo pagando mais juros ao longo do tempo.',
+              'Escolha Price se prefere uma parcela fixa e mais baixa no começo; pela regra dos 30%, essa parcela inicial menor pode facilitar a aprovação com renda menor, mesmo pagando mais juros ao longo do tempo.',
               'Na dúvida, compare o total pago e o CET dos dois — não só o valor da primeira parcela.',
             ],
+          },
+          {
+            type: 'internalLink',
+            text: 'A parcela inicial também influencia a renda exigida na análise de crédito.',
+            href: '/recursos/renda-para-financiar-imovel',
+            label: 'Calcular renda pela parcela →',
           },
         ],
       },
@@ -128,6 +226,8 @@ export const guides: Guide[] = [
       },
     ],
     related: ['tabela-price', 'amortizar-prazo-ou-parcela', 'o-que-e-cet'],
+    example: referenceExample,
+    screenshots: guideScreenshots.sac,
     resourceSlug: 'simulador-sac-ou-price',
   },
   {
@@ -136,7 +236,7 @@ export const guides: Guide[] = [
     metaTitle: 'CET: o que é o Custo Efetivo Total do financiamento',
     description:
       'O CET mostra o custo real do financiamento, incluindo juros, seguros e tarifas. Entenda por que ele é mais importante que a taxa de juros anunciada.',
-    updated: '2026-08-01',
+    updated: UPDATED,
     hook: 'A taxa anunciada não é o custo real. O CET é.',
     intro:
       'O CET (Custo Efetivo Total) é a taxa que reúne tudo o que você paga em um financiamento — não só os juros, mas também seguros e tarifas. É o número que permite comparar propostas de forma justa.',
@@ -228,6 +328,8 @@ export const guides: Guide[] = [
       },
     ],
     related: ['sac-ou-price', 'entrada-financiamento', 'fgts-no-financiamento'],
+    example: referenceExample,
+    screenshots: guideScreenshots.cet,
     resourceSlug: 'cet-custo-real-financiamento',
   },
   {
@@ -236,7 +338,7 @@ export const guides: Guide[] = [
     metaTitle: 'FGTS no financiamento imobiliário: como usar e regras',
     description:
       'Veja como usar o FGTS no financiamento: na entrada, para amortizar o saldo devedor ou para abater parcelas — e as principais condições.',
-    updated: '2026-08-02',
+    updated: UPDATED,
     hook: 'Entrada, amortização ou abatimento de parcelas — onde o FGTS rende mais.',
     intro:
       'O FGTS pode ser uma das ferramentas mais poderosas no financiamento da casa própria. Ele pode ser usado de três formas, cada uma com um efeito diferente no seu bolso. Veja como funciona e as condições gerais.',
@@ -332,6 +434,8 @@ export const guides: Guide[] = [
       },
     ],
     related: ['entrada-financiamento', 'amortizar-prazo-ou-parcela', 'sac-ou-price'],
+    example: referenceExample,
+    screenshots: guideScreenshots.fgts,
     resourceSlug: 'fgts-no-financiamento-simulador',
   },
   {
@@ -365,9 +469,15 @@ export const guides: Guide[] = [
             type: 'list',
             items: [
               'Previsibilidade: a parcela é conhecida e não sobe (fora a correção do índice).',
-              'Parcela inicial menor que a do SAC, o que pode facilitar a aprovação do crédito.',
+              'Parcela inicial menor que a do SAC, o que pode facilitar a aprovação do crédito pela regra dos 30% de comprometimento de renda.',
               'Bom para quem prioriza estabilidade no orçamento mensal.',
             ],
+          },
+          {
+            type: 'internalLink',
+            text: 'Veja uma referência de renda mínima a partir da primeira parcela.',
+            href: '/recursos/renda-para-financiar-imovel',
+            label: 'Ver recurso de renda →',
           },
         ],
       },
@@ -404,6 +514,8 @@ export const guides: Guide[] = [
       },
     ],
     related: ['sac-ou-price', 'amortizar-prazo-ou-parcela', 'o-que-e-cet'],
+    example: referenceExample,
+    screenshots: guideScreenshots.sac,
     resourceSlug: 'financiamento-de-veiculo-tabela-price',
   },
   {
@@ -412,7 +524,7 @@ export const guides: Guide[] = [
     metaTitle: 'Amortizar: reduzir prazo ou parcela? O que vale mais',
     description:
       'Ao amortizar o financiamento, você pode reduzir o prazo ou o valor da parcela. Veja qual opção economiza mais juros e quando escolher cada uma.',
-    updated: '2026-08-02',
+    updated: UPDATED,
     hook: 'Reduzir prazo economiza mais juros; reduzir parcela alivia o mês.',
     intro:
       'Quando você faz uma amortização extra — com dinheiro próprio ou FGTS — o banco oferece duas opções: reduzir o prazo do financiamento ou reduzir o valor das parcelas. A escolha muda bastante o resultado.',
@@ -494,6 +606,8 @@ export const guides: Guide[] = [
       },
     ],
     related: ['sac-ou-price', 'fgts-no-financiamento', 'tabela-price'],
+    example: referenceExample,
+    screenshots: guideScreenshots.table,
     resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
   },
   {
@@ -558,6 +672,8 @@ export const guides: Guide[] = [
       },
     ],
     related: ['o-que-e-cet', 'fgts-no-financiamento', 'sac-ou-price'],
+    example: referenceExample,
+    screenshots: guideScreenshots.entry,
     resourceSlug: 'renda-para-financiar-imovel',
   },
 ];

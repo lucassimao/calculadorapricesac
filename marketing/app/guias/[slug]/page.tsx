@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import styles from '../guias.module.css';
@@ -62,6 +63,12 @@ function renderBlock(block: Block, i: number) {
           <a href={block.href} target="_blank" rel="noreferrer">
             {block.text}
           </a>
+        </p>
+      );
+    case 'internalLink':
+      return (
+        <p key={i} className={styles.internalLink}>
+          {block.text} <Link href={block.href}>{block.label}</Link>
         </p>
       );
     case 'appCta':
@@ -178,6 +185,70 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           {section.blocks.map((block, j) => renderBlock(block, j))}
         </section>
       ))}
+
+      <section className={styles.section}>
+        <h2>Exemplo com números reais</h2>
+        <p>
+          Para comparar os sistemas com uma base comum, usamos o cenário de referência do app:
+          imóvel de R$ 400.000, entrada de 20%, taxa de 11,5% a.a. e prazo de 360 meses. Os números
+          abaixo são calculados pelo mesmo @loan-engine usado no simulador durante o build.
+        </p>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Indicador</th>
+                <th>SAC</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1ª parcela</td>
+                <td>{guide.example.sacFirstPayment}</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td>Última parcela SAC</td>
+                <td>{guide.example.sacLastPayment}</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td>Total de juros</td>
+                <td>{guide.example.sacTotalInterest}</td>
+                <td>{guide.example.priceTotalInterest}</td>
+              </tr>
+              <tr>
+                <td>CET</td>
+                <td>{guide.example.sacCet}</td>
+                <td>{guide.example.priceCet}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className={styles.callout}>
+          É uma referência para entender a ordem de grandeza. Custos, datas, seguros e indexadores
+          da sua proposta podem mudar o resultado.
+        </p>
+      </section>
+
+      <section className={styles.section}>
+        <h2>Telas do app</h2>
+        <div className={styles.guideScreenshots}>
+          {guide.screenshots.map((screenshot) => (
+            <figure key={screenshot.src} className={styles.guideScreenshot}>
+              <Image
+                src={screenshot.src}
+                alt={screenshot.alt}
+                width={360}
+                height={640}
+                loading="lazy"
+              />
+              <figcaption>{screenshot.alt}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
 
       <h2 className={styles.sectionHeading}>Perguntas frequentes</h2>
       <div className={styles.faq}>

@@ -74,6 +74,45 @@
   text-underline-offset: 3px;
 }
 
+.internalLink {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.internalLink a {
+  color: var(--accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.guideScreenshots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.guideScreenshot {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.guideScreenshot img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(215, 210, 198, 0.8);
+  background: #fff;
+}
+
+.guideScreenshot figcaption {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .guideAppCta {
   display: flex;
   flex-wrap: wrap;

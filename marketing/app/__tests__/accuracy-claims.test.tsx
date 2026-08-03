@@ -37,7 +37,7 @@ describe('constrained accuracy claims', () => {
     const fgtsGuide = guides.find((guide) => guide.slug === 'fgts-no-financiamento');
     const copy = JSON.stringify(fgtsGuide);
 
-    expect(fgtsGuide?.updated).toBe('2026-08-02');
+    expect(fgtsGuide?.updated).toBe('2026-08-03');
     expect(copy).toContain('2 anos');
     expect(copy).toContain('12 prestações consecutivas');
     expect(copy).toContain('80%');
@@ -53,7 +53,7 @@ describe('constrained accuracy claims', () => {
     const amortizationGuide = guides.find((guide) => guide.slug === 'amortizar-prazo-ou-parcela');
     const copy = JSON.stringify(amortizationGuide);
 
-    expect(amortizationGuide?.updated).toBe('2026-08-02');
+    expect(amortizationGuide?.updated).toBe('2026-08-03');
     expect(copy).toContain('Amortizações recorrentes');
     expect(copy).toContain('mensal, anual ou a cada 2 anos');
     expect(copy).toContain('cada evento continua editável');
