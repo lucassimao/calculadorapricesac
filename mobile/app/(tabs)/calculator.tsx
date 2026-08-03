@@ -51,6 +51,7 @@ import { AmortizationTable } from '../../src/components/AmortizationTable';
 import { LoanCharts } from '../../src/components/LoanCharts';
 import {
   AmortizeOrInvestSection,
+  FgtsRulesHelper,
   IndexSelector,
   EntryModeSelector,
   InsuranceCostsSection,
@@ -107,8 +108,6 @@ import {
   buildRecurringFgtsEvents,
   buildRecurringPrepaymentEvents,
   canAppendFgtsInstallmentEvents,
-  FGTS_RULES_SOURCE,
-  FGTS_RULES_REVIEWED_LABEL,
   getFgtsRecurrencePolicy,
   getFgtsUsageExplainer,
   trimEventsToSchedule,
@@ -3460,16 +3459,7 @@ export default function CalculatorScreen() {
             >
               {getFgtsUsageExplainer(newFgts.usage ?? 'amortization')}
             </Text>
-            <Pressable
-              onPress={() => void Linking.openURL(FGTS_RULES_SOURCE)}
-              accessibilityRole="link"
-              accessibilityLabel="Abrir regras oficiais do FGTS"
-              testID="fgts-rules-link"
-            >
-              <Text style={[styles.linkText, { color: colors.primary }]}>
-                Regras oficiais do FGTS (consultadas em {FGTS_RULES_REVIEWED_LABEL})
-              </Text>
-            </Pressable>
+            <FgtsRulesHelper showDownPayment={!isExistingContract} />
             {editingFgtsId ? (
               <Text style={[styles.helperText, { color: colors.textTertiary }]}>
                 Editando somente esta ocorrência; as demais datas da série não mudam.
@@ -4302,11 +4292,6 @@ const styles = StyleSheet.create({
   prepaymentImpactText: {
     fontSize: 12,
     lineHeight: 17,
-  },
-  linkText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   exportHint: {
     fontSize: 12,

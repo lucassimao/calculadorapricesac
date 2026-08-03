@@ -35,11 +35,19 @@ export const Modal = ({
 export const Pressable = createHostComponent('Pressable');
 export const ActivityIndicator = createHostComponent('ActivityIndicator');
 export const Image = createHostComponent('Image');
+export const ScrollView = createHostComponent('ScrollView');
 export const Text = createHostComponent('Text');
 export const TextInput = createHostComponent('TextInput');
 export const View = createHostComponent('View');
 
 export const StyleSheet = {
+  absoluteFill: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
   create<T>(styles: T) {
     return styles;
   },

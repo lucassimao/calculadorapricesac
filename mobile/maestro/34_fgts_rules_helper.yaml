@@ -1,0 +1,97 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- evalScript: ${output.fgtsRulesVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'btn-open-fgts-rules'
+    commands:
+      - evalScript: ${output.fgtsRulesVisible = true}
+- repeat:
+    while:
+      true: ${output.fgtsRulesVisible == false}
+    times: 16
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'btn-open-fgts-rules'
+          commands:
+            - evalScript: ${output.fgtsRulesVisible = true}
+- assertVisible:
+    id: 'btn-open-fgts-rules'
+- tapOn:
+    id: 'btn-open-fgts-rules'
+- assertVisible:
+    id: 'fgts-rules-sheet'
+- assertVisible: 'Como usar o FGTS'
+- assertVisible:
+    id: 'fgts-rule-down-payment'
+- assertVisible:
+    id: 'fgts-rule-amortization'
+- assertVisible:
+    id: 'fgts-rule-installment'
+- scrollUntilVisible:
+    element:
+      id: 'fgts-rules-sheet-source'
+    direction: DOWN
+    timeout: 8000
+    speed: 40
+    visibilityPercentage: 20
+- assertVisible: '.*02/08/2026.*'
+- tapOn:
+    id: 'btn-close-fgts-rules'
+- assertNotVisible:
+    id: 'fgts-rules-sheet'
+
+- runFlow: helpers/launch_dev_client.yaml
+- repeat:
+    times: 8
+    commands:
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 85%
+- scrollUntilVisible:
+    element:
+      id: 'entry-mode-existing-contract'
+    direction: DOWN
+    timeout: 12000
+    speed: 50
+    visibilityPercentage: 10
+- tapOn:
+    id: 'entry-mode-existing-contract'
+- tapOn:
+    text: 'Trocar e limpar'
+- evalScript: ${output.existingFgtsRulesVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: 'btn-open-fgts-rules'
+    commands:
+      - evalScript: ${output.existingFgtsRulesVisible = true}
+- repeat:
+    while:
+      true: ${output.existingFgtsRulesVisible == false}
+    times: 20
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: 'btn-open-fgts-rules'
+          commands:
+            - evalScript: ${output.existingFgtsRulesVisible = true}
+- tapOn:
+    id: 'btn-open-fgts-rules'
+- assertVisible:
+    id: 'fgts-rule-amortization'
+- assertVisible:
+    id: 'fgts-rule-installment'
+- assertNotVisible:
+    id: 'fgts-rule-down-payment'
