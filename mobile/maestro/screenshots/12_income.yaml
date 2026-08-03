@@ -1,0 +1,29 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- assertVisible:
+    id: onboarding-example-chip
+- scrollUntilVisible:
+    element:
+      id: input-principal
+    direction: DOWN
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 20
+- assertVisible:
+    id: input-principal
+- takeScreenshot: ../marketing/public/recursos/_captures/income-inputs
+- scrollUntilVisible:
+    element:
+      id: summary-first-payment-value
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+    speed: 50
+    visibilityPercentage: 30
+    waitToSettleTimeoutMs: 1000
+- assertVisible:
+    id: summary-first-payment-value
+    text: '.*3\.804,88'
+- takeScreenshot: ../marketing/public/recursos/_captures/income

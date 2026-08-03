@@ -3,12 +3,29 @@ appId: com.lsimaocosta.calculadorapricesac
 - runFlow: ../helpers/launch_dev_client.yaml
 - tapOn:
     id: tab-calculator
-- scrollUntilVisible:
-    element:
-      id: input-prepayment-amount
-    timeout: 20000
-    speed: 60
-    visibilityPercentage: 10
+- evalScript: ${output.prepaymentVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: input-prepayment-amount
+    commands:
+      - evalScript: ${output.prepaymentVisible = true}
+- repeat:
+    while:
+      true: ${output.prepaymentVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: input-prepayment-amount
+          commands:
+            - evalScript: ${output.prepaymentVisible = true}
+- assertVisible:
+    id: input-prepayment-amount
 - tapOn:
     id: input-prepayment-amount
 - eraseText
@@ -23,3 +40,14 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn:
     id: btn-add-prepayment
 - takeScreenshot: ../marketing/public/recursos/_captures/prepayment
+- scrollUntilVisible:
+    element:
+      id: section-summary
+    direction: UP
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: summary-first-payment-value
+- takeScreenshot: ../marketing/public/recursos/_captures/prepayment-summary

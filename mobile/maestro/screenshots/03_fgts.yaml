@@ -4,12 +4,29 @@ appId: com.lsimaocosta.calculadorapricesac
 - runFlow: ../helpers/enable_premium_dev.yaml
 - tapOn:
     id: tab-calculator
-- scrollUntilVisible:
-    element:
-      id: input-fgts-amount
-    timeout: 12000
-    speed: 70
-    visibilityPercentage: 10
+- evalScript: ${output.fgtsVisible = false}
+- runFlow:
+    when:
+      visible:
+        id: input-fgts-amount
+    commands:
+      - evalScript: ${output.fgtsVisible = true}
+- repeat:
+    while:
+      true: ${output.fgtsVisible == false}
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 88%
+          end: 50%, 35%
+      - runFlow:
+          when:
+            visible:
+              id: input-fgts-amount
+          commands:
+            - evalScript: ${output.fgtsVisible = true}
+- assertVisible:
+    id: input-fgts-amount
 - tapOn:
     id: input-fgts-amount
 - eraseText
@@ -24,3 +41,13 @@ appId: com.lsimaocosta.calculadorapricesac
 - tapOn:
     id: btn-add-fgts
 - takeScreenshot: ../marketing/public/recursos/_captures/fgts
+- scrollUntilVisible:
+    element:
+      id: section-summary
+    direction: UP
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible: 'FGTS Usado'
+- takeScreenshot: ../marketing/public/recursos/_captures/fgts-summary

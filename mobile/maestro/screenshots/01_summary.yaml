@@ -6,9 +6,22 @@ appId: com.lsimaocosta.calculadorapricesac
 - scrollUntilVisible:
     element:
       id: section-summary
-    centerElement: true
-    timeout: 20000
+    centerElement: false
+    timeout: 30000
     speed: 60
+    visibilityPercentage: 10
+    waitToSettleTimeoutMs: 1000
 - assertVisible:
     id: summary-first-payment-value
 - takeScreenshot: ../marketing/public/recursos/_captures/summary
+- scrollUntilVisible:
+    element:
+      id: chart-payment-composition
+    centerElement: false
+    timeout: 30000
+    speed: 50
+    visibilityPercentage: 20
+    waitToSettleTimeoutMs: 1000
+- assertVisible:
+    id: chart-payment-composition
+- takeScreenshot: ../marketing/public/recursos/_captures/summary-chart

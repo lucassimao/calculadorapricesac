@@ -1,0 +1,48 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- scrollUntilVisible:
+    element:
+      id: input-term
+    centerElement: true
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- tapOn:
+    id: input-term
+- eraseText
+- inputText: '360'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: Total de Juros
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+    speed: 50
+    visibilityPercentage: 30
+    waitToSettleTimeoutMs: 1000
+- takeScreenshot: ../marketing/public/recursos/_captures/term-360
+- scrollUntilVisible:
+    element:
+      id: input-term
+    direction: UP
+    centerElement: true
+    timeout: 30000
+    speed: 50
+    visibilityPercentage: 20
+- tapOn:
+    id: input-term
+- eraseText
+- inputText: '240'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: Total de Juros
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+    speed: 50
+    visibilityPercentage: 30
+    waitToSettleTimeoutMs: 1000
+- takeScreenshot: ../marketing/public/recursos/_captures/term-240

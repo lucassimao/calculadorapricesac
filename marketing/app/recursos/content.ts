@@ -43,8 +43,16 @@ export const resources: Resource[] = [
       'Desça até os gráficos para visualizar saldo e composição das parcelas ao longo do tempo.',
     ],
     screenshots: [
-      shot('simulador-sac-ou-price', 'resumo', 'Resumo do app com os valores do financiamento.'),
-      shot('simulador-sac-ou-price', 'graficos', 'Gráficos do app comparando saldo e parcelas.'),
+      shot(
+        'simulador-sac-ou-price',
+        'resumo',
+        'Comparador do app com o resumo de SAC e Price lado a lado.',
+      ),
+      shot(
+        'simulador-sac-ou-price',
+        'graficos',
+        'Gráfico do app com a composição das parcelas ao longo do financiamento.',
+      ),
     ],
     faq: [
       {
@@ -86,12 +94,12 @@ export const resources: Resource[] = [
       shot(
         'amortizacao-reduzir-prazo-ou-parcela',
         'resumo',
-        'Resumo do financiamento após a simulação.',
+        'Formulário do app com uma amortização extra de R$ 10 mil adicionada.',
       ),
       shot(
         'amortizacao-reduzir-prazo-ou-parcela',
         'tabela',
-        'Tabela de amortização com parcelas e saldo devedor.',
+        'Resumo do app com total pago, juros e valores das parcelas.',
       ),
     ],
     faq: [
@@ -124,12 +132,12 @@ export const resources: Resource[] = [
       shot(
         'fgts-no-financiamento-simulador',
         'resumo',
-        'Resumo do app com o custo total e a primeira parcela.',
+        'Formulário do app com uso do FGTS para amortizar o saldo.',
       ),
       shot(
         'fgts-no-financiamento-simulador',
         'tabela',
-        'Tabela do app para acompanhar saldo após o FGTS.',
+        'Resumo do app com total pago, CET, juros e primeira parcela.',
       ),
     ],
     faq: [
@@ -167,7 +175,7 @@ export const resources: Resource[] = [
       shot(
         'cet-custo-real-financiamento',
         'tabela',
-        'Tabela de amortização usada para conferir o custo.',
+        'Resumo de custos do app com MIP, DFI e tarifa administrativa.',
       ),
     ],
     faq: [
@@ -187,21 +195,25 @@ export const resources: Resource[] = [
     title: 'Financiamento TR ou IPCA: veja a correção no saldo',
     metaTitle: 'Financiamento TR ou IPCA: simule a correção',
     description:
-      'Simule financiamento indexado por TR ou IPCA e acompanhe a correção monetária no resumo e na tabela.',
+      'Simule financiamento indexado por TR ou IPCA e acompanhe a correção monetária no resumo do app.',
     hook: 'Não olhe só para a parcela: veja o indexador agindo sobre o saldo.',
     guideSlug: 'o-que-e-cet',
     steps: [
       'Informe sistema, valor, taxa e prazo na calculadora.',
       'Selecione TR ou IPCA na seção de indexador e confira a taxa aplicada.',
       'Leia o total de correção no resumo antes de comparar propostas.',
-      'Role até a tabela e observe a coluna de correção em cada parcela.',
+      'Role até a tabela compacta para relacionar parcelas e saldo ao efeito acumulado.',
     ],
     screenshots: [
-      shot('financiamento-tr-ou-ipca', 'tabela', 'Tabela do app com parcelas e saldo devedor.'),
+      shot(
+        'financiamento-tr-ou-ipca',
+        'tabela',
+        'Tabela compacta do app com as primeiras parcelas e o saldo do cenário IPCA.',
+      ),
       shot(
         'financiamento-tr-ou-ipca',
         'graficos',
-        'Gráficos do app para acompanhar a evolução do saldo.',
+        'Resumo do app com IPCA, taxa e correção monetária total.',
       ),
     ],
     faq: [
@@ -234,12 +246,12 @@ export const resources: Resource[] = [
       shot(
         'exportar-simulacao-pdf-excel',
         'tabela',
-        'Tabela completa do app com opções PDF, XLSX e CSV.',
+        'Menu do app com opções PDF, PDF Profissional, XLSX e CSV.',
       ),
       shot(
         'exportar-simulacao-pdf-excel',
         'resumo',
-        'Resumo do app antes de exportar a simulação.',
+        'Aviso do app para completar o perfil antes de gerar o PDF Profissional.',
       ),
     ],
     faq: [
@@ -269,11 +281,15 @@ export const resources: Resource[] = [
       'Use a diferença de parcela, juros e total pago para orientar a escolha.',
     ],
     screenshots: [
-      shot('salvar-e-comparar-cenarios', 'resumo', 'Resumo do cenário salvo no app.'),
+      shot(
+        'salvar-e-comparar-cenarios',
+        'resumo',
+        'Cenário salvo no app com atalho para comparar propostas.',
+      ),
       shot(
         'salvar-e-comparar-cenarios',
         'graficos',
-        'Gráficos usados para comparar a evolução dos cenários.',
+        'Comparador do app com parâmetros e resumo de SAC e Price.',
       ),
     ],
     faq: [
@@ -306,12 +322,12 @@ export const resources: Resource[] = [
       shot(
         'quitar-financiamento-antecipado',
         'resumo',
-        'Resumo do financiamento com total pago e juros.',
+        'Impacto da quitação no contrato atual, com juros economizados e nova data final.',
       ),
       shot(
         'quitar-financiamento-antecipado',
         'tabela',
-        'Tabela de amortização para acompanhar a quitação.',
+        'Formulário do app para informar uma amortização extraordinária.',
       ),
     ],
     faq: [
@@ -331,25 +347,25 @@ export const resources: Resource[] = [
     title: 'Por que a parcela subiu e o saldo devedor não diminui?',
     metaTitle: 'Parcela subiu e saldo devedor não diminui: entenda',
     description:
-      'Entenda como TR e IPCA corrigem o saldo devedor e veja na tabela do simulador onde essa correção aparece.',
-    hook: 'Diagnostique a correção monetária olhando linha por linha.',
+      'Entenda como TR e IPCA corrigem o saldo devedor e confira o efeito acumulado no resumo do simulador.',
+    hook: 'Diagnostique a correção monetária comparando o total corrigido com parcelas e saldo.',
     guideSlug: 'o-que-e-cet',
     steps: [
       'Monte um cenário com o sistema, taxa e prazo do contrato.',
       'Selecione o indexador usado na proposta e informe uma taxa de referência.',
       'Leia o total de correção no resumo para dimensionar o efeito acumulado.',
-      'Na tabela, compare correção, juros, amortização e saldo em cada linha.',
+      'Na tabela compacta, compare a evolução das parcelas e do saldo.',
     ],
     screenshots: [
       shot(
         'parcela-subiu-saldo-devedor-nao-diminui',
         'tabela',
-        'Tabela do app com saldo e parcelas do financiamento.',
+        'Detalhe das linhas iniciais da tabela compacta, com parcela e saldo indexados.',
       ),
       shot(
         'parcela-subiu-saldo-devedor-nao-diminui',
         'graficos',
-        'Gráfico do app mostrando a evolução do saldo.',
+        'Resumo do app com IPCA, taxa e correção total acumulada.',
       ),
     ],
     faq: [
@@ -382,12 +398,12 @@ export const resources: Resource[] = [
       shot(
         'renda-para-financiar-imovel',
         'resumo',
-        'Resumo do app com a primeira parcela do financiamento.',
+        'Entradas do exemplo de imóvel com valor, prazo e taxa no app.',
       ),
       shot(
         'renda-para-financiar-imovel',
         'graficos',
-        'Gráficos do app para entender o custo ao longo do prazo.',
+        'Resumo do app com a primeira parcela usada para estimar a renda mínima.',
       ),
     ],
     faq: [
@@ -420,12 +436,12 @@ export const resources: Resource[] = [
       shot(
         'financiamento-de-veiculo-tabela-price',
         'resumo',
-        'Resumo do app com parcela e total pago.',
+        'Parâmetros Price de R$ 80 mil e 48 meses no modo padrão do app.',
       ),
       shot(
         'financiamento-de-veiculo-tabela-price',
         'tabela',
-        'Tabela do app com as parcelas do financiamento.',
+        'Resumo da simulação Price de R$ 80 mil com parcela, juros e total pago.',
       ),
     ],
     faq: [
@@ -458,12 +474,12 @@ export const resources: Resource[] = [
       shot(
         'juros-totais-financiamento-30-anos',
         'resumo',
-        'Resumo do app com total pago e total de juros.',
+        'Resumo do financiamento em 360 meses com total pago e juros.',
       ),
       shot(
         'juros-totais-financiamento-30-anos',
         'graficos',
-        'Gráficos do app para visualizar o efeito do prazo.',
+        'Resumo do mesmo financiamento em 240 meses para comparar o prazo.',
       ),
     ],
     faq: [

@@ -1,18 +1,10 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: ../helpers/launch_dev_client.yaml
-- tapOn:
-    id: 'tab-premium'
-- scrollUntilVisible:
-    element:
-      id: 'btn-dev-prepare-premium'
-    timeout: 12000
-    speed: 60
-    visibilityPercentage: 10
-- tapOn:
-    id: 'btn-dev-prepare-premium'
+- runFlow: ../helpers/enable_premium_dev.yaml
 - assertVisible:
-    id: 'btn-dev-disable-premium'
+    id: premium-status-title
+    text: Premium ativo
 - tapOn:
     id: 'tab-calculator'
 - runFlow: ../helpers/seed_export_extras_dev.yaml

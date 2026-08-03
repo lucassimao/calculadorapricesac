@@ -1,0 +1,37 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../helpers/launch_dev_client.yaml
+- runFlow: ../helpers/enable_premium_dev.yaml
+- assertVisible:
+    id: premium-status-title
+    text: Premium ativo
+- tapOn:
+    id: tab-calculator
+- scrollUntilVisible:
+    element:
+      id: input-scenario-name
+    timeout: 12000
+    speed: 70
+    visibilityPercentage: 10
+- tapOn:
+    id: input-scenario-name
+- eraseText
+- inputText: 'Proposta Banco A'
+- hideKeyboard
+- tapOn:
+    id: btn-save-scenario
+- scrollUntilVisible:
+    element:
+      id: scenario-item-0
+    timeout: 12000
+    speed: 60
+    visibilityPercentage: 20
+- assertVisible:
+    id: scenario-item-title-0
+    text: 'Proposta Banco A.*'
+- takeScreenshot: ../marketing/public/recursos/_captures/saved-scenario
+- tapOn:
+    id: btn-post-save-compare
+- assertVisible:
+    id: screen-comparison
+- takeScreenshot: ../marketing/public/recursos/_captures/saved-comparison

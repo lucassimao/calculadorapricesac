@@ -13,9 +13,10 @@ appId: com.lsimaocosta.calculadorapricesac
 - scrollUntilVisible:
     element:
       id: 'section-summary'
-    centerElement: true
-    timeout: 12000
+    centerElement: false
+    timeout: 30000
     speed: 60
     visibilityPercentage: 10
+    waitToSettleTimeoutMs: 1000
 - assertVisible:
     id: 'section-summary'

@@ -22,6 +22,8 @@
     "ui:maestro:readback": "bash scripts/run-maestro-suite.sh readback",
     "ui:maestro:captures": "bash scripts/run-maestro-suite.sh captures",
     "ui:maestro:all": "bash scripts/run-maestro-suite.sh all",
+    "screenshots:marketing": "bash scripts/capture-marketing-screenshots.sh",
+    "screenshots:marketing:prepare": "bash scripts/prepare-marketing-screenshots.sh",
     "ota:preview": "EXPO_PUBLIC_ANALYTICS_DRYRUN=1 RELEASE_TARGET=preview npx eas-cli@latest update --channel preview --environment preview",
     "ota:production": "RELEASE_TARGET=production npx eas-cli@latest update --channel production --environment production",
     "build:android:local": "eas build -p android --local --profile production",

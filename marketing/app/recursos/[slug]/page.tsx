@@ -119,7 +119,7 @@ export default async function ResourcePage({ params }: { params: Promise<{ slug:
                 src={screenshot.src}
                 alt={screenshot.alt}
                 width={360}
-                height={640}
+                height={800}
                 loading="lazy"
               />
               <figcaption className={styles.caption}>{screenshot.alt}</figcaption>

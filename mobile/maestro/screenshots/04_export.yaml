@@ -10,3 +10,8 @@ appId: com.lsimaocosta.calculadorapricesac
 - assertVisible:
     id: android-export-modal-card
 - takeScreenshot: ../marketing/public/recursos/_captures/export
+- tapOn:
+    id: android-export-modal-pdf-professional
+- assertVisible: 'Complete o perfil profissional'
+- assertVisible: 'COMPLETAR PERFIL'
+- takeScreenshot: ../marketing/public/recursos/_captures/export-professional

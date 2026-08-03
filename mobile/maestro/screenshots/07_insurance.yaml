@@ -1,4 +1,26 @@
 appId: com.lsimaocosta.calculadorapricesac
 ---
 - runFlow: ../32_split_insurance_costs.yaml
+- takeScreenshot: ../marketing/public/recursos/_captures/insurance-guide
+- scrollUntilVisible:
+    element:
+      id: input-mip-rate
+    direction: UP
+    centerElement: true
+    timeout: 20000
+    speed: 50
+    visibilityPercentage: 20
+- assertVisible:
+    id: input-mip-rate
 - takeScreenshot: ../marketing/public/recursos/_captures/insurance
+- scrollUntilVisible:
+    element:
+      id: summary-cet
+    direction: DOWN
+    centerElement: false
+    timeout: 12000
+    speed: 45
+    visibilityPercentage: 10
+- assertVisible:
+    id: summary-cet
+- takeScreenshot: ../marketing/public/recursos/_captures/cet-summary

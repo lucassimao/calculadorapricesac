@@ -13,10 +13,26 @@ appId: com.lsimaocosta.calculadorapricesac
     id: chip-index-ipca
 - assertVisible:
     id: input-index-rate
+- tapOn:
+    id: input-index-rate
+- eraseText
+- inputText: '0,5'
+- hideKeyboard
+- assertVisible: '0,5'
+- scrollUntilVisible:
+    element:
+      id: summary-index-type-ipca
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
 - scrollUntilVisible:
     element:
       id: summary-total-index-correction
-    timeout: 20000
-    speed: 60
+    timeout: 12000
+    speed: 45
     visibilityPercentage: 10
+- assertVisible: '0,50000% a.m.'
+- assertVisible:
+    id: summary-total-index-correction-value
+- assertVisible: 'Correção Total: R.*577\.366,97'
 - takeScreenshot: ../marketing/public/recursos/_captures/indexed

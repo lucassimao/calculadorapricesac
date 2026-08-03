@@ -1,0 +1,26 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: ../18_tr_ipca_correction.yaml
+- assertVisible:
+    id: table-meta-row-12
+- assertVisible:
+    id: table-header-balance
+- takeScreenshot: ../marketing/public/recursos/_captures/index-table
+- swipe:
+    start: 50%, 78%
+    end: 50%, 62%
+- assertVisible:
+    id: table-header-balance
+- assertVisible: 'Parcela 1'
+- takeScreenshot: ../marketing/public/recursos/_captures/index-table-detail
+- scrollUntilVisible:
+    element:
+      id: summary-total-index-correction
+    direction: UP
+    centerElement: false
+    timeout: 30000
+    speed: 60
+    visibilityPercentage: 10
+- assertVisible:
+    id: summary-total-index-correction-value
+- takeScreenshot: ../marketing/public/recursos/_captures/index-summary-short
