@@ -85,9 +85,9 @@ Auditoria concluída em 2026-08-01. Este documento e `src/lib/analytics-events.t
 | `feedback_whatsapp_clicked/opened`             | nenhuma                                                           | nenhuma                                                                                                                                          | manter                                      |
 | `feedback_whatsapp_failed`                     | razão                                                             | igual                                                                                                                                            | manter                                      |
 
-## Eventos reservados para itens posteriores
+## Eventos de produto adicionais
 
-Estes eventos já fazem parte do tipo, mas o call site só nasce no item indicado para não antecipar produto:
+Os eventos abaixo fazem parte do contrato tipado. Os três eventos do otimizador têm call sites ativos no P2.7; os demais seguem a disponibilidade indicada:
 
 | Evento                       | Quando dispara                      | Propriedades                      | Decisão                                                 |
 | ---------------------------- | ----------------------------------- | --------------------------------- | ------------------------------------------------------- |
@@ -97,9 +97,9 @@ Estes eventos já fazem parte do tipo, mas o call site só nasce no item indicad
 | `review_prompt_requested`    | pedido ao SO (P1.5)                 | `trigger`                         | política do pedido; não mede exibição/rating            |
 | `notification_optin_changed` | mudança de preferência futura       | enabled, source                   | interesse em reengajamento; push permanece fora de P2.5 |
 | `portability_compared`       | cálculo de portabilidade (P2.3)     | tem break-even e mês              | demanda/resultado da comparação                         |
-| `optimizer_opened`           | abertura do assistente (P2.7)       | entry point                       | descoberta                                              |
-| `optimizer_plan_generated`   | plano válido (P2.7)                 | meta e buckets                    | demanda por meta                                        |
-| `optimizer_plan_saved`       | plano salvo (P2.7)                  | meta                              | valor realizado                                         |
+| `optimizer_opened`           | abertura do assistente              | entry point                       | descoberta                                              |
+| `optimizer_plan_generated`   | plano válido                        | meta e buckets                    | demanda por meta                                        |
+| `optimizer_plan_saved`       | plano persistido como cenário       | meta                              | valor realizado                                         |
 
 `chart_viewed` dispara uma vez por sessão para `balance`, `payment` e `composition`. `bacen_rate_fetch_failed` dispara para TR/IPCA com `error_kind` sem mensagem livre.
 
@@ -144,7 +144,7 @@ Criados via API no projeto `calculadorapricesac` (id 389897); os três primeiros
    - Funnel rewarded: `rewarded_export_requested` → `rewarded_export_ad_opened` → `rewarded_export_ad_reward_earned` → `rewarded_export_unlocked`, breakdown por `source` e `error_kind` nas falhas.
 3. **Feature adoption** — https://us.posthog.com/project/389897/dashboard/1939115
    - Trends de usuários únicos: `calculation_performed` com breakdowns separados por `system`, `index_type`, `entry_mode`.
-   - `prepayment_added` e `fgts_added` por `recurrence`; `comparison_started`; `professional_export_started`; `optimizer_plan_generated` quando disponíveis.
+   - `prepayment_added` e `fgts_added` por `recurrence`; `comparison_started`; `professional_export_started`; `optimizer_plan_generated`.
 4. **Export funnel decision** — https://us.posthog.com/project/389897/dashboard/1941883
    - Todas as queries filtram `app_version = 1.2.1`, a versão reservada para publicar P1.6; instalações antigas não contaminam denominadores nem o limiar.
    - Funnel de usuários gratuitos na ordem real do runtime: `export_sheet_opened` → `export_clicked` → gate (`rewarded_export_requested` ou `export_blocked_premium`) → `export_success` com `access = free_rewarded`. A abertura e o clique filtram `is_premium = false`; os eventos do gate não dependem dessa super property. `export_sheet_opened`/`export_sheet_abandoned` não têm `source`; o filtro `source = tab_action` existe nos passos posteriores que o carregam. `table_only` nunca abre a sheet; usuários Premium a atravessam sem gate e por isso não pertencem a este funil.

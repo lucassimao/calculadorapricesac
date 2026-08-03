@@ -40,11 +40,18 @@ import {
   OUT_OF_TERM_EVENT_WARNING_FRAGMENT,
   validateScenario,
 } from '@loan-engine/calculations';
+import {
+  optimizePrepayments,
+  type OptimizerGoal,
+  type OptimizerPlanBuilder,
+  type OptimizerResult,
+} from '@loan-engine/calculations/optimizer';
 import { fetchLatestIndexRate } from '../../src/lib/bacen';
 import {
   formatDateBR,
   maskCurrencyInput,
   parseCurrencyInput,
+  parseLocalDate,
   parseNumberInput,
 } from '../../src/lib/utils';
 import { AmortizationTable } from '../../src/components/AmortizationTable';
@@ -56,6 +63,7 @@ import {
   EntryModeSelector,
   InsuranceCostsSection,
   PortabilitySection,
+  PrepaymentOptimizerSheet,
   ScenarioSection,
   SummarySection,
   SystemSelector,
@@ -145,6 +153,12 @@ import {
   checkInvestmentReferenceRateChange,
   type InvestmentReferenceRateChange,
 } from '../../src/lib/investment-rate-change';
+import {
+  openOptimizerPremiumPaywall,
+  trackOptimizerOpened,
+  trackOptimizerPlanGenerated,
+  trackOptimizerPlanSaved,
+} from '../../src/lib/optimizer-analytics';
 
 const DEFAULT_SCENARIO: Scenario = {
   id: 'default',
@@ -178,6 +192,31 @@ const RECURRENCE_LABELS: Record<Recurrence, string> = {
 function getScenarioTermMonths(scenario: Scenario) {
   return scenario.termUnit === 'years' ? scenario.term * 12 : scenario.term;
 }
+
+const optimizerPlanBuilder: OptimizerPlanBuilder = ({
+  scenario,
+  seriesId,
+  startDate,
+  amount,
+  recurrence,
+  strategy,
+  maxOccurrences,
+}) =>
+  buildRecurringPrepaymentEvents({
+    seriesId,
+    startDate,
+    loanStartDate: scenario.startDate,
+    firstDueDate:
+      getScenarioEntryMode(scenario) === 'existing_contract' ? scenario.nextDueDate : undefined,
+    termMonths: getScenarioTermMonths(scenario),
+    dueDay: scenario.dueDay,
+    recurrence,
+    amount,
+    type: 'fixed_amount',
+    strategy,
+    description: 'Plano do assistente',
+    maxOccurrences,
+  });
 
 function countPrunedExistingEvents(
   scenario: Scenario,
@@ -468,6 +507,14 @@ export default function CalculatorScreen() {
   const [editingPrepaymentId, setEditingPrepaymentId] = useState<string | null>(null);
   const [showAllPrepayments, setShowAllPrepayments] = useState(false);
   const [showPrepaymentDatePicker, setShowPrepaymentDatePicker] = useState(false);
+  const [optimizerVisible, setOptimizerVisible] = useState(false);
+  const [optimizerGoal, setOptimizerGoal] = useState<OptimizerGoal>('payoff_by_date');
+  const [optimizerTargetDateText, setOptimizerTargetDateText] = useState('');
+  const [optimizerOneOffAmountText, setOptimizerOneOffAmountText] = useState('');
+  const [optimizerRecurringAmountText, setOptimizerRecurringAmountText] = useState('');
+  const [optimizerTargetPaymentText, setOptimizerTargetPaymentText] = useState('');
+  const [optimizerResult, setOptimizerResult] = useState<OptimizerResult | null>(null);
+  const [optimizerIsGenerating, setOptimizerIsGenerating] = useState(false);
   const [showFgtsDatePicker, setShowFgtsDatePicker] = useState(false);
   const hasSkippedInitialCalculation = useRef(false);
   const exportClickBusyRef = useRef(false);
@@ -888,12 +935,12 @@ export default function CalculatorScreen() {
     }
   };
 
-  const handleSaveScenario = async () => {
-    if (!scenario.name.trim()) {
+  const handleSaveScenario = async (scenarioToSave: Scenario = scenario): Promise<boolean> => {
+    if (!scenarioToSave.name.trim()) {
       Alert.alert('Nome obrigatório', 'Informe um nome para o cenário.');
-      return;
+      return false;
     }
-    const existingIndex = scenarios.findIndex((item) => item.id === scenario.id);
+    const existingIndex = scenarios.findIndex((item) => item.id === scenarioToSave.id);
     if (
       getScenarioSaveGate({
         isPremium,
@@ -901,7 +948,7 @@ export default function CalculatorScreen() {
         savedScenarioCount: scenarios.length,
       }) === 'scenario_limit_paywall'
     ) {
-      if (scenarioLimitPaywallTrackingRef.current) return;
+      if (scenarioLimitPaywallTrackingRef.current) return false;
       trackEvent('scenario_save_blocked_free_limit', {
         scenario_count: scenarios.length,
       });
@@ -931,26 +978,33 @@ export default function CalculatorScreen() {
             scenarioLimitPaywallTrackingRef.current = null;
           }
         });
-      return;
+      return false;
     }
     const nextList = [...scenarios];
     let newId: string | null = null;
     if (existingIndex >= 0) {
-      nextList[existingIndex] = scenario;
+      nextList[existingIndex] = scenarioToSave;
     } else {
       newId = Date.now().toString();
-      nextList.unshift({ ...scenario, id: newId });
+      nextList.unshift({ ...scenarioToSave, id: newId });
     }
-    if (!(await persistScenarios(nextList))) return;
+    if (!(await persistScenarios(nextList))) return false;
     if (newId) {
-      updateScenarioFromUser((prev) => ({ ...prev, id: newId }));
+      if (scenarioToSave === scenario) {
+        updateScenarioFromUser((currentScenario) => ({ ...currentScenario, id: newId }));
+      } else {
+        updateScenarioFromUser({ ...scenarioToSave, id: newId });
+      }
+    } else if (scenarioToSave.id === scenario.id) {
+      updateScenarioFromUser(scenarioToSave);
     }
     registerAnalyticsProperties({ saved_scenario_count: nextList.length });
+    const targetScheduleLength = generateAmortizationSchedule(scenarioToSave).length;
     trackEvent('scenario_saved', {
       is_update: existingIndex >= 0,
       is_premium: isPremium,
       scenario_count: nextList.length,
-      ...getScenarioAnalyticsContext(scenario, schedule.length),
+      ...getScenarioAnalyticsContext(scenarioToSave, targetScheduleLength),
     });
     const interstitialShown = await maybeShowInterstitial(
       existingIndex >= 0 ? 'scenario_updated' : 'scenario_saved',
@@ -958,6 +1012,7 @@ export default function CalculatorScreen() {
     requestReviewIfAppropriate('scenario_saved', {
       suppressPrompt: interstitialShown,
     }).catch(() => {});
+    return true;
   };
 
   const formatCurrencyValue = (value: number | undefined): string => {
@@ -1030,6 +1085,123 @@ export default function CalculatorScreen() {
     });
     setFgtsRecurrence('biennial');
     setEditingFgtsId(null);
+  };
+
+  const openPrepaymentOptimizer = (
+    entryPoint: 'prepayment_section' | 'saved_scenarios',
+    targetScenario: Scenario = scenario,
+  ) => {
+    if (entryPoint === 'saved_scenarios') handleLoadScenario(targetScenario);
+    const targetSchedule = generateAmortizationSchedule(targetScenario).filter(
+      (row) => row.installmentNumber > 0,
+    );
+    const suggestedTarget = targetSchedule[Math.min(59, Math.max(targetSchedule.length - 1, 0))];
+    const firstRegularPayment = targetSchedule[0]
+      ? (targetSchedule[0].netPayment ?? targetSchedule[0].payment) -
+        (targetSchedule[0].prepaymentAmount ?? 0) +
+        (targetSchedule[0].extraCosts ?? 0)
+      : 0;
+
+    setOptimizerGoal('payoff_by_date');
+    setOptimizerTargetDateText(suggestedTarget ? formatDateBR(suggestedTarget.date) : '');
+    setOptimizerOneOffAmountText('');
+    setOptimizerRecurringAmountText('');
+    setOptimizerTargetPaymentText(formatCurrencyValue(firstRegularPayment * 0.8));
+    setOptimizerResult(null);
+    setOptimizerVisible(true);
+    trackOptimizerOpened(entryPoint);
+  };
+
+  const handleGenerateOptimizerPlan = () => {
+    setOptimizerIsGenerating(true);
+    setTimeout(() => {
+      try {
+        let result: OptimizerResult;
+        const seriesIdPrefix = `optimizer-${Date.now()}`;
+        if (optimizerGoal === 'payoff_by_date') {
+          const targetDate = parseLocalDate(optimizerTargetDateText);
+          if (!targetDate || formatDateBR(targetDate) !== optimizerTargetDateText) {
+            result = {
+              status: 'unreachable',
+              goal: optimizerGoal,
+              prepayments: [],
+              message: 'Informe uma data de quitação válida no formato DD/MM/AAAA.',
+              iterations: 0,
+            };
+          } else {
+            result = optimizePrepayments({
+              scenario,
+              buildPlan: optimizerPlanBuilder,
+              seriesIdPrefix,
+              goal: optimizerGoal,
+              targetDate,
+            });
+          }
+        } else if (optimizerGoal === 'minimize_interest') {
+          result = optimizePrepayments({
+            scenario,
+            buildPlan: optimizerPlanBuilder,
+            seriesIdPrefix,
+            goal: optimizerGoal,
+            oneOffAmount: parseCurrencyInput(optimizerOneOffAmountText),
+            recurringAmount: parseCurrencyInput(optimizerRecurringAmountText),
+          });
+        } else {
+          result = optimizePrepayments({
+            scenario,
+            buildPlan: optimizerPlanBuilder,
+            seriesIdPrefix,
+            goal: optimizerGoal,
+            targetPayment: parseCurrencyInput(optimizerTargetPaymentText),
+          });
+        }
+
+        setOptimizerResult(result);
+        if (result.status !== 'success') return;
+        trackOptimizerPlanGenerated({
+          goal: result.goal,
+          budget: (result.oneOffAmount ?? 0) + (result.recurringAmount ?? 0),
+          horizonMonths: result.horizonMonths,
+          interestSaved: result.interestSaved,
+        });
+      } catch {
+        setOptimizerResult({
+          status: 'unreachable',
+          goal: optimizerGoal,
+          prepayments: [],
+          message: 'Não foi possível calcular o plano. Confira o cenário e tente novamente.',
+          iterations: 0,
+        });
+      } finally {
+        setOptimizerIsGenerating(false);
+      }
+    }, 0);
+  };
+
+  const handleOptimizerUpgrade = () => {
+    openOptimizerPremiumPaywall();
+    setOptimizerVisible(false);
+    router.push('/(tabs)/premium');
+  };
+
+  const handleSaveOptimizerPlan = async () => {
+    if (optimizerResult?.status !== 'success' || optimizerResult.prepayments.length === 0) return;
+    const plannedScenario: Scenario = {
+      ...scenario,
+      id: `optimizer-${Date.now()}`,
+      name: `${scenario.name} — plano otimizado`,
+      prepayments: [...(scenario.prepayments ?? []), ...optimizerResult.prepayments],
+    };
+    const saveGate = getScenarioSaveGate({
+      isPremium,
+      isExistingScenario: false,
+      savedScenarioCount: scenarios.length,
+    });
+    if (saveGate === 'scenario_limit_paywall') setOptimizerVisible(false);
+    const saved = await handleSaveScenario(plannedScenario);
+    if (!saved) return;
+    trackOptimizerPlanSaved(optimizerResult.goal);
+    setOptimizerVisible(false);
   };
 
   const handleDeleteScenario = (id: string, name: string) => {
@@ -2239,10 +2411,11 @@ export default function CalculatorScreen() {
             scenario={scenario}
             scenarios={scenarios}
             onNameChange={(name) => updateScenarioFromUser((prev) => ({ ...prev, name }))}
-            onSave={handleSaveScenario}
+            onSave={() => void handleSaveScenario()}
             onNew={handleNewScenario}
             onLoad={handleLoadScenario}
             onDelete={handleDeleteScenario}
+            onOptimize={(target) => openPrepaymentOptimizer('saved_scenarios', target)}
           />
 
           {__DEV__ ? (
@@ -2962,6 +3135,18 @@ export default function CalculatorScreen() {
             >
               Amortizações Extras
             </Text>
+            <Pressable
+              style={[styles.optimizerEntryButton, { borderColor: colors.primary }]}
+              onPress={() => openPrepaymentOptimizer('prepayment_section')}
+              accessibilityRole="button"
+              accessibilityLabel="Não sabe quanto amortizar? Deixa que a gente calcula"
+              testID="btn-open-prepayment-optimizer"
+            >
+              <Text style={[styles.optimizerEntryText, { color: colors.primary }]}>
+                Não sabe quanto amortizar? Deixa que a gente calcula
+              </Text>
+              <PremiumPill hidden={isPremium} />
+            </Pressable>
             {prepaymentImpact ? (
               <View
                 style={[
@@ -3773,6 +3958,36 @@ export default function CalculatorScreen() {
         onClose={() => setPostExportPaywallVisible(false)}
       />
 
+      <PrepaymentOptimizerSheet
+        visible={optimizerVisible}
+        isPremium={isPremium}
+        goal={optimizerGoal}
+        targetDateText={optimizerTargetDateText}
+        oneOffAmountText={optimizerOneOffAmountText}
+        recurringAmountText={optimizerRecurringAmountText}
+        targetPaymentText={optimizerTargetPaymentText}
+        result={optimizerResult}
+        isGenerating={optimizerIsGenerating}
+        onClose={() => setOptimizerVisible(false)}
+        onGoalChange={(goal) => {
+          setOptimizerGoal(goal);
+          setOptimizerResult(null);
+        }}
+        onTargetDateTextChange={setOptimizerTargetDateText}
+        onOneOffAmountTextChange={(text) =>
+          setOptimizerOneOffAmountText(maskCurrencyInput(text).display)
+        }
+        onRecurringAmountTextChange={(text) =>
+          setOptimizerRecurringAmountText(maskCurrencyInput(text).display)
+        }
+        onTargetPaymentTextChange={(text) =>
+          setOptimizerTargetPaymentText(maskCurrencyInput(text).display)
+        }
+        onGenerate={handleGenerateOptimizerPlan}
+        onUpgrade={handleOptimizerUpgrade}
+        onSavePlan={() => void handleSaveOptimizerPlan()}
+      />
+
       <Modal
         animationType="fade"
         transparent
@@ -4292,6 +4507,23 @@ const styles = StyleSheet.create({
   prepaymentImpactText: {
     fontSize: 12,
     lineHeight: 17,
+  },
+  optimizerEntryButton: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  optimizerEntryText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
   },
   exportHint: {
     fontSize: 12,

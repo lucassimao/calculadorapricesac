@@ -71,6 +71,10 @@ export const resources: Resource[] = [
         slug: 'amortizar-financiamento-ou-investir',
         title: 'Amortizar ou investir: como decidir',
       },
+      {
+        slug: 'melhor-estrategia-amortizar-financiamento',
+        title: 'Melhor estratégia para amortizar',
+      },
     ],
     steps: [
       'Preencha o contrato e role até Amortizações Extras na tela da calculadora.',

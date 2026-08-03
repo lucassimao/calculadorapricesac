@@ -44,7 +44,7 @@ describe('P3.5 guide content revamp', () => {
   });
 
   it('adds the computed example and screenshots to every guide', () => {
-    expect(guides).toHaveLength(9);
+    expect(guides).toHaveLength(10);
     for (const guide of guides) {
       expect(guide.example).toBe(referenceExample);
       expect(guide.screenshots.length).toBeGreaterThanOrEqual(1);

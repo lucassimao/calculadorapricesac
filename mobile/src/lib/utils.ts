@@ -36,6 +36,14 @@ export function parseLocalDate(text: string): Date | null {
   return null;
 }
 
+/** Format up to eight typed digits as DD/MM/YYYY for numeric mobile keyboards. */
+export function maskDateInput(text: string): string {
+  const digits = text.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 /**
  * Parse a currency string (Brazilian format) to a number.
  * Handles formats like "300000", "300.000,00", "R$ 300.000,00"

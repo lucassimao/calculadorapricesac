@@ -8,9 +8,10 @@ export function UnlockCTA() {
     <div className={styles.unlock}>
       <div className={styles.unlockTitle}>Baixe o app para desbloquear</div>
       <p className={styles.unlockList}>
-        amortizações recorrentes · amortização e portabilidade do contrato atual · FGTS com regras
-        por tipo de uso · comparador amortizar ou investir · seguros MIP e DFI por base real ·
-        custos (IOF, ITBI, cartório) · tabela completa · exportar PDF, XLSX e CSV · salvar cenários
+        assistente que calcula seu melhor plano de amortização — Premium · amortizações recorrentes
+        · amortização e portabilidade do contrato atual · FGTS com regras por tipo de uso ·
+        comparador amortizar ou investir · seguros MIP e DFI por base real · custos (IOF, ITBI,
+        cartório) · tabela completa · exportar PDF, XLSX e CSV · salvar cenários
       </p>
       <AppStoreLink className="" href={appStoreUrl} location="simulator">
         <span

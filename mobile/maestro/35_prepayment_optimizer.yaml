@@ -1,0 +1,116 @@
+appId: com.lsimaocosta.calculadorapricesac
+---
+- runFlow: helpers/launch_dev_client.yaml
+- tapOn:
+    id: tab-premium
+- scrollUntilVisible:
+    element:
+      id: btn-dev-prepare-free-rewarded
+    direction: DOWN
+    timeout: 12000
+    speed: 70
+    visibilityPercentage: 10
+- tapOn:
+    id: btn-dev-prepare-free-rewarded
+- tapOn:
+    id: tab-calculator
+- repeat:
+    times: 20
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: btn-open-prepayment-optimizer
+          commands:
+            - swipe:
+                start: 50%, 88%
+                end: 50%, 30%
+- tapOn:
+    id: btn-open-prepayment-optimizer
+- assertVisible:
+    id: optimizer-goal-payoff-date
+- assertVisible:
+    id: optimizer-goal-minimize-interest
+- assertVisible:
+    id: optimizer-goal-payment-cap
+- scrollUntilVisible:
+    element:
+      id: optimizer-premium-gate
+    direction: DOWN
+    timeout: 8000
+    visibilityPercentage: 10
+- assertVisible:
+    id: optimizer-premium-gate
+- tapOn:
+    id: btn-optimizer-upgrade
+- assertVisible:
+    id: screen-premium
+
+- runFlow: helpers/enable_premium_dev.yaml
+- tapOn:
+    id: tab-calculator
+- repeat:
+    times: 20
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: btn-open-prepayment-optimizer
+          commands:
+            - swipe:
+                start: 50%, 30%
+                end: 50%, 88%
+- tapOn:
+    id: btn-open-prepayment-optimizer
+- assertVisible:
+    id: input-optimizer-target-date
+- tapOn:
+    id: input-optimizer-target-date
+- eraseText
+- inputText: '05082031'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: btn-generate-optimizer-plan
+    direction: DOWN
+    timeout: 8000
+    visibilityPercentage: 30
+- tapOn:
+    id: btn-generate-optimizer-plan
+- scrollUntilVisible:
+    element:
+      id: optimizer-plan-result
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 20
+- assertVisible:
+    id: optimizer-plan-result
+- assertVisible: 'Juros economizados'
+- scrollUntilVisible:
+    element:
+      id: btn-save-optimizer-plan
+    direction: DOWN
+    timeout: 8000
+    visibilityPercentage: 30
+- tapOn:
+    id: btn-save-optimizer-plan
+- assertNotVisible:
+    id: btn-close-optimizer
+- repeat:
+    times: 25
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: scenario-item-0
+          commands:
+            - swipe:
+                start: 50%, 30%
+                end: 50%, 88%
+- assertVisible:
+    id: scenario-item-title-0
+    text: '.*plano otimizado'
+- tapOn:
+    id: btn-optimize-scenario-0
+- assertVisible:
+    id: input-optimizer-target-date

@@ -61,4 +61,16 @@ describe('P3.5 internal links', () => {
       screen.getByRole('link', { name: 'Amortizar ou investir: como decidir →' }),
     ).toHaveAttribute('href', '/guias/amortizar-financiamento-ou-investir');
   });
+
+  it('links the amortization resource back to the goal-based optimizer guide', async () => {
+    render(
+      await ResourcePage({
+        params: Promise.resolve({ slug: 'amortizacao-reduzir-prazo-ou-parcela' }),
+      }),
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Melhor estratégia para amortizar →' }),
+    ).toHaveAttribute('href', '/guias/melhor-estrategia-amortizar-financiamento');
+  });
 });

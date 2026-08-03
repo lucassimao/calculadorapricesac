@@ -941,6 +941,89 @@ export const guides: Guide[] = [
     resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
   },
   {
+    slug: 'melhor-estrategia-amortizar-financiamento',
+    title: 'Qual a melhor estratégia para amortizar o financiamento?',
+    metaTitle: 'Melhor estratégia para amortizar o financiamento',
+    description:
+      'Escolha a estratégia de amortização para quitar até uma data, minimizar juros com seu orçamento ou reduzir a parcela para um teto.',
+    updated: UPDATED,
+    hook: 'Transforme sua meta em valor, data e estratégia de amortização.',
+    intro:
+      'A melhor amortização depende do resultado que você quer. Reduzir prazo costuma economizar mais juros; reduzir parcela alivia o orçamento mensal. Um plano útil precisa recalcular o contrato inteiro, respeitar as datas e mostrar esse custo de escolha.',
+    sections: [
+      {
+        heading: 'Quero quitar até uma data',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Defina a data desejada e procure o menor valor extra recorrente que encerra o saldo até lá. O assistente testa o cronograma completo em centavos e aplica amortizações mensais com a opção reduzir prazo.',
+          },
+          {
+            type: 'callout',
+            text: 'Uma meta anterior à primeira parcela ou incompatível com os limites do contrato deve aparecer como não alcançável — nunca como um plano que promete o impossível.',
+          },
+        ],
+      },
+      {
+        heading: 'Quero minimizar juros com meu orçamento',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Informe quanto pode usar uma vez e/ou todo mês. Para minimizar juros com esse orçamento, amortize quanto antes e escolha reduzir prazo: o saldo devedor fica menor por mais tempo, então gera menos juros ao longo do contrato.',
+          },
+          {
+            type: 'list',
+            items: [
+              'Use o valor único na primeira parcela possível.',
+              'Repita o orçamento mensal enquanto houver saldo.',
+              'Compare juros totais e a nova data de quitação com o cenário sem o plano.',
+            ],
+          },
+        ],
+      },
+      {
+        heading: 'Quero reduzir a parcela para um teto',
+        blocks: [
+          {
+            type: 'p',
+            text: 'Para aliviar o fluxo mensal, o plano calcula uma amortização na primeira data possível usando reduzir parcela. Ele procura o menor valor que mantém as parcelas futuras dentro do teto informado.',
+          },
+          {
+            type: 'p',
+            text: 'O alívio mensal tem um custo: com o mesmo dinheiro, reduzir prazo normalmente termina antes e paga menos juros. Por isso, compare os juros extras da redução de parcela com a estratégia de minimizar juros antes de decidir.',
+          },
+          {
+            type: 'appCta',
+            text: 'Escolha sua meta, gere o plano e salve as amortizações no seu cenário para conferir cada parcela.',
+            label: 'Baixar o app',
+          },
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'É melhor reduzir prazo ou parcela?',
+        a: 'Reduzir prazo tende a minimizar os juros; reduzir parcela tende a aliviar o orçamento mensal. A melhor escolha depende da sua meta e da necessidade de caixa.',
+      },
+      {
+        q: 'Posso combinar uma amortização única com valores mensais?',
+        a: 'Sim. Aplicar o valor único cedo e continuar com extras mensais reduz o saldo por mais tempo. O app expande e recalcula a série até a quitação.',
+      },
+      {
+        q: 'O plano substitui a confirmação do banco?',
+        a: 'Não. Datas, regras contratuais e valores de liquidação podem variar. Use a simulação para planejar e confirme a execução com a instituição financeira.',
+      },
+    ],
+    related: [
+      'amortizar-prazo-ou-parcela',
+      'amortizar-financiamento-ou-investir',
+      'amortizar-ou-portar-financiamento-atual',
+    ],
+    example: referenceExample,
+    screenshots: guideScreenshots.table,
+    resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
+  },
+  {
     slug: 'entrada-financiamento',
     title: 'Quanto de entrada preciso para financiar um imóvel',
     metaTitle: 'Entrada do financiamento: quanto é preciso para financiar',

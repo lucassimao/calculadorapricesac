@@ -8,6 +8,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./optimizer": {
+      "types": "./src/optimizer.ts",
+      "default": "./src/optimizer.ts"
     }
   },
   "peerDependencies": {

@@ -178,4 +178,34 @@ describe('constrained accuracy claims', () => {
     render(<UnlockCTA />);
     expect(screen.getByText(/comparador amortizar ou investir/i)).toBeInTheDocument();
   });
+
+  it('explains goal-based prepayment optimization and advertises the Premium assistant', () => {
+    const guide = guides.find(
+      (candidate) => candidate.slug === 'melhor-estrategia-amortizar-financiamento',
+    );
+    const copy = JSON.stringify(guide);
+
+    expect(guide?.title).toBe('Qual a melhor estratégia para amortizar o financiamento?');
+    expect(guide?.sections.map((section) => section.heading)).toEqual(
+      expect.arrayContaining([
+        'Quero quitar até uma data',
+        'Quero minimizar juros com meu orçamento',
+        'Quero reduzir a parcela para um teto',
+      ]),
+    );
+    expect(copy).toContain('reduzir prazo');
+    expect(copy).toContain('reduzir parcela');
+    expect(copy).toContain('quanto antes');
+    expect(copy).toContain('juros extras');
+    expect(copy).toContain('Baixar o app');
+
+    const { unmount } = render(<Home />);
+    expect(screen.getByText(/plano de amortização para sua meta/i)).toBeInTheDocument();
+    unmount();
+
+    render(<UnlockCTA />);
+    expect(
+      screen.getByText(/assistente que calcula seu melhor plano de amortização — Premium/i),
+    ).toBeInTheDocument();
+  });
 });

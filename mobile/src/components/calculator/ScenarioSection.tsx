@@ -11,6 +11,7 @@ interface ScenarioSectionProps {
   onNew: () => void;
   onLoad: (scenario: Scenario) => void;
   onDelete: (id: string, name: string) => void;
+  onOptimize: (scenario: Scenario) => void;
 }
 
 export function ScenarioSection({
@@ -21,6 +22,7 @@ export function ScenarioSection({
   onNew,
   onLoad,
   onDelete,
+  onOptimize,
 }: ScenarioSectionProps) {
   const { colors } = useTheme();
 
@@ -90,14 +92,27 @@ export function ScenarioSection({
                   {item.system} • {formatCurrency(item.principal)}
                 </Text>
               </Pressable>
-              <Pressable
-                style={[styles.deleteButton, { backgroundColor: colors.errorLight }]}
-                onPress={() => onDelete(item.id, item.name)}
-                accessibilityRole="button"
-                accessibilityLabel={`Excluir cenário ${item.name}`}
-              >
-                <Text style={[styles.deleteButtonText, { color: colors.error }]}>X</Text>
-              </Pressable>
+              <View style={styles.listActions}>
+                <Pressable
+                  style={[styles.optimizeButton, { borderColor: colors.primary }]}
+                  onPress={() => onOptimize(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Otimizar amortização de ${item.name}`}
+                  testID={`btn-optimize-scenario-${index}`}
+                >
+                  <Text style={[styles.optimizeButtonText, { color: colors.primary }]}>
+                    Planejar
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.deleteButton, { backgroundColor: colors.errorLight }]}
+                  onPress={() => onDelete(item.id, item.name)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Excluir cenário ${item.name}`}
+                >
+                  <Text style={[styles.deleteButtonText, { color: colors.error }]}>X</Text>
+                </Pressable>
+              </View>
             </View>
           ))}
         </View>
@@ -171,6 +186,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  listActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
   listTitle: {
     fontSize: 14,
     fontWeight: '500',
@@ -188,5 +208,17 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  optimizeButton: {
+    alignItems: 'center',
+    borderRadius: 6,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 10,
+  },
+  optimizeButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

@@ -18,6 +18,12 @@ import { recordReviewPositiveAction, resetReviewSessionStateForTests } from '../
 import { syncBrandProfileAnalyticsIdentity } from '../brand-profile-analytics';
 import type { Scenario } from '@loan-engine/loan';
 import { trackCalculationPerformed, trackPortabilityCompared } from '../scenario-analytics';
+import {
+  openOptimizerPremiumPaywall,
+  trackOptimizerOpened,
+  trackOptimizerPlanGenerated,
+  trackOptimizerPlanSaved,
+} from '../optimizer-analytics';
 
 const storage = vi.hoisted(() => new Map<string, string>());
 
@@ -259,6 +265,46 @@ describe('typed analytics runtime', () => {
         properties: expect.objectContaining({ source: 'amortizar_investir' }),
       }),
     );
+  });
+
+  it('carries the optimizer gate source into the paywall event', () => {
+    openOptimizerPremiumPaywall();
+    const source = consumePendingPaywallSource();
+    trackEvent('premium_paywall_viewed', {
+      source,
+      nth_view: 1,
+      iap_availability: 'supported',
+      store_connected: true,
+      store_ready: true,
+      purchased_product_count: 0,
+    });
+
+    expect(getAnalyticsDryRunSink()).toContainEqual(
+      expect.objectContaining({
+        event: 'premium_paywall_viewed',
+        properties: expect.objectContaining({ source: 'prepayment_optimizer' }),
+      }),
+    );
+  });
+
+  it('captures optimizer outcomes with buckets instead of raw financial values', () => {
+    trackOptimizerOpened('prepayment_section');
+    trackOptimizerPlanGenerated({
+      goal: 'payoff_by_date',
+      budget: 2_000,
+      horizonMonths: 60,
+      interestSaved: 25_000,
+    });
+    trackOptimizerPlanSaved('payoff_by_date');
+
+    const events = getAnalyticsDryRunSink();
+    expect(events.map(({ event }) => event)).toEqual([
+      'optimizer_opened',
+      'optimizer_plan_generated',
+      'optimizer_plan_saved',
+    ]);
+    expect(JSON.stringify(events)).not.toContain('amount');
+    expect(JSON.stringify(events)).not.toContain('interest_saved":');
   });
 
   it('omits the break-even month when a portability comparison has no break-even', () => {

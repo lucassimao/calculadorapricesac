@@ -279,6 +279,13 @@ export default function Home() {
             </p>
           </div>
           <div className={styles.featureCard}>
+            <div className={styles.featureTitle}>Plano para sua meta</div>
+            <p className={styles.featureText}>
+              Receba um plano de amortização para sua meta: quitar antes, economizar juros ou
+              reduzir a parcela.
+            </p>
+          </div>
+          <div className={styles.featureCard}>
             <div className={styles.featureTitle}>Contrato atual</div>
             <p className={styles.featureText}>
               Já tem um financiamento? Simule amortização e portabilidade.
@@ -354,6 +361,7 @@ export default function Home() {
             <span>• Exportação em PDF, XLSX e CSV</span>
             <span>• Mais cenários salvos</span>
             <span>• Comparador amortizar ou investir</span>
+            <span>• Assistente de plano de amortização</span>
             <span>• Experiência sem anúncios</span>
           </div>
         </div>
