@@ -163,6 +163,15 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         </Link>
       </div>
 
+      <div className={styles.cta}>
+        <span className={styles.ctaText}>
+          Veja esta funcionalidade em uma visita rápida pelo app.
+        </span>
+        <Link className={styles.ctaButton} href={`/recursos/${guide.resourceSlug}`}>
+          Ver recurso relacionado
+        </Link>
+      </div>
+
       {guide.sections.map((section, i) => (
         <section key={i} className={styles.section}>
           <h2>{section.heading}</h2>

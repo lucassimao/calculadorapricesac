@@ -147,6 +147,7 @@ export default function RootLayout({
             <div className={styles.footerInner}>
               <div>© 2026 Calculadora Price &amp; SAC. Todos os direitos reservados.</div>
               <div className={styles.footerLinks}>
+                <Link href="/guias">Guias</Link>
                 <Link href="/privacidade">Privacidade</Link>
                 <Link href="/termos">Termos de Uso</Link>
                 <Link href="/suporte">Suporte</Link>

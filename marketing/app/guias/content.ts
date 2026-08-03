@@ -35,6 +35,8 @@ export interface Guide {
   sections: Section[];
   faq: Faq[];
   related: string[];
+  /** Closest product-tour page in /recursos, created by P3.4. */
+  resourceSlug: string;
 }
 
 const UPDATED = '2026-06-02';
@@ -126,6 +128,7 @@ export const guides: Guide[] = [
       },
     ],
     related: ['tabela-price', 'amortizar-prazo-ou-parcela', 'o-que-e-cet'],
+    resourceSlug: 'simulador-sac-ou-price',
   },
   {
     slug: 'o-que-e-cet',
@@ -225,6 +228,7 @@ export const guides: Guide[] = [
       },
     ],
     related: ['sac-ou-price', 'entrada-financiamento', 'fgts-no-financiamento'],
+    resourceSlug: 'cet-custo-real-financiamento',
   },
   {
     slug: 'fgts-no-financiamento',
@@ -328,6 +332,7 @@ export const guides: Guide[] = [
       },
     ],
     related: ['entrada-financiamento', 'amortizar-prazo-ou-parcela', 'sac-ou-price'],
+    resourceSlug: 'fgts-no-financiamento-simulador',
   },
   {
     slug: 'tabela-price',
@@ -399,6 +404,7 @@ export const guides: Guide[] = [
       },
     ],
     related: ['sac-ou-price', 'amortizar-prazo-ou-parcela', 'o-que-e-cet'],
+    resourceSlug: 'financiamento-de-veiculo-tabela-price',
   },
   {
     slug: 'amortizar-prazo-ou-parcela',
@@ -488,6 +494,7 @@ export const guides: Guide[] = [
       },
     ],
     related: ['sac-ou-price', 'fgts-no-financiamento', 'tabela-price'],
+    resourceSlug: 'amortizacao-reduzir-prazo-ou-parcela',
   },
   {
     slug: 'entrada-financiamento',
@@ -551,6 +558,7 @@ export const guides: Guide[] = [
       },
     ],
     related: ['o-que-e-cet', 'fgts-no-financiamento', 'sac-ou-price'],
+    resourceSlug: 'renda-para-financiar-imovel',
   },
 ];
 

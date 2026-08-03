@@ -5,6 +5,7 @@ import styles from './page.module.css';
 import { siteUrl } from './site-url';
 import { AppStoreLink } from './AppStoreLink';
 import { Simulator } from './components/Simulator/Simulator';
+import { guides } from './guias/content';
 
 const appStoreUrl = 'https://apps.apple.com/br/app/calculadora-sac-price/id6757717537';
 
@@ -134,6 +135,32 @@ export default function Home() {
         <div className={styles.heroCard}>
           <Simulator />
         </div>
+      </section>
+
+      <div className={styles.sectionDivider} />
+
+      <section className={styles.section} aria-labelledby="guides-title">
+        <div>
+          <h2 id="guides-title" className={styles.sectionTitle}>
+            Guias de financiamento imobiliário
+          </h2>
+          <p className={styles.sectionLead}>
+            Entenda SAC, Price, CET, FGTS e amortização antes de simular. Nossos guias explicam o
+            que aparece na tela e ajudam você a comparar propostas.
+          </p>
+        </div>
+        <div className={styles.guideGrid}>
+          {guides.map((guide) => (
+            <Link key={guide.slug} className={styles.guideCard} href={`/guias/${guide.slug}`}>
+              <span className={styles.guideCardTitle}>{guide.title}</span>
+              <span className={styles.guideCardText}>{guide.hook}</span>
+              <span className={styles.guideCardMore}>Ler guia →</span>
+            </Link>
+          ))}
+        </div>
+        <Link className={styles.guidesLink} href="/guias" aria-label="Guias">
+          Ver todos os guias →
+        </Link>
       </section>
 
       <div className={styles.sectionDivider} />
